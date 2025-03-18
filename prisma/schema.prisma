@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  metaAccountId String?   @unique
+  walletAddress String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  accounts      Account[]
+  createdContent Content[]     @relation("CreatedBy")
+  consumedContent ContentUsage[]
+  payments      Payment[]      @relation("PaidBy")
+  earnings      Payment[]      @relation("PaidTo")
+  
+  // Flags
+  isCreator     Boolean        @default(false)
+  isAdmin       Boolean        @default(false)
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Content {
+  id            String        @id @default(cuid())
+  title         String
+  description   String
+  type          ContentType
+  status        ContentStatus @default(DRAFT)
+  price         Float
+  pricingModel  PricingModel  @default(PER_USE)
+  creatorId     String
+  creator       User          @relation("CreatedBy", fields: [creatorId], references: [id])
+  thumbnail     String?
+  contentUrl    String?
+  previewUrl    String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // Relations
+  usages        ContentUsage[]
+  payments      Payment[]
+  
+  // Metrics
+  viewCount     Int           @default(0)
+  purchaseCount Int           @default(0)
+  
+  @@index([creatorId])
+  @@index([type])
+}
+
+model ContentUsage {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  contentId       String
+  content         Content  @relation(fields: [contentId], references: [id])
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  duration        Int?     // In seconds
+  progress        Float?   // 0-100%
+  lastPosition    String?  // For resuming (e.g., video timestamp, page number)
+  paymentId       String?
+  payment         Payment? @relation(fields: [paymentId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, contentId])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  fromUserId      String
+  fromUser        User          @relation("PaidBy", fields: [fromUserId], references: [id])
+  toUserId        String
+  toUser          User          @relation("PaidTo", fields: [toUserId], references: [id])
+  contentId       String?
+  content         Content?      @relation(fields: [contentId], references: [id])
+  amount          Float
+  currency        String        @default("USD")
+  status          PaymentStatus @default(PENDING)
+  transactionHash String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  usages          ContentUsage[]
+  
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([contentId])
+}
+
+enum ContentType {
+  ARTICLE
+  VIDEO
+  COURSE
+  SOFTWARE
+  AUDIO
+  EBOOK
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PricingModel {
+  PER_USE
+  PER_MINUTE
+  PER_WORD
+  PER_FEATURE
+  PER_SECTION
+  CUSTOM
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+} 
