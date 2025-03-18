@@ -1,5 +1,7 @@
 import { prisma } from '../db/client';
-
+export const treasuryConfig = {
+  treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+};
 export const xionService = {
   // Store user's XION account info
   async storeUserAccount(userId: string, accountAddress: string) {

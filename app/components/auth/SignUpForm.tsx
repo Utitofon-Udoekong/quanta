@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { createMetaAccount } from '@/app/lib/xion/accounts';
+import { xionService } from '@/app/lib/services/xion';
 
 const signUpSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -45,7 +45,7 @@ export function SignUpForm() {
       const { userId } = await response.json();
 
       // Create Meta Account
-      await createMetaAccount(userId, data.email);
+      await xionService.storeUserAccount(userId, data.email);
 
       // Redirect to dashboard
       router.push('/dashboard');

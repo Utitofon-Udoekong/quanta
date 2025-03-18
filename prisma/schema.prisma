@@ -63,7 +63,8 @@ model Content {
   thumbnail     String?
   contentUrl    String?
   previewUrl    String?
-  metadata      Json?
+  metadata      Metadata?     @relation(fields: [metadataId], references: [id])
+  metadataId    String?      @unique
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
@@ -77,6 +78,42 @@ model Content {
   
   @@index([creatorId])
   @@index([type])
+}
+
+model Metadata {
+  id            String    @id @default(cuid())
+  // Common fields
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Article specific
+  readTime      String?
+  wordCount     Int?
+  excerpt       String?   @db.Text
+  tags         String[]   @default([])
+
+  // Video specific
+  duration      String?
+  resolution    String?
+  format        String?
+  fps           Int?
+  bitrate       String?
+
+  // Course specific
+  chapterCount  Int?
+  level         Level?
+  prerequisites String[]  @default([])
+  syllabus     String[]  @default([])
+
+  // Software specific
+  version       String?
+  platform      String[]  @default([])
+  requirements  String[]  @default([])
+  features      String[]  @default([])
+  installGuide  String?   @db.Text
+
+  // Relation to Content
+  content       Content?
 }
 
 model ContentUsage {
@@ -151,4 +188,10 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 } 
