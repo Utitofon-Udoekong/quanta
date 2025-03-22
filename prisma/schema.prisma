@@ -63,8 +63,8 @@ model Content {
   thumbnail     String?
   contentUrl    String?
   previewUrl    String?
-  metadata      Metadata?     @relation(fields: [metadataId], references: [id])
-  metadataId    String?      @unique
+  metadata      Metadata      @relation(fields: [metadataId], references: [id])
+  metadataId    String       @unique
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
@@ -85,6 +85,9 @@ model Metadata {
   // Common fields
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  thumbnailKey  String?
+  contentKey    String?
+  previewKey    String?
 
   // Article specific
   readTime      String?

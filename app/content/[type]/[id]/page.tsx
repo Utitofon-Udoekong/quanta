@@ -2,8 +2,13 @@
 import { notFound } from 'next/navigation';
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { ContentPlayer } from '@/app/components/content/ContentPlayer';
-import { ContentType } from '@prisma/client';
+import { ContentType, Content, Metadata, User } from '@prisma/client';
 import { useEffect, useState } from 'react';
+
+type ContentWithMetadata = Content & {
+  metadata: Metadata;
+  creator: User;
+};
 
 interface ContentPageProps {
   params: {
@@ -16,17 +21,24 @@ export default function ContentPage({ params }: ContentPageProps) {
   const { type, id } = params;
   const { data: account } = useAbstraxionAccount();
   const { client } = useAbstraxionSigningClient();
-  const [content, setContent] = useState<any>(null);
+  const [content, setContent] = useState<ContentWithMetadata | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
         const response = await fetch(`/api/content/${id}`);
-        const data = await response.json();
-        setContent(data);
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch content');
+        }
+        
+        setContent(result.data);
       } catch (error) {
         console.error('Error fetching content:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch content');
       } finally {
         setLoading(false);
       }
@@ -64,8 +76,15 @@ export default function ContentPage({ params }: ContentPageProps) {
     );
   }
 
-  if (!content) {
-    notFound();
+  if (error || !content) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-red-600 mb-4">Error</h1>
+          <p className="text-gray-600">{error || 'Content not found'}</p>
+        </div>
+      </div>
+    );
   }
 
   return (

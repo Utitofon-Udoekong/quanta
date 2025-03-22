@@ -1,20 +1,62 @@
 import { useState, useCallback, useRef } from 'react';
-import { Content, Metadata } from '@/app/types/content';
+import { Content, Metadata, User } from '@prisma/client';
 import { fetchApi, ApiError } from '@/app/lib/fetch';
+import useSWR from 'swr';
+
+// This type represents what we get from Prisma when we include relations
+type ContentWithRelations = Content & {
+  metadata: Metadata;
+  creator: User;
+};
+
+type ApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
 
 interface UseContentOptions {
-  onError?: (error: Error) => void;
+  onSuccess?: (data: ContentWithRelations) => void;
+  onError?: (error: string) => void;
 }
 
-export function useContent(options: UseContentOptions = {}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+interface CreateContentData {
+  title: string;
+  description: string;
+  type: string;
+  price: number;
+  pricingModel: string;
+  status: string;
+  thumbnail?: string;
+  contentUrl?: string;
+  previewUrl?: string;
+  creatorId: string;
+  metadata: Metadata;
+}
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.error);
+  }
+  return data.data;
+};
+
+export function useContent(contentId?: string, options: UseContentOptions = {}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const lastFetchRef = useRef<{ [key: string]: number }>({});
   const DEBOUNCE_MS = 50000; // 5 seconds debounce
 
+  const { data: content, mutate } = useSWR<ContentWithRelations>(
+    contentId ? `/api/content/${contentId}` : null,
+    fetcher
+  );
+
   const handleError = useCallback((error: Error) => {
-    setError(error);
-    options.onError?.(error);
+    setError(error.message);
+    options.onError?.(error.message);
   }, [options.onError]);
 
   const shouldFetch = useCallback((key: string) => {
@@ -32,129 +74,152 @@ export function useContent(options: UseContentOptions = {}) {
   const fetchAllContent = useCallback(async () => {
     if (!shouldFetch('all')) return;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const data = await fetchApi<Content[]>('/api/content');
+      const data = await fetchApi<ContentWithRelations[]>('/api/content');
       return data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An error occurred');
       handleError(error);
       throw error;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [handleError, shouldFetch]);
 
   const fetchCreatorContent = useCallback(async (creatorId: string) => {
     if (!shouldFetch(`creator-${creatorId}`)) return;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const data = await fetchApi<Content[]>(`/api/dashboard/content?creatorId=${creatorId}`);
+      const data = await fetchApi<ContentWithRelations[]>(`/api/dashboard/content?creatorId=${creatorId}`);
       return data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An error occurred');
       handleError(error);
       throw error;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [handleError, shouldFetch]);
 
   const fetchContentById = useCallback(async (id: string) => {
     if (!shouldFetch(`content-${id}`)) return;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const data = await fetchApi<Content>(`/api/content/${id}`);
+      const data = await fetchApi<ContentWithRelations>(`/api/content/${id}`);
       return data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('An error occurred');
       handleError(error);
       throw error;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, [handleError, shouldFetch]);
 
-  const createContent = useCallback(async (data: Omit<Content, 'id' | 'creator' | 'metadata' | 'createdAt' | 'updatedAt' | 'viewCount' | 'purchaseCount'>) => {
-    setLoading(true);
+  const createContent = async (data: CreateContentData): Promise<ContentWithRelations | null> => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const result = await fetchApi<Content>('/api/content', {
+      const response = await fetch('/api/content', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(data),
       });
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An error occurred');
-      handleError(error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [handleError]);
 
-  const updateContent = useCallback(async (id: string, data: Partial<Content>) => {
-    setLoading(true);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create content');
+      }
+
+      options.onSuccess?.(result.data);
+      return result.data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to create content');
+      setError(error.message);
+      options.onError?.(error.message);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateContent = async (
+    id: string,
+    data: Partial<CreateContentData>
+  ): Promise<ContentWithRelations | null> => {
     try {
-      const result = await fetchApi<Content>(`/api/content/${id}`, {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/content/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An error occurred');
-      handleError(error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [handleError]);
 
-  const updateMetadata = useCallback(async (contentId: string, data: Partial<Metadata>) => {
-    setLoading(true);
-    try {
-      const result = await fetchApi<Metadata>(`/api/content/${contentId}/metadata`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('An error occurred');
-      handleError(error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [handleError]);
+      const result: ApiResponse<ContentWithRelations> = await response.json();
 
-  const deleteContent = useCallback(async (id: string) => {
-    setLoading(true);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Failed to update content');
+      }
+
+      await mutate(result.data);
+      options.onSuccess?.(result.data);
+      return result.data;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      options.onError?.(errorMessage);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteContent = async (id: string): Promise<boolean> => {
     try {
-      await fetchApi<void>(`/api/content/${id}`, {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/content/${id}`, {
         method: 'DELETE',
       });
+
+      const result: ApiResponse<void> = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete content');
+      }
+
+      await mutate(undefined);
+      return true;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('An error occurred');
-      handleError(error);
-      throw error;
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      options.onError?.(errorMessage);
+      return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [handleError]);
+  };
 
   return {
-    loading,
+    content,
+    isLoading,
     error,
     fetchAllContent,
     fetchCreatorContent,
     fetchContentById,
     createContent,
     updateContent,
-    updateMetadata,
     deleteContent,
+    mutate,
   };
 } 

@@ -1,6 +1,6 @@
 "use client";
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Content } from '@/app/types/content';
+import { Content } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import { Button } from "@burnt-labs/ui";
 import Link from 'next/link';
@@ -26,12 +26,12 @@ export default function DashboardPage() {
   });
 
   const { 
-    loading, 
+    isLoading, 
     error, 
     fetchCreatorContent,
     deleteContent: deleteContentById
-  } = useContent({
-    onError: (error) => console.error('Dashboard error:', error)
+  } = useContent(account?.bech32Address || '', {
+    onError: (error: any) => console.error('Dashboard error:', error)
   });
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

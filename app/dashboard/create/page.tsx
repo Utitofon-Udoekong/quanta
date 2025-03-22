@@ -1,293 +1,273 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Button } from "@burnt-labs/ui";
+import { useSession } from 'next-auth/react';
 import { useContent } from '@/app/hooks/use-content';
-import { VideoCameraIcon, NewspaperIcon, AcademicCapIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
-import { PricingModel, ContentType } from '@prisma/client';
-
-const contentTypes = [
-  { id: ContentType.VIDEO, name: 'Video', icon: VideoCameraIcon },
-  { id: ContentType.ARTICLE, name: 'Article', icon: NewspaperIcon },
-  { id: ContentType.COURSE, name: 'Course', icon: AcademicCapIcon },
-  { id: ContentType.SOFTWARE, name: 'Software', icon: CodeBracketIcon },
-];
+import { createMetadata } from '@/app/lib/metadata';
+import { ContentType, PricingModel, ContentStatus, Metadata } from '@prisma/client';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Select } from '@/app/components/ui/select';
+import { FileUpload } from '@/app/components/ui/file-upload';
+import { toast } from '@/app/components/ui/toast';
 
 export default function CreateContentPage() {
   const router = useRouter();
-  const { data: account } = useAbstraxionAccount();
-  const [selectedType, setSelectedType] = useState<ContentType | null>(null);
-  const [formData, setFormData] = useState<{
-    title: string;
-    description: string;
-    price: number;
-    thumbnail: string;
-    contentUrl: string;
-    previewUrl: string;
-    pricingModel: PricingModel;
-  }>({
+  const { data: session } = useSession();
+  const { createContent, isLoading, error } = useContent();
+
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
+    type: ContentType.VIDEO,
     price: 0,
+    pricingModel: PricingModel.FREE,
+    status: ContentStatus.DRAFT,
     thumbnail: '',
-    pricingModel: PricingModel.PER_USE,
     contentUrl: '',
     previewUrl: '',
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const { createContent } = useContent({
-    onError: (error) => {
-      setError(error.message);
-      setLoading(false);
-    }
-  });
-
-  if (!account?.bech32Address) {
-    return (
-      <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-200 mb-2">Connect Your Wallet</h2>
-          <p className="text-gray-400 mb-4">Please connect your wallet to create content.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedType) return;
-
-    setLoading(true);
-    setError(null);
+    if (!session?.user?.id) {
+      toast('You must be logged in to create content', 'error');
+      return;
+    }
 
     try {
-      await createContent({
-        ...formData,
-        type: selectedType,
-        creatorId: account.bech32Address,
-        status: 'DRAFT',
-        metadataId: null, 
-        pricingModel: formData.pricingModel as PricingModel,
+      const metadata = createMetadata(formData.type, {
+        thumbnail: formData.thumbnail,
+        contentUrl: formData.contentUrl,
+        previewUrl: formData.previewUrl,
       });
-      router.push('/dashboard');
-    } catch (error) {
-      // Error is handled by the hook
+      const content = await createContent({
+        ...formData,
+        creatorId: session.user.id,
+        metadata: metadata as Metadata,
+      });
+
+      if (content) {
+        toast('Content created successfully', 'success');
+        router.push(`/dashboard/content/${content.id}`);
+      } else {
+        toast('Failed to create content', 'error');
+      }
+    } catch (err) {
+      toast('An error occurred while creating content', 'error');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#0A0C10] text-white py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Create New Content</h1>
-          <p className="text-gray-400">Choose a content type and fill in the details</p>
-        </div>
-        {!selectedType ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {contentTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <button
-                  key={type.id}
-                  onClick={() => setSelectedType(type.id)}
-                  className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-lg">{type.name}</h3>
-                      <p className="text-sm text-gray-400">
-                        {type.id === ContentType.VIDEO && 'Upload and monetize your videos'}
-                        {type.id === ContentType.ARTICLE && 'Create premium articles and tutorials'}
-                        {type.id === ContentType.COURSE && 'Design and sell online courses'}
-                        {type.id === ContentType.SOFTWARE && 'Share and monetize your software'}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  {(() => {
-                    const Icon = contentTypes.find(t => t.id === selectedType)?.icon;
-                    return Icon && (
-                      <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
-                        <Icon className="w-6 h-6 text-blue-400" />
-                      </div>
-                    );
-                  })()}
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {contentTypes.find(t => t.id === selectedType)?.name}
-                    </h2>
-                    <p className="text-gray-400">Fill in the content details</p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  structure="base"
-                  className="text-gray-400 hover:text-white"
-                  onClick={() => setSelectedType(null)}
-                >
-                  Change Type
-                </Button>
-              </div>
+  const handleFileUpload = (key: string, url: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [key]: url,
+    }));
+  };
 
-                
-              <div className="space-y-8">
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0A0C10] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold">Create New Content</h1>
+            <p className="text-gray-400">Fill in the details to create your content</p>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            className="bg-gray-700 hover:bg-gray-600"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+
+        {/* Form */}
+        <div className="max-w-3xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 p-6">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-200">
                     Title
                   </label>
-                  <input
-                    type="text"
-                    required
+                  <Input
+                    id="title"
+                    name="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full block bg-[#0A0C10]/50 p-4 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter content title"
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-200">
                     Description
                   </label>
-                  <textarea
-                    required
+                  <Textarea
+                    id="description"
+                    name="description"
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-[#0A0C10]/50 border-2 resize-none border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[200px]"
-                    // rows={6}
-                    placeholder="Describe your content"
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={4}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
+                  <label htmlFor="type" className="block text-sm font-medium text-gray-200">
+                    Type
+                  </label>
+                  <Select
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Object.values(ContentType).map(type => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor="price" className="block text-sm font-medium text-gray-200">
+                    Price
+                  </label>
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="pricingModel" className="block text-sm font-medium text-gray-200">
                     Pricing Model
                   </label>
-                  <select
+                  <Select
+                    id="pricingModel"
+                    name="pricingModel"
                     value={formData.pricingModel}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      pricingModel: e.target.value as PricingModel,
-                      price: e.target.value === PricingModel.FREE ? 0 : formData.price 
-                    })}
-                    className="w-full bg-[#0A0C10]/50 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value={PricingModel.FREE}>Free</option>
-                    <option value={PricingModel.PER_USE}>Per Use</option>
-                    <option value={PricingModel.PER_MINUTE}>Per Minute</option>
-                    <option value={PricingModel.PER_WORD}>Per Word</option>
-                    <option value={PricingModel.PER_FEATURE}>Per Feature</option>
-                    <option value={PricingModel.PER_SECTION}>Per Section</option>
-                    <option value={PricingModel.CUSTOM}>Custom</option>
-                  </select>
+                    {Object.values(PricingModel).map(model => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
 
-                {formData.pricingModel !== PricingModel.FREE && (
-                  <div>
-                    <label className="block text-lg font-medium text-white mb-4">
-                      Price (USD)
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                      className="w-full bg-[#0A0C10]/50 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-200">
+                    Status
+                  </label>
+                  <Select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {Object.values(ContentStatus).map(status => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
 
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
-                    Thumbnail URL
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Thumbnail
                   </label>
-                  <input
-                    type="url"
-                    value={formData.thumbnail}
-                    onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                    className="w-full bg-[#0A0C10]/50 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://example.com/thumbnail.jpg"
+                  <FileUpload
+                    onUploadComplete={key => handleFileUpload('thumbnail', key)}
+                    prefix="thumbnails"
+                    accept={{
+                      'image/*': ['.png', '.jpg', '.jpeg', '.gif']
+                    }}
+                    maxSize={5 * 1024 * 1024} // 5MB
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
-                    Content URL
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Content File
                   </label>
-                  <input
-                    type="url"
-                    required
-                    value={formData.contentUrl}
-                    onChange={(e) => setFormData({ ...formData, contentUrl: e.target.value })}
-                    className="w-full bg-[#0A0C10]/50 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://example.com/content"
+                  <FileUpload
+                    onUploadComplete={key => handleFileUpload('contentUrl', key)}
+                    prefix="content"
+                    accept={{
+                      'video/*': ['.mp4', '.webm', '.ogg'],
+                      'audio/*': ['.mp3', '.wav', '.ogg'],
+                      'application/pdf': ['.pdf'],
+                      'text/markdown': ['.md'],
+                      'text/plain': ['.txt'],
+                      'application/zip': ['.zip']
+                    }}
+                    maxSize={100 * 1024 * 1024} // 100MB
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg font-medium text-white mb-4">
-                    Preview URL (Optional)
+                  <label className="block text-sm font-medium text-gray-200 mb-2">
+                    Preview File
                   </label>
-                  <input
-                    type="url"
-                    value={formData.previewUrl}
-                    onChange={(e) => setFormData({ ...formData, previewUrl: e.target.value })}
-                    className="w-full bg-[#0A0C10]/50 border-2 border-gray-600 rounded-md text-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://example.com/preview"
+                  <FileUpload
+                    onUploadComplete={key => handleFileUpload('previewUrl', key)}
+                    prefix="previews"
+                    accept={{
+                      'video/*': ['.mp4', '.webm', '.ogg'],
+                      'audio/*': ['.mp3', '.wav', '.ogg'],
+                      'application/pdf': ['.pdf'],
+                      'text/markdown': ['.md'],
+                      'text/plain': ['.txt'],
+                      'application/zip': ['.zip']
+                    }}
+                    maxSize={50 * 1024 * 1024} // 50MB
                   />
                 </div>
-              </div>
-
-              {error && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
-                  {error}
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  structure="base"
-                  className="bg-gray-700 hover:bg-gray-600"
-                  onClick={() => router.push('/dashboard')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  structure="base"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating...' : 'Create Content'}
-                </Button>
               </div>
             </div>
+
+            <div className="flex justify-end">
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+              >
+                {isLoading ? 'Creating...' : 'Create Content'}
+              </Button>
+            </div>
+
+            {error && (
+              <div className="text-red-400 text-sm mt-2">{error}</div>
+            )}
           </form>
-        )}
+        </div>
       </div>
     </div>
   );

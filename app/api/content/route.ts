@@ -1,75 +1,123 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
-import { Content } from '@/app/types/content';
-import { ApiResponse } from '@/app/types/api';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/app/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/lib/auth';
+import { Content, Metadata, ContentType, ContentStatus } from '@prisma/client';
 
-export async function GET(): Promise<NextResponse<ApiResponse<Content[]>>> {
+type ApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<Content[]>>> {
   try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type');
+    const creatorId = searchParams.get('creatorId');
+    const status = searchParams.get('status');
     const content = await prisma.content.findMany({
       where: {
-        status: 'PUBLISHED'
+        ...(type && { type: type as ContentType }),
+        ...(creatorId && { creatorId }),
+        ...(status && { status: status as ContentStatus }),
       },
       include: {
-        creator: true,
         metadata: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: content,
-      message: 'Content retrieved successfully'
-    });
+    return NextResponse.json({ success: true, data: content });
   } catch (error) {
     console.error('Error fetching content:', error);
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: 'Failed to fetch content',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch content' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request): Promise<NextResponse<ApiResponse<Content>>> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ApiResponse<Content & { metadata: Metadata }>>> {
   try {
-    const body = await request.json();
-    const { title, description, type, price, creatorId, thumbnail, contentUrl, previewUrl } = body;
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
+    const data = await request.json();
+    const {
+      title,
+      description,
+      type,
+      price,
+      pricingModel,
+      creatorId,
+      status,
+      thumbnail,
+      contentUrl,
+      previewUrl,
+      metadata,
+    } = data;
+
+    // Create metadata first
+    const createdMetadata = await prisma.metadata.create({
+      data: {
+        ...metadata,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create content with metadata reference
     const content = await prisma.content.create({
       data: {
         title,
         description,
         type,
         price,
+        pricingModel,
         creatorId,
+        status,
         thumbnail,
         contentUrl,
         previewUrl,
+        metadataId: createdMetadata.id,
       },
       include: {
-        creator: true,
         metadata: true,
-      }
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: content,
-      message: 'Content created successfully'
-    });
+    return NextResponse.json({ success: true, data: content });
   } catch (error) {
     console.error('Error creating content:', error);
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: 'Failed to create content',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to create content' },
+      { status: 500 }
+    );
   }
 } 

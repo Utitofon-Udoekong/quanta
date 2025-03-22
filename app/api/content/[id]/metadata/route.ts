@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db/client';
-import { Metadata } from '@/app/types/content';
+import { Metadata } from '@prisma/client';
 import { ApiResponse } from '@/app/types/api';
 
 interface RouteParams {

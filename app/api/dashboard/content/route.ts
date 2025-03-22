@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db/client';
-import { Content } from '@/app/types/content';
+import { Content } from '@prisma/client';
 
 export async function GET(request: Request): Promise<NextResponse<Content[] | { error: string }>> {
   try {

@@ -8,8 +8,13 @@ import { Button } from "@burnt-labs/ui";
 import { Menu, Transition, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
 import { Fragment } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
-import { Content } from './types/content';
+import { Content, Metadata, User } from '@prisma/client';
 import { useContent } from './hooks/use-content';
+
+type ContentWithRelations = Content & {
+  metadata: Metadata;
+  creator: User;
+};
 
 // Categories with proper spacing
 const categories = [
@@ -24,22 +29,24 @@ export default function LandingPage() {
   const { data: account } = useAbstraxionAccount();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAccountCreation, setShowAccountCreation] = useState(false);
-  const [content, setContent] = useState<Content[]>([]);
-  const { loading, error, fetchAllContent } = useContent({
-    onError: (error) => console.error('Failed to fetch content:', error)
+  const [content, setContent] = useState<ContentWithRelations[]>([]);
+  const { isLoading, error, fetchAllContent } = useContent(undefined, {
+    onError: (error: string) => console.error('Failed to fetch content:', error)
   });
 
   useEffect(() => {
     const loadContent = async () => {
       try {
         const data = await fetchAllContent();
-        setContent(data || []);
+        if (data) {
+          setContent(data);
+        }
       } catch (error) {
         // Error is already handled by the hook
       }
     };
 
-    // loadContent();
+    loadContent();
   }, [fetchAllContent]);
 
   // Filter content based on selected category
@@ -47,7 +54,7 @@ export default function LandingPage() {
     ? content 
     : content.filter(item => item.type.toLowerCase() === selectedCategory);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -60,7 +67,7 @@ export default function LandingPage() {
       <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h2>
-          <p className="text-gray-400">{error.message}</p>
+          <p className="text-gray-400">{error}</p>
         </div>
       </div>
     );

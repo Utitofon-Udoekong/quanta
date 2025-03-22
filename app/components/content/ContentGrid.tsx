@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Content } from '@/app/types/content';
-import { ContentType } from '@prisma/client';
+import { ContentType, Content } from '@prisma/client';
 
 interface ContentGridProps {
   initialContent: Content[];
@@ -50,7 +49,7 @@ export function ContentGrid({ initialContent, type }: ContentGridProps) {
                 ${item.price.toFixed(2)}
               </span>
               <span className="text-sm text-gray-500">
-                by {item.creator.name}
+                by {item.creatorId}
               </span>
             </div>
           </div>

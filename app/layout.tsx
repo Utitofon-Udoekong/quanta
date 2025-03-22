@@ -6,7 +6,7 @@ import "@burnt-labs/abstraxion/dist/index.css";
 import "@burnt-labs/ui/dist/index.css";
 import { XionProvider } from './components/xion/XionProvider';
 import { treasuryConfig } from './lib/services/xion';
-
+import { SessionProvider } from 'next-auth/react';
 const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <AbstraxionProvider config={treasuryConfig}>
           <XionProvider>
-            {children}
+            <SessionProvider>
+              {children}
+            </SessionProvider>
           </XionProvider>
         </AbstraxionProvider>
       </body>
