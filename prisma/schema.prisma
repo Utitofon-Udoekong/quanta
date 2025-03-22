@@ -175,6 +175,7 @@ enum ContentStatus {
 }
 
 enum PricingModel {
+  FREE
   PER_USE
   PER_MINUTE
   PER_WORD

@@ -1,19 +1,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Content } from '@/app/types/content';
 import { ContentType } from '@prisma/client';
-
-interface Content {
-  id: string;
-  title: string;
-  description: string;
-  type: ContentType;
-  price: number;
-  thumbnail?: string;
-  creator: {
-    name: string;
-  };
-}
 
 interface ContentGridProps {
   initialContent: Content[];

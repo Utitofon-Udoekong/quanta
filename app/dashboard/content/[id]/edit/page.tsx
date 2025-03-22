@@ -1,0 +1,275 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
+import { Button } from "@burnt-labs/ui";
+import { Content } from '@/app/types/content';
+
+interface ContentEditPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function ContentEditPage({ params }: ContentEditPageProps) {
+  const router = useRouter();
+  const { data: account } = useAbstraxionAccount();
+  const [content, setContent] = useState<Content | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: 0,
+    thumbnail: '',
+    contentUrl: '',
+    previewUrl: '',
+    status: 'DRAFT',
+  });
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const response = await fetch(`/api/content/${params.id}`);
+        if (!response.ok) throw new Error('Failed to fetch content');
+        const data = await response.json();
+        
+        setContent(data);
+        setFormData({
+          title: data.title,
+          description: data.description,
+          price: data.price,
+          thumbnail: data.thumbnail || '',
+          contentUrl: data.contentUrl || '',
+          previewUrl: data.previewUrl || '',
+          status: data.status,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (account?.bech32Address) {
+      fetchContent();
+    }
+  }, [account?.bech32Address, params.id]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/content/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update content');
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!account?.bech32Address) {
+    return (
+      <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-200 mb-2">Connect Your Wallet</h2>
+          <p className="text-gray-400 mb-4">Please connect your wallet to edit content.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!content) {
+    return (
+      <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center p-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-400 mb-2">Content Not Found</h2>
+          <p className="text-gray-400 mb-4">The content you're trying to edit doesn't exist or you don't have permission to edit it.</p>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            structure="base"
+            className="bg-gray-700 hover:bg-gray-600"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0A0C10] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold">Edit Content</h1>
+            <p className="text-gray-400">Update your content details</p>
+          </div>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            structure="base"
+            className="bg-gray-700 hover:bg-gray-600"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+
+        {/* Edit Form */}
+        <div className="max-w-3xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 p-6">
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-200">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-200">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    required
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={4}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="price" className="block text-sm font-medium text-gray-200">
+                    Price (USD)
+                  </label>
+                  <input
+                    type="number"
+                    id="price"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-200">
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="PUBLISHED">Published</option>
+                    <option value="ARCHIVED">Archived</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-200">
+                    Thumbnail URL
+                  </label>
+                  <input
+                    type="url"
+                    id="thumbnail"
+                    value={formData.thumbnail}
+                    onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="contentUrl" className="block text-sm font-medium text-gray-200">
+                    Content URL
+                  </label>
+                  <input
+                    type="url"
+                    id="contentUrl"
+                    required
+                    value={formData.contentUrl}
+                    onChange={(e) => setFormData({ ...formData, contentUrl: e.target.value })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="previewUrl" className="block text-sm font-medium text-gray-200">
+                    Preview URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    id="previewUrl"
+                    value={formData.previewUrl}
+                    onChange={(e) => setFormData({ ...formData, previewUrl: e.target.value })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 text-red-400 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end space-x-4">
+              <Button
+                type="submit"
+                disabled={saving}
+                structure="base"
+                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+} 
