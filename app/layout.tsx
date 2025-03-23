@@ -1,9 +1,9 @@
 "use client";
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { AbstraxionProvider } from "@burnt-labs/abstraxion";
 import "@burnt-labs/abstraxion/dist/index.css";
 import "@burnt-labs/ui/dist/index.css";
+import './globals.css';
 import { XionProvider } from './components/xion/XionProvider';
 import { treasuryConfig } from './lib/services/xion';
 import { SessionProvider } from 'next-auth/react';

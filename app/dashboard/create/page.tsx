@@ -198,7 +198,6 @@ export default function CreateContentPage() {
                     ))}
                   </Select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">
                     Thumbnail
