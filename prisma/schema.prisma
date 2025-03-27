@@ -15,7 +15,7 @@ model User {
   password      String?
   image         String?
   metaAccountId String?   @unique
-  walletAddress String?
+  walletAddress String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   

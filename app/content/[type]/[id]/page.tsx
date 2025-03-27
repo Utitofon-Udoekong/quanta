@@ -4,7 +4,7 @@ import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/ab
 import { ContentPlayer } from '@/app/components/content/ContentPlayer';
 import { ContentType, Content, Metadata, User } from '@prisma/client';
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useUserStore } from '@/app/store/use-user-store';
 
 type ContentWithMetadata = Content & {
   metadata: Metadata;
@@ -19,7 +19,8 @@ interface ContentPageProps {
 }
 
 export default function ContentPage({ params }: ContentPageProps) {
-  const { data: session } = useSession();
+  const { data: account } = useAbstraxionAccount();
+  const { user } = useUserStore();
   const [content, setContent] = useState<ContentWithMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,13 +29,13 @@ export default function ContentPage({ params }: ContentPageProps) {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        if (!session?.user?.id) {
+        if (!user?.walletAddress) {
           setError('Please connect your wallet to view content');
           setIsLoading(false);
           return;
         }
 
-        const response = await fetch(`/api/content/${params.id}`);
+        const response = await fetch(`/api/content/${params.id}?walletAddress=${user.walletAddress}`);
         const result = await response.json();
 
         if (!result.success) {
@@ -50,109 +51,20 @@ export default function ContentPage({ params }: ContentPageProps) {
     };
 
     fetchContent();
-  }, [params.id, session?.user?.id]);
+  }, [params.id, user?.walletAddress]);
 
   // Validate content type
   if (!Object.values(ContentType).includes(params.type.toUpperCase() as ContentType)) {
     notFound();
   }
 
-  const renderContentPlayer = () => {
-    if (isContentLoading) {
-      return (
-        <div className="w-full aspect-video bg-gray-900/50 rounded-lg flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            <p className="text-gray-400">Loading content...</p>
-          </div>
-        </div>
-      );
-    }
-
-    switch (content?.type) {
-      case 'VIDEO':
-        return (
-          <video
-            src={content.contentUrl}
-            controls
-            className="w-full rounded-lg"
-            onLoadStart={() => setIsContentLoading(true)}
-            onLoadedData={() => setIsContentLoading(false)}
-            onError={() => {
-              setIsContentLoading(false);
-              setError('Failed to load video content');
-            }}
-          />
-        );
-      case 'AUDIO':
-        return (
-          <div className="bg-gray-900/50 rounded-lg p-6">
-            <audio
-              src={content.contentUrl}
-              controls
-              className="w-full"
-              onLoadStart={() => setIsContentLoading(true)}
-              onLoadedData={() => setIsContentLoading(false)}
-              onError={() => {
-                setIsContentLoading(false);
-                setError('Failed to load audio content');
-              }}
-            />
-          </div>
-        );
-      case 'ARTICLE':
-        return (
-          <div className="bg-gray-900/50 rounded-lg p-6">
-            <iframe
-              src={content.contentUrl}
-              className="w-full h-[600px] rounded-lg"
-              title={content.title}
-              onLoad={() => setIsContentLoading(false)}
-            />
-          </div>
-        );
-      case 'COURSE':
-        return (
-          <div className="bg-gray-900/50 rounded-lg p-6">
-            <iframe
-              src={content.contentUrl}
-              className="w-full h-[600px] rounded-lg"
-              title={content.title}
-              onLoad={() => setIsContentLoading(false)}
-            />
-          </div>
-        );
-      case 'SOFTWARE':
-        return (
-          <div className="bg-gray-900/50 rounded-lg p-6">
-            <a
-              href={content.contentUrl}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Download Software
-            </a>
-          </div>
-        );
-      case 'EBOOK':
-        return (
-          <div className="bg-gray-900/50 rounded-lg p-6">
-            <iframe
-              src={content.contentUrl}
-              className="w-full h-[600px] rounded-lg"
-              title={content.title}
-              onLoad={() => setIsContentLoading(false)}
-            />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading content...</p>
+        </div>
       </div>
     );
   }
@@ -169,14 +81,7 @@ export default function ContentPage({ params }: ContentPageProps) {
   }
 
   if (!content) {
-    return (
-      <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-400 mb-2">Content Not Found</h2>
-          <p className="text-gray-500">The content you're looking for doesn't exist or has been removed.</p>
-        </div>
-      </div>
-    );
+    return notFound();
   }
 
   return (
@@ -246,7 +151,11 @@ export default function ContentPage({ params }: ContentPageProps) {
 
             {/* Content Player/Viewer */}
             <div className="mt-8">
-              {renderContentPlayer()}
+              <ContentPlayer
+                content={content}
+                isLoading={isContentLoading}
+                onLoad={() => setIsContentLoading(false)}
+              />
             </div>
           </div>
         </div>

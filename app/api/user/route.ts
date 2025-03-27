@@ -11,13 +11,11 @@ export async function GET(request: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { walletAddress },
+      where: { walletAddress: walletAddress as string },
       select: {
         id: true,
         name: true,
         email: true,
-        bio: true,
-        avatar: true,
         walletAddress: true,
         metaAccountId: true,
         isCreator: true,
@@ -68,8 +66,6 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         email: true,
-        bio: true,
-        avatar: true,
         walletAddress: true,
         metaAccountId: true,
         isCreator: true,
@@ -87,7 +83,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { walletAddress, name, email, bio, avatar } = body;
+    const { walletAddress, name, email } = body;
 
     if (!walletAddress) {
       return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
@@ -98,15 +94,11 @@ export async function PUT(request: Request) {
       data: {
         name,
         email,
-        bio,
-        avatar,
       },
       select: {
         id: true,
         name: true,
         email: true,
-        bio: true,
-        avatar: true,
         walletAddress: true,
         metaAccountId: true,
         isCreator: true,

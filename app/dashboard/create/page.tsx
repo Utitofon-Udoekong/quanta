@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useUserStore } from '@/app/store/use-user-store';
 import { useContent } from '@/app/hooks/use-content';
 import { createMetadata } from '@/app/lib/metadata';
 import { ContentType, PricingModel, ContentStatus, Metadata } from '@prisma/client';
@@ -15,7 +15,7 @@ import { toast } from '@/app/components/ui/toast';
 
 export default function CreateContentPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { user } = useUserStore();
   const { createContent, isLoading, error } = useContent();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -39,12 +39,23 @@ export default function CreateContentPage() {
     content: null,
   });
 
+  if (!user?.walletAddress) {
+    return (
+      <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-400 mb-2">Authentication Required</h2>
+          <p className="text-gray-400">Please connect your wallet to create content.</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setUploadError(null);
 
-    if (!session?.user?.id) {
+    if (!user?.walletAddress) {
       console.log('You must be logged in to create content');
       toast('You must be logged in to create content', 'error');
       setIsSubmitting(false);
@@ -95,7 +106,7 @@ export default function CreateContentPage() {
 
       const content = await createContent({
         ...formData,
-        creatorId: session.user.id,
+        creatorId: user.walletAddress,
         metadata: metadata as Metadata,
       });
 

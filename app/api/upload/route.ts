@@ -1,50 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/lib/auth';
-import { uploadToR2, generateUniqueFileKey } from '@/app/lib/r2';
+import { uploadToR2 } from '@/app/lib/r2';
 import { R2Client } from '@/app/lib/cloudflare/r2';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const { searchParams } = new URL(request.url);
+    const walletAddress = searchParams.get('walletAddress');
+
+    if (!walletAddress) {
+      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const prefix = formData.get('prefix') as string;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Generate a unique key for the file
-    const key = generateUniqueFileKey(file.name, prefix);
-    console.log(key);
-    // Upload the file to R2
-    const fileKey = await uploadToR2(file, key, file.type);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const key = await uploadToR2(buffer, file.name, file.type);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        key: fileKey,
-        contentType: file.type,
-        size: file.size,
-      },
-    });
+    return NextResponse.json({ key, url: `https://pub-${process.env.R2_BUCKET_ID}.r2.dev/${key}` });
   } catch (error) {
-    console.error('Error handling file upload:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to upload file' },
-      { status: 500 }
-    );
+    console.error('Error uploading file:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
