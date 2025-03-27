@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useAbstraxionAccount, useAbstraxionSigningClient, useAbstraxionClient } from "@burnt-labs/abstraxion";
 import { xionService } from '@/app/lib/services/xion';
+import { signIn } from 'next-auth/react';
 
 const TOKEN_DENOM = "factory/xion1ka5gdcv4m7kfzxkllapqdflenwe0fv8ftm357r/emp";
 const DENOM_DISPLAY_NAME = "EMP";
@@ -31,16 +32,34 @@ export function XionProvider({ children }: { children: ReactNode }) {
   // Handle account creation
   useEffect(() => {
     if (account?.bech32Address && pendingUserId) {
-      storeAccount(pendingUserId)
-        .then(() => {
-          setPendingUserId(null);
-        })
-        .catch((error) => {
-          console.error('Error storing account:', error);
-          setPendingUserId(null);
-        });
+      console.log('creating account', account.bech32Address, pendingUserId);
+      handleAccountCreation(account.bech32Address, pendingUserId);
     }
   }, [account?.bech32Address, pendingUserId]);
+
+  const handleAccountCreation = async (accountAddress: string, userId: string) => {
+    try {
+      // Store the account in our database
+      const user = await storeAccount(userId);
+      
+      // Sign in the user with NextAuth
+      const result = await signIn('credentials', {
+        email: user.email,
+        password: user.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.error('Failed to sign in:', result.error);
+        throw new Error('Failed to sign in');
+      }
+
+      setPendingUserId(null);
+    } catch (error) {
+      console.error('Error handling account creation:', error);
+      setPendingUserId(null);
+    }
+  };
 
   const storeAccount = async (userId: string) => {
     if (!account?.bech32Address) {

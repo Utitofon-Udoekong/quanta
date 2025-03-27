@@ -1,67 +1,67 @@
 import { ContentType, Metadata } from '@prisma/client';
 
-export const createMetadata = (type: ContentType, data: any): Partial<Metadata> => {
-  // Convert URLs to keys if needed
+interface BaseMetadataInput {
+  thumbnail?: string;
+  contentUrl?: string;
+}
+
+export function createMetadata(
+  type: ContentType,
+  data: BaseMetadataInput
+): Partial<Metadata> {
   const baseMetadata = {
     thumbnailKey: data.thumbnail ? data.thumbnail.split('/').pop() : null,
     contentKey: data.contentUrl ? data.contentUrl.split('/').pop() : null,
-    previewKey: data.previewUrl ? data.previewUrl.split('/').pop() : null,
   };
 
   switch (type) {
-    case ContentType.VIDEO:
+    case 'ARTICLE':
       return {
         ...baseMetadata,
-        duration: data.duration || "00:00",
-        resolution: data.resolution || "1920x1080",
-        format: data.format || "mp4",
-        fps: data.fps || 30,
-        bitrate: data.bitrate || "5000kbps",
+        readTime: '5 min',
+        wordCount: 0,
+        excerpt: '',
+        tags: [],
       };
-
-    case ContentType.ARTICLE:
+    case 'VIDEO':
       return {
         ...baseMetadata,
-        readTime: data.readTime || "5 min",
-        wordCount: data.wordCount || 0,
-        excerpt: data.excerpt || "",
-        tags: data.tags || [],
+        duration: '00:00',
+        resolution: '1920x1080',
+        format: 'mp4',
+        fps: 30,
+        bitrate: '2Mbps',
       };
-
-    case ContentType.COURSE:
+    case 'COURSE':
       return {
         ...baseMetadata,
-        chapterCount: data.chapterCount || 1,
-        level: data.level || "BEGINNER",
-        prerequisites: data.prerequisites || [],
-        syllabus: data.syllabus || [],
+        chapterCount: 0,
+        level: 'BEGINNER',
+        prerequisites: [],
+        syllabus: [],
       };
-
-    case ContentType.SOFTWARE:
+    case 'SOFTWARE':
       return {
         ...baseMetadata,
-        version: data.version || "1.0.0",
-        platform: data.platform || [],
-        requirements: data.requirements || [],
-        features: data.features || [],
-        installGuide: data.installGuide || "",
+        version: '1.0.0',
+        platform: [],
+        requirements: [],
+        features: [],
+        installGuide: '',
       };
-
-    case ContentType.AUDIO:
+    case 'AUDIO':
       return {
         ...baseMetadata,
-        duration: data.duration || "00:00",
-        format: data.format || "mp3",
-        bitrate: data.bitrate || "320kbps",
+        duration: '00:00',
+        format: 'mp3',
+        bitrate: '128kbps',
       };
-
-    case ContentType.EBOOK:
+    case 'EBOOK':
       return {
         ...baseMetadata,
-        format: data.format || "pdf",
+        format: 'pdf',
       };
-
     default:
       return baseMetadata;
   }
-}; 
+} 

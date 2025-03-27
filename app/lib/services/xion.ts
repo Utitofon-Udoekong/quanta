@@ -1,17 +1,42 @@
 import { prisma } from '../db/client';
+import { hash } from 'bcryptjs';
+
 export const treasuryConfig = {
   treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
 };
+
 export const xionService = {
   // Store user's XION account info
   async storeUserAccount(userId: string, accountAddress: string) {
-    return prisma.user.update({
+    // First, check if the user exists
+    const existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      data: { 
-        metaAccountId: accountAddress,
-        walletAddress: accountAddress 
-      },
     });
+
+    if (existingUser) {
+      // Update existing user
+      return prisma.user.update({
+        where: { id: userId },
+        data: { 
+          metaAccountId: accountAddress,
+          walletAddress: accountAddress 
+        },
+      });
+    } else {
+      // Create new user with a temporary password
+      const hashedPassword = await hash(Math.random().toString(36), 10);
+      return prisma.user.create({
+        data: {
+          id: userId,
+          email: `${userId}@xion.user`,
+          password: hashedPassword,
+          metaAccountId: accountAddress,
+          walletAddress: accountAddress,
+          isCreator: false,
+          isAdmin: false,
+        },
+      });
+    }
   },
 
   // Remove user's XION account info

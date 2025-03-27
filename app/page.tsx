@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
+import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { AccountCreation } from './components/xion/AccountCreation';
 import { Button } from "@burnt-labs/ui";
 import { Menu, Transition, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
@@ -27,6 +27,7 @@ const categories = [
 
 export default function LandingPage() {
   const { data: account } = useAbstraxionAccount();
+  const { logout } = useAbstraxionSigningClient();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAccountCreation, setShowAccountCreation] = useState(false);
   const [content, setContent] = useState<ContentWithRelations[]>([]);
@@ -56,13 +57,95 @@ export default function LandingPage() {
     ? content 
     : content.filter(item => item.type.toLowerCase() === selectedCategory);
 
-  if (isLoading) {
+  const renderContentGrid = () => {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, index) => (
+            <div
+              key={index}
+              className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 animate-pulse"
+            >
+              <div className="aspect-video bg-gray-700/50"></div>
+              <div className="p-4 space-y-3">
+                <div className="h-6 bg-gray-700/50 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-700/50 rounded w-1/2"></div>
+                <div className="flex items-center justify-between">
+                  <div className="h-4 bg-gray-700/50 rounded w-16"></div>
+                  <div className="h-4 bg-gray-700/50 rounded w-12"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (filteredContent.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-200 mb-2">No Content Available</h3>
+          <p className="text-gray-400 max-w-md">
+            There are no published contents at the moment. Please check back later or try a different category.
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredContent.map((item) => (
+          <Link 
+            href={`/content/${item.type.toLowerCase()}/${item.id}`}
+            key={item.id} 
+            className="group bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
+          >
+            <div className="relative">
+              <img
+                src={item.thumbnail || 'https://picsum.photos/320/180'}
+                alt={item.title}
+                className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-200"
+                loading="lazy"
+              />
+              <span className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium">
+                {item.type === 'ARTICLE' ? `${item.metadata?.readTime || '5'} min read` :
+                 item.type === 'VIDEO' ? `${item.metadata?.duration || '00:00'}` :
+                 item.type === 'COURSE' ? `${item.metadata?.duration || '0h 0m'}` : ''}
+              </span>
+            </div>
+            <div className="p-4">
+              <h3 className="font-semibold mb-1 line-clamp-2 text-lg group-hover:text-blue-400 transition-colors duration-200">
+                {item.title}
+              </h3>
+              <p className="text-sm text-gray-400 mb-2">{item.creator.name}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">{item.viewCount} views</span>
+                {item.price > 0 && (
+                  <span className="text-blue-400 font-medium">${item.price}</span>
+                )}
+              </div>
+              {!account?.bech32Address && item.price > 0 && (
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowAccountCreation(true);
+                  }}
+                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                >
+                  Sign in to access
+                </Button>
+              )}
+            </div>
+          </Link>
+        ))}
       </div>
     );
-  }
+  };
 
   if (error) {
     return (
@@ -151,6 +234,7 @@ export default function LandingPage() {
                         <MenuItem>
                           {({ active }) => (
                             <button
+                              onClick={logout}
                               className={`${
                                 active ? 'bg-gray-700' : ''
                               } block w-full text-left px-3 py-2 rounded-md text-sm text-red-400`}
@@ -192,66 +276,7 @@ export default function LandingPage() {
           </div>
 
           {/* Content Grid */}
-          {filteredContent.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-200 mb-2">No Content Available</h3>
-              <p className="text-gray-400 max-w-md">
-                There are no published contents at the moment. Please check back later or try a different category.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredContent.map((item) => (
-                <Link 
-                  href={`/content/${item.type.toLowerCase()}/${item.id}`}
-                  key={item.id} 
-                  className="group bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1"
-                >
-                  <div className="relative">
-                    <img
-                      src={item.thumbnail || 'https://picsum.photos/320/180'}
-                      alt={item.title}
-                      className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                    <span className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium">
-                      {item.type === 'ARTICLE' ? `${item.metadata?.readTime || '5'} min read` :
-                       item.type === 'VIDEO' ? `${item.metadata?.duration || '00:00'}` :
-                       item.type === 'COURSE' ? `${item.metadata?.duration || '0h 0m'}` : ''}
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-1 line-clamp-2 text-lg group-hover:text-blue-400 transition-colors duration-200">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-gray-400 mb-2">{item.creator.name}</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">{item.viewCount} views</span>
-                      {item.price > 0 && (
-                        <span className="text-blue-400 font-medium">${item.price}</span>
-                      )}
-                    </div>
-                    {!account?.bech32Address && item.price > 0 && (
-                      <Button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setShowAccountCreation(true);
-                        }}
-                        structure="base"
-                        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
-                      >
-                        Sign in to access
-                      </Button>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          {renderContentGrid()}
         </div>
       </main>
 

@@ -6,45 +6,16 @@ import { Button } from "@burnt-labs/ui";
 import { 
   UserCircleIcon,
   KeyIcon,
-  BellIcon,
   ShieldCheckIcon,
   WalletIcon,
   PhotoIcon
 } from '@heroicons/react/24/outline';
-
-interface ProfileData {
-  name: string;
-  email: string;
-  bio: string;
-  avatar: string;
-  notifications: {
-    email: boolean;
-    push: boolean;
-    marketing: boolean;
-  };
-  security: {
-    twoFactor: boolean;
-    emailVerification: boolean;
-  };
-}
+import { toast } from 'react-hot-toast';
+import { useUserStore } from '@/app/store/use-user-store';
 
 export default function ProfilePage() {
   const { data: account } = useAbstraxionAccount();
-  const [profile, setProfile] = useState<ProfileData>({
-    name: '',
-    email: '',
-    bio: '',
-    avatar: '',
-    notifications: {
-      email: true,
-      push: true,
-      marketing: false
-    },
-    security: {
-      twoFactor: false,
-      emailVerification: false
-    }
-  });
+  const { user, setUser, updateUser } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,25 +24,15 @@ export default function ProfilePage() {
       if (!account?.bech32Address) return;
       
       try {
-        // TODO: Replace with actual API call
-        // Simulated data for now
-        setProfile({
-          name: 'John Doe',
-          email: 'john@example.com',
-          bio: 'Web3 developer and content creator',
-          avatar: '',
-          notifications: {
-            email: true,
-            push: true,
-            marketing: false
-          },
-          security: {
-            twoFactor: false,
-            emailVerification: true
-          }
-        });
+        const response = await fetch(`/api/user?walletAddress=${account.bech32Address}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        const data = await response.json();
+        setUser(data);
       } catch (error) {
         console.error('Error fetching profile data:', error);
+        toast.error('Failed to load profile data');
       } finally {
         setLoading(false);
       }
@@ -81,13 +42,34 @@ export default function ProfilePage() {
   }, [account?.bech32Address]);
 
   const handleSaveProfile = async () => {
+    if (!user || !account?.bech32Address) return;
+    
     setSaving(true);
     try {
-      // TODO: Implement profile update API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-      // Show success message or handle response
+      const response = await fetch('/api/user', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: account.bech32Address,
+          name: user.name,
+          email: user.email,
+          bio: user.bio,
+          avatar: user.avatar,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedUser = await response.json();
+      updateUser(updatedUser);
+      toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -109,7 +91,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -152,8 +134,8 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Profile Picture</label>
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 rounded-full bg-gray-800/50 border border-gray-700/50 flex items-center justify-center">
-                      {profile.avatar ? (
-                        <img src={profile.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                      {user.avatar ? (
+                        <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         <PhotoIcon className="w-10 h-10 text-gray-400" />
                       )}
@@ -170,8 +152,8 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Name</label>
                   <input
                     type="text"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    value={user.name}
+                    onChange={(e) => updateUser({ name: e.target.value })}
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -179,16 +161,16 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
                   <input
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    value={user.email}
+                    onChange={(e) => updateUser({ email: e.target.value })}
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">Bio</label>
                   <textarea
-                    value={profile.bio}
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    value={user.bio}
+                    onChange={(e) => updateUser({ bio: e.target.value })}
                     rows={4}
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -196,52 +178,45 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Security Settings */}
+            {/* Account Status */}
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
               <div className="p-6 border-b border-gray-700/50">
                 <div className="flex items-center space-x-3">
                   <ShieldCheckIcon className="w-5 h-5 text-green-400" />
-                  <h2 className="text-xl font-semibold">Security</h2>
+                  <h2 className="text-xl font-semibold">Account Status</h2>
                 </div>
               </div>
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-200">Two-Factor Authentication</h3>
-                    <p className="text-sm text-gray-400">Add an extra layer of security to your account</p>
+                    <h3 className="text-sm font-medium text-gray-200">Creator Status</h3>
+                    <p className="text-sm text-gray-400">Ability to create and publish content</p>
                   </div>
-                  <Button
-                    structure="base"
-                    className={`${profile.security.twoFactor ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => setProfile({
-                      ...profile,
-                      security: { ...profile.security, twoFactor: !profile.security.twoFactor }
-                    })}
-                  >
-                    {profile.security.twoFactor ? 'Enabled' : 'Enable'}
-                  </Button>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    user.isCreator 
+                      ? 'bg-green-500/10 text-green-400' 
+                      : 'bg-gray-700/50 text-gray-400'
+                  }`}>
+                    {user.isCreator ? 'Active' : 'Inactive'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-200">Email Verification</h3>
-                    <p className="text-sm text-gray-400">Verify your email address for enhanced security</p>
+                    <h3 className="text-sm font-medium text-gray-200">Admin Status</h3>
+                    <p className="text-sm text-gray-400">Platform administration privileges</p>
                   </div>
-                  <Button
-                    structure="base"
-                    className={`${profile.security.emailVerification ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => setProfile({
-                      ...profile,
-                      security: { ...profile.security, emailVerification: !profile.security.emailVerification }
-                    })}
-                  >
-                    {profile.security.emailVerification ? 'Verified' : 'Verify'}
-                  </Button>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    user.isAdmin 
+                      ? 'bg-blue-500/10 text-blue-400' 
+                      : 'bg-gray-700/50 text-gray-400'
+                  }`}>
+                    {user.isAdmin ? 'Active' : 'Inactive'}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-8">
             {/* Wallet Information */}
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
@@ -264,71 +239,19 @@ export default function ProfilePage() {
                       </span>
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">XION Account ID</label>
+                    <div className="flex items-center space-x-2 bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2">
+                      <span className="text-sm text-gray-300">
+                        {user.metaAccountId || 'Not connected'}
+                      </span>
+                    </div>
+                  </div>
                   <Button
                     structure="base"
                     className="w-full bg-gray-700 hover:bg-gray-600"
                   >
                     Change Wallet
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Notification Preferences */}
-            <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
-              <div className="p-6 border-b border-gray-700/50">
-                <div className="flex items-center space-x-3">
-                  <BellIcon className="w-5 h-5 text-yellow-400" />
-                  <h2 className="text-xl font-semibold">Notifications</h2>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-200">Email Notifications</h3>
-                    <p className="text-sm text-gray-400">Receive updates via email</p>
-                  </div>
-                  <Button
-                    structure="base"
-                    className={`${profile.notifications.email ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => setProfile({
-                      ...profile,
-                      notifications: { ...profile.notifications, email: !profile.notifications.email }
-                    })}
-                  >
-                    {profile.notifications.email ? 'On' : 'Off'}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-200">Push Notifications</h3>
-                    <p className="text-sm text-gray-400">Receive browser notifications</p>
-                  </div>
-                  <Button
-                    structure="base"
-                    className={`${profile.notifications.push ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => setProfile({
-                      ...profile,
-                      notifications: { ...profile.notifications, push: !profile.notifications.push }
-                    })}
-                  >
-                    {profile.notifications.push ? 'On' : 'Off'}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-200">Marketing Emails</h3>
-                    <p className="text-sm text-gray-400">Receive promotional content</p>
-                  </div>
-                  <Button
-                    structure="base"
-                    className={`${profile.notifications.marketing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => setProfile({
-                      ...profile,
-                      notifications: { ...profile.notifications, marketing: !profile.notifications.marketing }
-                    })}
-                  >
-                    {profile.notifications.marketing ? 'On' : 'Off'}
                   </Button>
                 </div>
               </div>

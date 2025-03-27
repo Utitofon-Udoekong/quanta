@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/lib/auth';
-import { Content, Metadata, ContentType, ContentStatus } from '@prisma/client';
+import { ContentType, ContentStatus, PricingModel } from '@prisma/client';
 
 type ApiResponse<T> = {
   success: boolean;
@@ -48,67 +46,61 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
   }
 }
 
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse<ApiResponse<Content & { metadata: Metadata }>>> {
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<Content & { metadata: Metadata }>>> {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const { walletAddress } = await request.json();
+    
+    if (!walletAddress) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Wallet address is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get user by wallet address
+    const user = await prisma.user.findUnique({
+      where: { walletAddress },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
     const data = await request.json();
-    const {
-      title,
-      description,
-      type,
-      price,
-      pricingModel,
-      creatorId,
-      status,
-      thumbnail,
-      contentUrl,
-      previewUrl,
-      metadata,
-    } = data;
+    const { title, description, type, price, pricingModel, thumbnail, contentUrl, metadata } = data;
 
     // Create metadata first
     const createdMetadata = await prisma.metadata.create({
       data: {
         ...metadata,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
 
-    // Create content with metadata reference
+    // Create content with metadata
     const content = await prisma.content.create({
       data: {
         title,
         description,
-        type,
+        type: type as ContentType,
         price,
-        pricingModel,
-        creatorId,
-        status,
+        pricingModel: pricingModel as PricingModel,
+        status: ContentStatus.DRAFT,
+        creatorId: user.id,
         thumbnail,
         contentUrl,
-        previewUrl,
         metadataId: createdMetadata.id,
       },
       include: {
-        metadata: true,
         creator: {
           select: {
             id: true,
             name: true,
-            email: true,
-            image: true,
           },
         },
+        metadata: true,
       },
     });
 

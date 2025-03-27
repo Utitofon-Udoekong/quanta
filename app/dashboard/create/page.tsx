@@ -17,6 +17,8 @@ export default function CreateContentPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const { createContent, isLoading, error } = useContent();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -27,22 +29,70 @@ export default function CreateContentPage() {
     status: ContentStatus.DRAFT,
     thumbnail: '',
     contentUrl: '',
-    previewUrl: '',
+  });
+
+  const [selectedFiles, setSelectedFiles] = useState<{
+    thumbnail: File | null;
+    content: File | null;
+  }>({
+    thumbnail: null,
+    content: null,
   });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setUploadError(null);
+
     if (!session?.user?.id) {
+      console.log('You must be logged in to create content');
       toast('You must be logged in to create content', 'error');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!selectedFiles.content) {
+      console.log('Please select a content file');
+      toast('Please select a content file', 'error');
+      setIsSubmitting(false);
       return;
     }
 
     try {
+      // Upload files first
+      const uploadPromises = [];
+      if (selectedFiles.thumbnail) {
+        uploadPromises.push(
+          uploadFile(selectedFiles.thumbnail, 'thumbnails')
+            .then(key => ({ type: 'thumbnail', key }))
+            .catch(err => {
+              setUploadError('Failed to upload thumbnail');
+              throw err;
+            })
+        );
+      }
+      if (selectedFiles.content) {
+        uploadPromises.push(
+          uploadFile(selectedFiles.content, 'content')
+            .then(key => ({ type: 'content', key }))
+            .catch(err => {
+              setUploadError('Failed to upload content file');
+              throw err;
+            })
+        );
+      }
+
+      const uploadResults = await Promise.all(uploadPromises);
+      const uploadedFiles = uploadResults.reduce((acc, { type, key }) => {
+        acc[type] = key;
+        return acc;
+      }, {} as Record<string, string>);
+
       const metadata = createMetadata(formData.type, {
-        thumbnail: formData.thumbnail,
-        contentUrl: formData.contentUrl,
-        previewUrl: formData.previewUrl,
+        thumbnail: uploadedFiles.thumbnail,
+        contentUrl: uploadedFiles.content,
       });
+
       const content = await createContent({
         ...formData,
         creatorId: session.user.id,
@@ -56,15 +106,41 @@ export default function CreateContentPage() {
         toast('Failed to create content', 'error');
       }
     } catch (err) {
-      toast('An error occurred while creating content', 'error');
+      console.error('Error creating content:', err);
+      toast(uploadError || 'An error occurred while creating content', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleFileUpload = (key: string, url: string) => {
-    setFormData(prev => ({
+  const handleFileSelect = (type: 'thumbnail' | 'content', file: File | null) => {
+    setSelectedFiles(prev => ({
       ...prev,
-      [key]: url,
+      [type]: file,
     }));
+  };
+
+  const uploadFile = async (file: File, prefix: string): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('prefix', prefix);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to upload file');
+    }
+
+    return data.data.key;
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -203,12 +279,13 @@ export default function CreateContentPage() {
                     Thumbnail
                   </label>
                   <FileUpload
-                    onUploadComplete={key => handleFileUpload('thumbnail', key)}
+                    onFileSelect={(file) => handleFileSelect('thumbnail', file)}
                     prefix="thumbnails"
                     accept={{
                       'image/*': ['.png', '.jpg', '.jpeg', '.gif']
                     }}
                     maxSize={5 * 1024 * 1024} // 5MB
+                    value={selectedFiles.thumbnail}
                   />
                 </div>
 
@@ -217,7 +294,7 @@ export default function CreateContentPage() {
                     Content File
                   </label>
                   <FileUpload
-                    onUploadComplete={key => handleFileUpload('contentUrl', key)}
+                    onFileSelect={(file) => handleFileSelect('content', file)}
                     prefix="content"
                     accept={{
                       'video/*': ['.mp4', '.webm', '.ogg'],
@@ -228,25 +305,7 @@ export default function CreateContentPage() {
                       'application/zip': ['.zip']
                     }}
                     maxSize={100 * 1024 * 1024} // 100MB
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-200 mb-2">
-                    Preview File
-                  </label>
-                  <FileUpload
-                    onUploadComplete={key => handleFileUpload('previewUrl', key)}
-                    prefix="previews"
-                    accept={{
-                      'video/*': ['.mp4', '.webm', '.ogg'],
-                      'audio/*': ['.mp3', '.wav', '.ogg'],
-                      'application/pdf': ['.pdf'],
-                      'text/markdown': ['.md'],
-                      'text/plain': ['.txt'],
-                      'application/zip': ['.zip']
-                    }}
-                    maxSize={50 * 1024 * 1024} // 50MB
+                    value={selectedFiles.content}
                   />
                 </div>
               </div>
@@ -255,15 +314,24 @@ export default function CreateContentPage() {
             <div className="flex justify-end">
               <Button 
                 type="submit" 
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                disabled={isSubmitting || isLoading}
+                className="!bg-blue-600 !px-2 hover:!bg-blue-700 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Creating...' : 'Create Content'}
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    <span>Creating...</span>
+                  </div>
+                ) : (
+                  'Create Content'
+                )}
               </Button>
             </div>
 
-            {error && (
-              <div className="text-red-400 text-sm mt-2">{error}</div>
+            {(error || uploadError) && (
+              <div className="text-red-400 text-sm mt-2">
+                {error || uploadError}
+              </div>
             )}
           </form>
         </div>

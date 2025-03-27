@@ -62,7 +62,6 @@ model Content {
   creator       User          @relation("CreatedBy", fields: [creatorId], references: [id])
   thumbnail     String?
   contentUrl    String?
-  previewUrl    String?
   metadata      Metadata      @relation(fields: [metadataId], references: [id])
   metadataId    String       @unique
   createdAt     DateTime      @default(now())
@@ -87,7 +86,6 @@ model Metadata {
   updatedAt     DateTime  @updatedAt
   thumbnailKey  String?
   contentKey    String?
-  previewKey    String?
 
   // Article specific
   readTime      String?
