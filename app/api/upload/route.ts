@@ -27,7 +27,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Generate a unique key for the file
     const key = generateUniqueFileKey(file.name, prefix);
-
+    console.log(key);
     // Upload the file to R2
     const fileKey = await uploadToR2(file, key, file.type);
 

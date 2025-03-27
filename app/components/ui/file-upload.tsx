@@ -71,10 +71,10 @@ export function FileUpload({
     <div
       {...getRootProps()}
       className={cn(
-        'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
+        '!border-2 !border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
         {
-          'border-gray-300 hover:border-gray-400': !isDragActive,
-          'border-blue-500 bg-blue-50': isDragActive,
+          '!border-gray-300 hover:border-gray-400': !isDragActive,
+          '!border-blue-500 bg-blue-50': isDragActive,
         },
         className
       )}

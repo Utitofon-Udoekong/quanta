@@ -34,6 +34,8 @@ export default function LandingPage() {
     onError: (error: string) => console.error('Failed to fetch content:', error)
   });
 
+  console.log(account);
+
   useEffect(() => {
     const loadContent = async () => {
       try {

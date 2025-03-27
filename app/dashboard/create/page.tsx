@@ -97,7 +97,7 @@ export default function CreateContentPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 p-6">
               <div className="space-y-6">
-                <div>
+                <div className='flex flex-col gap-2'>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-200">
                     Title
                   </label>
