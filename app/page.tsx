@@ -147,16 +147,16 @@ export default function LandingPage() {
     );
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h2>
-          <p className="text-gray-400">{error}</p>
-        </div>
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
+  //       <div className="text-center">
+  //         <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h2>
+  //         <p className="text-gray-400">{error}</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
@@ -193,7 +193,7 @@ export default function LandingPage() {
                 <Button
                   onClick={() => setShowAccountCreation(true)}
                   structure="base"
-                  className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                  className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 shadow-lg shadow-blue-500/20"
                 >
                   Sign In
                 </Button>
@@ -340,7 +340,6 @@ export default function LandingPage() {
 
             <div className="space-y-6">
               <AccountCreation 
-                userId="temp"
                 onSuccess={() => {
                   setShowAccountCreation(false);
                 }}

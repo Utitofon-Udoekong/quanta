@@ -1,30 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToR2 } from '@/app/lib/r2';
-import { R2Client } from '@/app/lib/cloudflare/r2';
+import { storage } from '@/app/lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('walletAddress');
-
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
-    }
-
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const prefix = formData.get('prefix') as string;
+    const walletAddress = request.nextUrl.searchParams.get('walletAddress');
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    if (!walletAddress) {
+      return NextResponse.json(
+        { error: 'Wallet address is required' },
+        { status: 400 }
+      );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const key = await uploadToR2(buffer, file.name, file.type);
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ key, url: `https://pub-${process.env.R2_BUCKET_ID}.r2.dev/${key}` });
+    // Generate a unique path for the file
+    const timestamp = Date.now();
+    const path = `${prefix}/${walletAddress}/${timestamp}-${file.name}`;
+    const storageRef = ref(storage, path);
+
+    // Upload to Firebase Storage
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+
+    return NextResponse.json({
+      key: path,
+      url: url
+    });
   } catch (error) {
-    console.error('Error uploading file:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Upload error:', error);
+    return NextResponse.json(
+      { error: 'Failed to upload file' },
+      { status: 500 }
+    );
   }
 }
 
@@ -50,8 +67,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const r2Client = new R2Client();
-    await r2Client.deleteFile(key);
+    const storageRef = ref(storage, key);
+    await deleteObject(storageRef);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Button } from "@burnt-labs/ui";
-import { Content } from '@/app/types/content';
+import { ContentData } from '@/app/lib/firebase';
+
+type ContentType = 'VIDEO' | 'AUDIO' | 'COURSE';
+type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+type PricingModel = 'PAY_PER_VIEW';
 
 interface ContentEditPageProps {
   params: {
@@ -12,21 +16,37 @@ interface ContentEditPageProps {
   };
 }
 
+interface FormData {
+  title: string;
+  description: string;
+  price: number;
+  thumbnailUrl: string;
+  contentUrl: string;
+  previewUrl: string;
+  status: ContentStatus;
+  type: ContentType;
+  duration: number;
+  pricingModel: PricingModel;
+}
+
 export default function ContentEditPage({ params }: ContentEditPageProps) {
   const router = useRouter();
   const { data: account } = useAbstraxionAccount();
-  const [content, setContent] = useState<Content | null>(null);
+  const [content, setContent] = useState<ContentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     price: 0,
-    thumbnail: '',
+    thumbnailUrl: '',
     contentUrl: '',
     previewUrl: '',
     status: 'DRAFT',
+    type: 'VIDEO',
+    duration: 0,
+    pricingModel: 'PAY_PER_VIEW',
   });
 
   useEffect(() => {
@@ -41,10 +61,13 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
           title: data.title,
           description: data.description,
           price: data.price,
-          thumbnail: data.thumbnail || '',
+          thumbnailUrl: data.thumbnailUrl || '',
           contentUrl: data.contentUrl || '',
           previewUrl: data.previewUrl || '',
-          status: data.status,
+          status: data.status as ContentStatus,
+          type: data.type as ContentType,
+          duration: data.duration,
+          pricingModel: data.pricingModel as PricingModel,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -194,30 +217,86 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
                 </div>
 
                 <div>
+                  <label htmlFor="type" className="block text-sm font-medium text-gray-200">
+                    Content Type
+                  </label>
+                  <select
+                    id="type"
+                    required
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as ContentType })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {(['VIDEO', 'AUDIO', 'COURSE'] as ContentType[]).map(type => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="pricingModel" className="block text-sm font-medium text-gray-200">
+                    Pricing Model
+                  </label>
+                  <select
+                    id="pricingModel"
+                    required
+                    value={formData.pricingModel}
+                    onChange={(e) => setFormData({ ...formData, pricingModel: e.target.value as PricingModel })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {(['PAY_PER_VIEW'] as PricingModel[]).map(model => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="duration" className="block text-sm font-medium text-gray-200">
+                    Duration (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    id="duration"
+                    required
+                    min="0"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                    className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="status" className="block text-sm font-medium text-gray-200">
                     Status
                   </label>
                   <select
                     id="status"
+                    required
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as ContentStatus })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="DRAFT">Draft</option>
-                    <option value="PUBLISHED">Published</option>
-                    <option value="ARCHIVED">Archived</option>
+                    {(['DRAFT', 'PUBLISHED', 'ARCHIVED'] as ContentStatus[]).map(status => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label htmlFor="thumbnail" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-gray-200">
                     Thumbnail URL
                   </label>
                   <input
                     type="url"
-                    id="thumbnail"
-                    value={formData.thumbnail}
-                    onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                    id="thumbnailUrl"
+                    value={formData.thumbnailUrl}
+                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -248,24 +327,32 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-              </div>
-            </div>
 
-            {error && (
-              <div className="bg-red-500/10 text-red-400 px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
+                {error && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                    <p className="text-red-400">{error}</p>
+                  </div>
+                )}
 
-            <div className="flex items-center justify-end space-x-4">
-              <Button
-                type="submit"
-                disabled={saving}
-                structure="base"
-                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    onClick={() => router.push('/dashboard')}
+                    structure="base"
+                    className="bg-gray-700 hover:bg-gray-600"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    structure="base"
+                    className="bg-blue-600 hover:bg-blue-500"
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
             </div>
           </form>
         </div>

@@ -1,26 +1,26 @@
 "use client";
 
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Content } from '@/app/types/content';
 import { useEffect, useState } from 'react';
-import { Button } from "@burnt-labs/ui";
 import Link from 'next/link';
-import { PlusIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, CodeBracketIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { useContent } from '@/app/hooks/use-content';
+import { Button } from '@/app/components/ui/button';
+import { ContentData } from '@/app/lib/firebase';
 
 export default function ContentPage() {
   const { data: account } = useAbstraxionAccount();
-  const [content, setContent] = useState<Content[]>([]);
+  const [content, setContent] = useState<ContentData[]>([]);
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'VIDEO' | 'ARTICLE' | 'COURSE' | 'SOFTWARE'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'VIDEO' | 'AUDIO' | 'COURSE'>('all');
 
   const { 
-    loading, 
+    isLoading, 
     error, 
     fetchCreatorContent,
     deleteContent: deleteContentById
-  } = useContent({
-    onError: (error) => console.error('Content error:', error)
+  } = useContent(account?.bech32Address || '', {
+    onError: (error: any) => console.error('Content error:', error)
   });
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function ContentPage() {
       }
     };
 
-    // loadContent();
+    loadContent();
   }, [account?.bech32Address, fetchCreatorContent]);
 
   const handleDeleteContent = async (id: string) => {
@@ -76,7 +76,7 @@ export default function ContentPage() {
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -95,8 +95,7 @@ export default function ContentPage() {
           </div>
           <Link href="/dashboard/create">
             <Button
-              structure="base"
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+              className="flex items-center px-4 py-2 rounded-md space-x-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
             >
               <PlusIcon className="w-5 h-5" />
               <span>Create Content</span>
@@ -130,7 +129,7 @@ export default function ContentPage() {
               <FunnelIcon className="w-5 h-5 text-gray-400" />
               <span className="text-sm text-gray-400">Type:</span>
               <div className="flex space-x-2">
-                {(['all', 'VIDEO', 'ARTICLE', 'COURSE', 'SOFTWARE'] as const).map((type) => (
+                {(['all', 'VIDEO', 'AUDIO', 'COURSE'] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setTypeFilter(type)}
@@ -164,8 +163,7 @@ export default function ContentPage() {
             </p>
             <Link href="/dashboard/create">
               <Button
-                structure="base"
-                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md shadow-lg shadow-blue-500/20"
               >
                 Create New Content
               </Button>
@@ -180,7 +178,7 @@ export default function ContentPage() {
               >
                 <div className="relative">
                   <img
-                    src={item.thumbnail || 'https://picsum.photos/320/180'}
+                    src={item.thumbnailUrl || 'https://picsum.photos/320/180'}
                     alt={item.title}
                     className="w-full aspect-video object-cover"
                   />
@@ -211,15 +209,13 @@ export default function ContentPage() {
                     <div className="flex space-x-2">
                       <Link href={`/dashboard/content/${item.id}/edit`}>
                         <Button
-                          structure="base"
-                          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-sm"
+                          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-sm"
                         >
                           Edit
                         </Button>
                       </Link>
                       <Button
-                        structure="base"
-                        className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm"
+                        className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm"
                         onClick={() => handleDeleteContent(item.id)}
                       >
                         Delete

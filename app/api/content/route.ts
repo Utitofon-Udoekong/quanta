@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
-import { Content, Metadata, ContentType, ContentStatus, PricingModel } from '@prisma/client';
+import { db } from '@/app/lib/firebase';
+import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -8,30 +8,30 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<Content[]>>> {
+export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<any[]>>> {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('walletAddress');
+    const type = searchParams.get('type');
+    const creatorId = searchParams.get('creatorId');
+    const status = searchParams.get('status');
 
-    if (!walletAddress) {
-      return NextResponse.json({ success: false, error: 'Wallet address is required' }, { status: 400 });
-    }
+    let q = collection(db, 'content');
 
-    const content = await prisma.content.findMany({
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            walletAddress: true,
-          },
-        },
-        metadata: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    // Apply filters
+    if (type) q = query(q, where('type', '==', type));
+    if (creatorId) q = query(q, where('creatorId', '==', creatorId));
+    if (status) q = query(q, where('status', '==', status));
+
+    // Add ordering
+    q = query(q, orderBy('createdAt', 'desc'));
+
+    const querySnapshot = await getDocs(q);
+    const content = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate().toISOString(),
+      updatedAt: doc.data().updatedAt?.toDate().toISOString(),
+    }));
 
     return NextResponse.json({ success: true, data: content });
   } catch (error) {
@@ -40,50 +40,87 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<Content & { metadata: Metadata }>>> {
+export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
   try {
-    const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('walletAddress');
+    const data = await request.json();
+    const {
+      title,
+      description,
+      type,
+      price,
+      pricingModel,
+      status,
+      creatorId,
+      thumbnailUrl,
+      contentUrl,
+      duration,
+    } = data;
 
-    if (!walletAddress) {
-      return NextResponse.json({ success: false, error: 'Wallet address is required' }, { status: 400 });
+    // Validate required fields
+    if (!title || !description || !type || !creatorId) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    const body = await request.json();
-    const { title, description, type, price, pricingModel, thumbnail, contentUrl, metadata } = body;
+    // Validate content type
+    const validTypes = ['VIDEO', 'AUDIO', 'COURSE'];
+    if (!validTypes.includes(type)) {
+      return NextResponse.json(
+        { error: 'Invalid content type' },
+        { status: 400 }
+      );
+    }
 
-    // Create metadata first
-    const createdMetadata = await prisma.metadata.create({
-      data: metadata,
+    // Validate pricing model
+    const validPricingModels = ['FREE', 'PER_USE', 'PER_MINUTE', 'CUSTOM'];
+    if (!validPricingModels.includes(pricingModel)) {
+      return NextResponse.json(
+        { error: 'Invalid pricing model' },
+        { status: 400 }
+      );
+    }
+
+    // Validate status
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: 'Invalid status' },
+        { status: 400 }
+      );
+    }
+
+    // Create content
+    const contentRef = await addDoc(collection(db, 'content'), {
+      title,
+      description,
+      type,
+      price: price || 0,
+      pricingModel: pricingModel || 'FREE',
+      status: status || 'DRAFT',
+      creatorId,
+      thumbnailUrl,
+      contentUrl,
+      duration: duration || 0,
+      viewCount: 0,
+      purchaseCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    // Create content with metadata
-    const content = await prisma.content.create({
+    const contentDoc = await getDoc(contentRef);
+    const contentData = contentDoc.data();
+
+    return NextResponse.json({
+      success: true,
       data: {
-        title,
-        description,
-        type: type as ContentType,
-        price,
-        pricingModel: pricingModel as PricingModel,
-        status: ContentStatus.DRAFT,
-        creatorId: walletAddress,
-        thumbnail,
-        contentUrl,
-        metadataId: createdMetadata.id,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            walletAddress: true,
-          },
-        },
-        metadata: true,
-      },
+        id: contentRef.id,
+        ...contentData,
+        createdAt: contentData.createdAt?.toDate().toISOString(),
+        updatedAt: contentData.updatedAt?.toDate().toISOString(),
+      }
     });
-
-    return NextResponse.json({ success: true, data: content });
   } catch (error) {
     console.error('Error creating content:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

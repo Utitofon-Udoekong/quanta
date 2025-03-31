@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
+import { db } from '@/app/lib/firebase';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export async function GET(request: Request) {
   try {
@@ -10,24 +11,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { walletAddress: walletAddress as string },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        walletAddress: true,
-        metaAccountId: true,
-        isCreator: true,
-        isAdmin: true,
-      },
-    });
+    const userRef = doc(db, 'users', walletAddress);
+    const userSnap = await getDoc(userRef);
 
-    if (!user) {
+    if (!userSnap.exists()) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    const userData = userSnap.data();
+    return NextResponse.json({
+      id: walletAddress,
+      name: userData.name,
+      email: userData.email,
+      walletAddress: userData.walletAddress,
+      metaAccountId: userData.metaAccountId,
+      isCreator: userData.isCreator,
+      isAdmin: userData.isAdmin,
+    });
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -43,37 +43,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Wallet address and meta account ID are required' }, { status: 400 });
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { walletAddress },
-    });
+    const userRef = doc(db, 'users', walletAddress);
+    const userSnap = await getDoc(userRef);
 
-    if (existingUser) {
+    if (userSnap.exists()) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
     // Create new user
-    const user = await prisma.user.create({
-      data: {
-        walletAddress,
-        metaAccountId,
-        name: name || `User ${walletAddress.slice(0, 6)}`,
-        email: email || `${walletAddress.slice(0, 6)}@xion.user`,
-        isCreator: false,
-        isAdmin: false,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        walletAddress: true,
-        metaAccountId: true,
-        isCreator: true,
-        isAdmin: true,
-      },
+    await setDoc(userRef, {
+      walletAddress,
+      metaAccountId,
+      name: name || `User ${walletAddress.slice(0, 6)}`,
+      email: email || `${walletAddress.slice(0, 6)}@xion.user`,
+      isCreator: false,
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({
+      id: walletAddress,
+      name: name || `User ${walletAddress.slice(0, 6)}`,
+      email: email || `${walletAddress.slice(0, 6)}@xion.user`,
+      walletAddress,
+      metaAccountId,
+      isCreator: false,
+      isAdmin: false,
+    });
   } catch (error) {
     console.error('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -89,24 +86,31 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
-    const user = await prisma.user.update({
-      where: { walletAddress },
-      data: {
-        name,
-        email,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        walletAddress: true,
-        metaAccountId: true,
-        isCreator: true,
-        isAdmin: true,
-      },
+    const userRef = doc(db, 'users', walletAddress);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    await updateDoc(userRef, {
+      name,
+      email,
+      updatedAt: new Date().toISOString(),
     });
 
-    return NextResponse.json(user);
+    const updatedUser = await getDoc(userRef);
+    const userData = updatedUser.data();
+
+    return NextResponse.json({
+      id: walletAddress,
+      name: userData.name,
+      email: userData.email,
+      walletAddress: userData.walletAddress,
+      metaAccountId: userData.metaAccountId,
+      isCreator: userData.isCreator,
+      isAdmin: userData.isAdmin,
+    });
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { Content, Metadata, User } from '@prisma/client';
+import { Content, Metadata, User, ContentType, PricingModel, ContentStatus } from '@prisma/client';
 import { fetchApi, ApiError } from '@/app/lib/fetch';
 import useSWR from 'swr';
 
@@ -23,15 +23,14 @@ interface UseContentOptions {
 interface CreateContentData {
   title: string;
   description: string;
-  type: string;
+  type: ContentType;
   price: number;
-  pricingModel: string;
-  status: string;
-  thumbnail?: string;
-  contentUrl?: string;
-  previewUrl?: string;
+  pricingModel: PricingModel;
+  status: ContentStatus;
   creatorId: string;
-  metadata: Metadata;
+  thumbnailUrl?: string;
+  contentUrl?: string;
+  duration?: number;
 }
 
 const fetcher = async (url: string) => {
@@ -119,7 +118,7 @@ export function useContent(contentId?: string, options: UseContentOptions = {}) 
     }
   }, [handleError, shouldFetch]);
 
-  const createContent = async (data: CreateContentData): Promise<ContentWithRelations | null> => {
+  const createContent = async (data: CreateContentData): Promise<Content | null> => {
     setIsLoading(true);
     setError(null);
 
@@ -132,18 +131,15 @@ export function useContent(contentId?: string, options: UseContentOptions = {}) 
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create content');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create content');
       }
 
-      options.onSuccess?.(result.data);
-      return result.data;
+      const content = await response.json();
+      return content;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to create content');
-      setError(error.message);
-      options.onError?.(error.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       return null;
     } finally {
       setIsLoading(false);

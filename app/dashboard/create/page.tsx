@@ -4,18 +4,22 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/app/store/use-user-store';
 import { useContent } from '@/app/hooks/use-content';
-import { createMetadata } from '@/app/lib/metadata';
-import { ContentType, PricingModel, ContentStatus, Metadata } from '@prisma/client';
-import { Button } from '@/app/components/ui/button';
+import { ContentData } from '@/app/lib/firebase';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select } from '@/app/components/ui/select';
 import { FileUpload } from '@/app/components/ui/file-upload';
 import { toast } from '@/app/components/ui/toast';
+import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { Button } from '@/app/components/ui/button';
+
+type ContentType = 'VIDEO' | 'AUDIO' | 'COURSE';
+type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+type PricingModel = 'PAY_PER_VIEW';
 
 export default function CreateContentPage() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { data: account } = useAbstraxionAccount();
   const { createContent, isLoading, error } = useContent();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -23,12 +27,13 @@ export default function CreateContentPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: ContentType.VIDEO,
+    type: 'VIDEO' as ContentType,
     price: 0,
-    pricingModel: PricingModel.FREE,
-    status: ContentStatus.DRAFT,
-    thumbnail: '',
+    pricingModel: 'PAY_PER_VIEW' as PricingModel,
+    status: 'DRAFT' as ContentStatus,
+    thumbnailUrl: '',
     contentUrl: '',
+    duration: 0,
   });
 
   const [selectedFiles, setSelectedFiles] = useState<{
@@ -39,7 +44,7 @@ export default function CreateContentPage() {
     content: null,
   });
 
-  if (!user?.walletAddress) {
+  if (!account?.bech32Address) {
     return (
       <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
         <div className="text-center">
@@ -55,15 +60,13 @@ export default function CreateContentPage() {
     setIsSubmitting(true);
     setUploadError(null);
 
-    if (!user?.walletAddress) {
-      console.log('You must be logged in to create content');
+    if (!account?.bech32Address) {
       toast('You must be logged in to create content', 'error');
       setIsSubmitting(false);
       return;
     }
 
     if (!selectedFiles.content) {
-      console.log('Please select a content file');
       toast('Please select a content file', 'error');
       setIsSubmitting(false);
       return;
@@ -75,7 +78,7 @@ export default function CreateContentPage() {
       if (selectedFiles.thumbnail) {
         uploadPromises.push(
           uploadFile(selectedFiles.thumbnail, 'thumbnails')
-            .then(key => ({ type: 'thumbnail', key }))
+            .then(url => ({ type: 'thumbnail', url }))
             .catch(err => {
               setUploadError('Failed to upload thumbnail');
               throw err;
@@ -85,7 +88,7 @@ export default function CreateContentPage() {
       if (selectedFiles.content) {
         uploadPromises.push(
           uploadFile(selectedFiles.content, 'content')
-            .then(key => ({ type: 'content', key }))
+            .then(url => ({ type: 'content', url }))
             .catch(err => {
               setUploadError('Failed to upload content file');
               throw err;
@@ -94,20 +97,16 @@ export default function CreateContentPage() {
       }
 
       const uploadResults = await Promise.all(uploadPromises);
-      const uploadedFiles = uploadResults.reduce((acc, { type, key }) => {
-        acc[type] = key;
+      const uploadedFiles = uploadResults.reduce((acc, { type, url }) => {
+        acc[type] = url;
         return acc;
       }, {} as Record<string, string>);
 
-      const metadata = createMetadata(formData.type, {
-        thumbnail: uploadedFiles.thumbnail,
-        contentUrl: uploadedFiles.content,
-      });
-
       const content = await createContent({
         ...formData,
-        creatorId: user.walletAddress,
-        metadata: metadata as Metadata,
+        creatorId: account.bech32Address,
+        thumbnailUrl: uploadedFiles.thumbnail,
+        contentUrl: uploadedFiles.content,
       });
 
       if (content) {
@@ -132,26 +131,26 @@ export default function CreateContentPage() {
   };
 
   const uploadFile = async (file: File, prefix: string): Promise<string> => {
+    if (!account?.bech32Address) {
+      throw new Error('Wallet address is required for upload');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('prefix', prefix);
 
-    const response = await fetch('/api/upload', {
+    const response = await fetch(`/api/upload?walletAddress=${encodeURIComponent(account.bech32Address)}`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
     }
 
     const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to upload file');
-    }
-
-    return data.data.key;
+    return data.url;
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -160,6 +159,27 @@ export default function CreateContentPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const getFileAcceptTypes = (): Record<string, string[]> => {
+    switch (formData.type) {
+      case 'VIDEO':
+        return {
+          'video/*': ['.mp4', '.webm', '.ogg']
+        };
+      case 'AUDIO':
+        return {
+          'audio/*': ['.mp3', '.wav', '.ogg']
+        };
+      case 'COURSE':
+        return {
+          'video/*': ['.mp4', '.webm', '.ogg'],
+          'audio/*': ['.mp3', '.wav', '.ogg'],
+          'application/pdf': ['.pdf']
+        };
+      default:
+        return {};
+    }
   };
 
   return (
@@ -224,7 +244,7 @@ export default function CreateContentPage() {
                     onChange={handleInputChange}
                     className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {Object.values(ContentType).map(type => (
+                    {(['VIDEO', 'AUDIO', 'COURSE'] as ContentType[]).map(type => (
                       <option key={type} value={type}>
                         {type}
                       </option>
@@ -259,7 +279,7 @@ export default function CreateContentPage() {
                     onChange={handleInputChange}
                     className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {Object.values(PricingModel).map(model => (
+                    {(['PAY_PER_VIEW'] as PricingModel[]).map(model => (
                       <option key={model} value={model}>
                         {model}
                       </option>
@@ -278,13 +298,29 @@ export default function CreateContentPage() {
                     onChange={handleInputChange}
                     className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {Object.values(ContentStatus).map(status => (
+                    {(['DRAFT', 'PUBLISHED', 'ARCHIVED'] as ContentStatus[]).map(status => (
                       <option key={status} value={status}>
                         {status}
                       </option>
                     ))}
                   </Select>
                 </div>
+
+                <div>
+                  <label htmlFor="duration" className="block text-sm font-medium text-gray-200">
+                    Duration (seconds)
+                  </label>
+                  <Input
+                    id="duration"
+                    name="duration"
+                    type="number"
+                    value={formData.duration}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-2">
                     Thumbnail
@@ -307,14 +343,7 @@ export default function CreateContentPage() {
                   <FileUpload
                     onFileSelect={(file) => handleFileSelect('content', file)}
                     prefix="content"
-                    accept={{
-                      'video/*': ['.mp4', '.webm', '.ogg'],
-                      'audio/*': ['.mp3', '.wav', '.ogg'],
-                      'application/pdf': ['.pdf'],
-                      'text/markdown': ['.md'],
-                      'text/plain': ['.txt'],
-                      'application/zip': ['.zip']
-                    }}
+                    accept={getFileAcceptTypes()}
                     maxSize={100 * 1024 * 1024} // 100MB
                     value={selectedFiles.content}
                   />

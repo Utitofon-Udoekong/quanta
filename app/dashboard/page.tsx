@@ -1,11 +1,10 @@
 "use client";
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Content } from '@prisma/client';
 import { useEffect, useState } from 'react';
-import { Button } from "@burnt-labs/ui";
 import Link from 'next/link';
 import { PlusIcon, ChartBarIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
 import { useContent } from '@/app/hooks/use-content';
+import { ContentData } from '@/app/lib/firebase';
 
 // Quick stats data structure
 interface DashboardStats {
@@ -17,7 +16,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { data: account } = useAbstraxionAccount();
-  const [content, setContent] = useState<Content[]>([]);
+  const [content, setContent] = useState<ContentData[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalViews: 0,
     totalEarnings: 0,
@@ -114,13 +113,12 @@ export default function DashboardPage() {
             <p className="text-gray-400">Manage your content and track performance</p>
           </div>
           <Link href="/dashboard/create">
-            <Button
-              structure="base"
-              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+            <button
+              className="flex items-center px-4 py-2 rounded-md space-x-2 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
             >
               <PlusIcon className="w-5 h-5" />
               <span>Create Content</span>
-            </Button>
+            </button>
           </Link>
         </div>
 
@@ -218,7 +216,7 @@ export default function DashboardPage() {
                           <div className="h-10 w-16 flex-shrink-0 rounded overflow-hidden">
                             <img
                               className="h-full w-full object-cover"
-                              src={item.thumbnail || 'https://picsum.photos/320/180'}
+                              src={item.thumbnailUrl || 'https://picsum.photos/320/180'}
                               alt=""
                             />
                           </div>
@@ -231,9 +229,8 @@ export default function DashboardPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           {item.type === 'VIDEO' && <VideoCameraIcon className="w-4 h-4 text-blue-400 mr-2" />}
-                          {item.type === 'ARTICLE' && <NewspaperIcon className="w-4 h-4 text-green-400 mr-2" />}
+                          {item.type === 'AUDIO' && <NewspaperIcon className="w-4 h-4 text-green-400 mr-2" />}
                           {item.type === 'COURSE' && <AcademicCapIcon className="w-4 h-4 text-purple-400 mr-2" />}
-                          {item.type === 'SOFTWARE' && <CodeBracketIcon className="w-4 h-4 text-pink-400 mr-2" />}
                           <span className="text-sm">{item.type}</span>
                         </div>
                       </td>
@@ -250,20 +247,18 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 text-sm">
                         <div className="flex space-x-2">
                           <Link href={`/dashboard/content/${item.id}/edit`}>
-                            <Button
-                              structure="base"
+                            <button
                               className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-sm"
                             >
                               Edit
-                            </Button>
+                            </button>
                           </Link>
-                          <Button
-                            structure="base"
+                          <button
                             className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm"
                             onClick={() => handleDeleteContent(item.id)}
                           >
                             Delete
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
