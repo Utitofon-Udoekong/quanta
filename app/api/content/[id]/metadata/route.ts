@@ -30,7 +30,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: any
 ): Promise<NextResponse> {
   try {
     const { data: account } = useAbstraxionAccount();
