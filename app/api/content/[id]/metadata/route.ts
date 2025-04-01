@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
+import { NextRequest } from 'next/server';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
     const { data: content, error } = await supabase
@@ -13,7 +14,7 @@ export async function GET(
         *,
         creator:creator_id (id, full_name, email)
       `)
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (error) {
