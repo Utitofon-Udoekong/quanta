@@ -1,16 +1,9 @@
 "use client";
 import { notFound } from 'next/navigation';
-import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { ContentPlayer } from '@/app/components/content/ContentPlayer';
-import { ContentType, Content, Metadata, User } from '@prisma/client';
 import { useEffect, useState } from 'react';
-import { useUserStore } from '@/app/store/use-user-store';
-import { ContentData } from '@/app/lib/firebase';
-
-type ContentWithMetadata = Content & {
-  metadata: Metadata;
-  creator: User;
-};
+import { ContentData } from '@/app/lib/supabase';
 
 interface ContentPageProps {
   params: {
@@ -19,36 +12,22 @@ interface ContentPageProps {
   };
 }
 
-async function getContent(id: string): Promise<ContentData | null> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/content/${id}`, {
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return response.json();
-}
-
-export default async function ContentPage({ params }: ContentPageProps) {
+export default function ContentPage({ params }: ContentPageProps) {
   const { data: account } = useAbstraxionAccount();
-  const { user } = useUserStore();
   const [content, setContent] = useState<ContentData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isContentLoading, setIsContentLoading] = useState(true);
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        if (!user?.walletAddress) {
+        if (!account?.bech32Address) {
           setError('Please connect your wallet to view content');
           setIsLoading(false);
           return;
         }
 
-        const response = await fetch(`/api/content/${params.id}?walletAddress=${user.walletAddress}`);
+        const response = await fetch(`/api/content/${params.id}`);
         const result = await response.json();
 
         if (!result.success) {
@@ -64,10 +43,10 @@ export default async function ContentPage({ params }: ContentPageProps) {
     };
 
     fetchContent();
-  }, [params.id, user?.walletAddress]);
+  }, [params.id, account?.bech32Address]);
 
   // Validate content type
-  if (!Object.values(ContentType).includes(params.type.toUpperCase() as ContentType)) {
+  if (!['VIDEO', 'AUDIO'].includes(params.type.toUpperCase())) {
     notFound();
   }
 
