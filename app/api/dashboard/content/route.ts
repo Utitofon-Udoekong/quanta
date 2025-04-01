@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { data: account } = useAbstraxionAccount();
-    if (!account?.bech32Address) {
+    const walletAddress = request.headers.get('x-wallet-address');
+    if (!walletAddress) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -15,7 +14,7 @@ export async function GET() {
         *,
         creator:creator_id (id, full_name, email)
       `)
-      .eq('creator_id', account.bech32Address)
+      .eq('creator_id', walletAddress)
       .order('created_at', { ascending: false });
 
     if (error) {

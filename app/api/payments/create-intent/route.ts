@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
 export async function POST(request: Request) {
   try {
-    const { data: account } = useAbstraxionAccount();
-    if (!account?.bech32Address) {
+    const walletAddress = request.headers.get('x-wallet-address');
+    if (!walletAddress) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
         currency: 'USD',
         status: 'PENDING',
         creator_id: creatorId,
-        user_id: account.bech32Address,
+        user_id: walletAddress,
         created_at: new Date().toISOString(),
       }])
       .select()

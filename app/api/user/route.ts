@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/app/lib/supabase';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
 export async function GET(request: Request) {
   try {
@@ -30,8 +29,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { data: account } = useAbstraxionAccount();
-    if (!account?.bech32Address) {
+    const walletAddress = request.headers.get('x-wallet-address');
+    if (!walletAddress) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
     const { data: existingUser, error: checkError } = await supabase
       .from('users')
       .select('*')
-      .eq('wallet_address', account.bech32Address)
+      .eq('wallet_address', walletAddress)
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
@@ -59,10 +58,10 @@ export async function POST(request: Request) {
     const { data: user, error: insertError } = await supabase
       .from('users')
       .insert([{
-        wallet_address: account.bech32Address,
+        wallet_address: walletAddress,
         meta_account_id: metaAccountId,
-        full_name: name || `User ${account.bech32Address.slice(0, 6)}`,
-        email: email || `${account.bech32Address.slice(0, 6)}@xion.user`,
+        full_name: name || `User ${walletAddress.slice(0, 6)}`,
+        email: email || `${walletAddress.slice(0, 6)}@xion.user`,
         is_creator: false,
         is_admin: false,
         created_at: new Date().toISOString(),
@@ -84,8 +83,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { data: account } = useAbstraxionAccount();
-    if (!account?.bech32Address) {
+    const walletAddress = request.headers.get('x-wallet-address');
+    if (!walletAddress) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -99,7 +98,7 @@ export async function PUT(request: Request) {
         email,
         updated_at: new Date().toISOString(),
       })
-      .eq('wallet_address', account.bech32Address)
+      .eq('wallet_address', walletAddress)
       .select()
       .single();
 

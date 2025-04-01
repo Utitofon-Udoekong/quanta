@@ -66,9 +66,9 @@ export default function ProfilePage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-wallet-address': account.bech32Address,
         },
         body: JSON.stringify({
-          walletAddress: account.bech32Address,
           full_name: extendedUser.full_name,
           email: extendedUser.email,
           bio: extendedUser.bio,

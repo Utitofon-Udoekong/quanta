@@ -66,6 +66,7 @@ export function ContentPlayer({ content, onProgress, onComplete }: ContentPlayer
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-wallet-address': account.bech32Address,
         },
         body: JSON.stringify({
           contentId: content.id,
