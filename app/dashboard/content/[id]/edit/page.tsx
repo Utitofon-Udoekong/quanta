@@ -27,9 +27,9 @@ interface ContentData {
 }
 
 interface ContentEditPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 interface FormData {
@@ -52,6 +52,7 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pageParams, setPageParams] = useState<{ id: string } | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -66,9 +67,19 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
   });
 
   useEffect(() => {
+    const loadParams = async () => {
+      const resolvedParams = await params;
+      setPageParams(resolvedParams);
+    };
+    loadParams();
+  }, [params]);
+
+  useEffect(() => {
     const fetchContent = async () => {
+      if (!pageParams) return;
+
       try {
-        const response = await fetch(`/api/content/${params.id}`);
+        const response = await fetch(`/api/content/${pageParams.id}`);
         if (!response.ok) throw new Error('Failed to fetch content');
         const data = await response.json();
         
@@ -95,7 +106,7 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
     if (account?.bech32Address) {
       fetchContent();
     }
-  }, [account?.bech32Address, params.id]);
+  }, [account?.bech32Address, pageParams?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +120,7 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
     }
 
     try {
-      const response = await fetch(`/api/content/${params.id}`, {
+      const response = await fetch(`/api/content/${pageParams?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
