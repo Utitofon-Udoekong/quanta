@@ -1,11 +1,9 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
-import { ContentType } from '@prisma/client';
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
 import { ContentData } from '@/app/lib/supabase';
 import { supabase } from '@/app/lib/supabase';
-import { getAuth } from 'firebase/auth';
 
 interface ContentPlayerProps {
   content: ContentData;
@@ -59,8 +57,7 @@ export function ContentPlayer({ content, onProgress, onComplete }: ContentPlayer
     try {
       setError(null);
       
-      const auth = getAuth();
-      if (!auth.currentUser) {
+      if (!account?.bech32Address) {
         throw new Error('User not authenticated');
       }
 
@@ -73,7 +70,7 @@ export function ContentPlayer({ content, onProgress, onComplete }: ContentPlayer
         body: JSON.stringify({
           contentId: content.id,
           price: content.price,
-          creatorId: content.creatorId,
+          creatorId: content.creator_id,
         }),
       });
 
@@ -92,7 +89,7 @@ export function ContentPlayer({ content, onProgress, onComplete }: ContentPlayer
         typeUrl: "/cosmos.bank.v1beta1.MsgSend",
         value: MsgSend.fromPartial({
           fromAddress: account.bech32Address,
-          toAddress: content.creatorId,
+          toAddress: content.creator_id,
           amount: [
             {
               denom: "uxion",
