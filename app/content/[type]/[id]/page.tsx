@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react';
 import { ContentData } from '@/app/lib/supabase';
 
 interface ContentPageProps {
-  params: {
+  params: Promise<{
     type: string;
     id: string;
-  };
+  }>;
 }
 
 export default function ContentPage({ params }: ContentPageProps) {
@@ -17,9 +17,20 @@ export default function ContentPage({ params }: ContentPageProps) {
   const [content, setContent] = useState<ContentData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pageParams, setPageParams] = useState<{ type: string; id: string } | null>(null);
+
+  useEffect(() => {
+    const loadParams = async () => {
+      const resolvedParams = await params;
+      setPageParams(resolvedParams);
+    };
+    loadParams();
+  }, [params]);
 
   useEffect(() => {
     const fetchContent = async () => {
+      if (!pageParams) return;
+
       try {
         if (!account?.bech32Address) {
           setError('Please connect your wallet to view content');
@@ -27,7 +38,7 @@ export default function ContentPage({ params }: ContentPageProps) {
           return;
         }
 
-        const response = await fetch(`/api/content/${params.id}`);
+        const response = await fetch(`/api/content/${pageParams.id}`);
         const result = await response.json();
 
         if (!result.success) {
@@ -43,10 +54,10 @@ export default function ContentPage({ params }: ContentPageProps) {
     };
 
     fetchContent();
-  }, [params.id, account?.bech32Address]);
+  }, [pageParams?.id, account?.bech32Address]);
 
   // Validate content type
-  if (!['VIDEO', 'AUDIO'].includes(params.type.toUpperCase())) {
+  if (pageParams && !['VIDEO', 'AUDIO'].includes(pageParams.type.toUpperCase())) {
     notFound();
   }
 
