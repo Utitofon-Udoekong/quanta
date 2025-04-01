@@ -4,7 +4,7 @@ import { cn } from '@/app/lib/utils';
 import Image from 'next/image';
 
 export interface FileUploadProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File | null) => void;
   prefix: string;
   accept?: Record<string, string[]>;
   maxSize?: number;
@@ -16,14 +16,14 @@ export function FileUpload({
   onFileSelect,
   prefix,
   accept = {
-    'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
+    // 'image/*': ['.png', '.jpg', '.jpeg', '.gif'],
     'video/*': ['.mp4', '.webm', '.ogg'],
     'audio/*': ['.mp3', '.wav', '.ogg'],
-    'application/pdf': ['.pdf'],
-    'text/markdown': ['.md'],
-    'text/plain': ['.txt'],
-    'application/zip': ['.zip'],
-    'application/x-zip-compressed': ['.zip'],
+    // 'application/pdf': ['.pdf'],
+    // 'text/markdown': ['.md'],
+    // 'text/plain': ['.txt'],
+    // 'application/zip': ['.zip'],
+    // 'application/x-zip-compressed': ['.zip'],
   },
   maxSize = 5 * 1024 * 1024, // 5MB
   className,
@@ -50,24 +50,23 @@ export function FileUpload({
     if (!value) return null;
 
     const fileType = value.type;
-    const isImage = fileType.startsWith('image/');
+    // const isImage = fileType.startsWith('image/');
     const isVideo = fileType.startsWith('video/');
     const isAudio = fileType.startsWith('audio/');
-    const isPDF = fileType === 'application/pdf';
-    const isText = fileType.startsWith('text/') || fileType === 'application/pdf';
+    // const isText = fileType.startsWith('text/') || fileType === 'application/pdf';
 
-    if (isImage) {
-      return (
-        <div className="relative w-full h-48 rounded-lg overflow-hidden">
-          <Image
-            src={URL.createObjectURL(value)}
-            alt="Preview"
-            fill
-            className="object-cover"
-          />
-        </div>
-      );
-    }
+    // if (isImage) {
+    //   return (
+    //     <div className="relative w-full h-48 rounded-lg overflow-hidden">
+    //       <Image
+    //         src={URL.createObjectURL(value)}
+    //         alt="Preview"
+    //         fill
+    //         className="object-cover"
+    //       />
+    //     </div>
+    //   );
+    // }
 
     if (isVideo) {
       return (
@@ -89,15 +88,15 @@ export function FileUpload({
       );
     }
 
-    if (isText) {
-      return (
-        <div className="w-full h-48 rounded-lg bg-gray-100 p-4 overflow-auto">
-          <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-            {value.name}
-          </pre>
-        </div>
-      );
-    }
+    // if (isText) {
+    //   return (
+    //     <div className="w-full h-48 rounded-lg bg-gray-100 p-4 overflow-auto">
+    //       <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+    //         {value.name}
+    //       </pre>
+    //     </div>
+    //   );
+    // }
 
     return (
       <div className="w-full h-48 rounded-lg bg-gray-100 p-4 flex items-center justify-center">
