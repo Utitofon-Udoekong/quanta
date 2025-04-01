@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Record<string, string | string[]> }
+  { params }: any
 ): Promise<NextResponse> {
   try {
     const { data: content, error } = await supabase
@@ -14,7 +14,7 @@ export async function GET(
         *,
         creator:creator_id (id, full_name, email)
       `)
-      .eq('id', params.id as string)
+      .eq('id', params.id)
       .single();
 
     if (error) {
@@ -30,7 +30,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Record<string, string | string[]> }
+  { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
     const { data: account } = useAbstraxionAccount();
@@ -41,7 +41,7 @@ export async function PUT(
     const { data: content, error: contentError } = await supabase
       .from('content')
       .select('creator_id')
-      .eq('id', params.id as string)
+      .eq('id', params.id)
       .single();
 
     if (contentError) {
@@ -59,7 +59,7 @@ export async function PUT(
         ...body,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id as string)
+      .eq('id', params.id)
       .select()
       .single();
 
