@@ -1,86 +1,89 @@
-import { prisma } from '@/app/lib/db/client';
+import { supabase } from '@/app/lib/supabase';
+import { PaymentData } from '@/app/lib/supabase';
 
-export const paymentService = {
-  async createPayment(fromUserId: string, toUserId: string, amount: number, contentId?: string) {
-    try {
-      const payment = await prisma.payment.create({
-        data: {
-          fromUserId,
-          toUserId,
-          contentId,
-          amount,
-          status: 'PENDING',
-        },
-      });
-      return payment;
-    } catch (error) {
-      console.error('Error creating payment:', error);
+export async function createPaymentRecord(data: Omit<PaymentData, 'id' | 'created_at' | 'updated_at'>) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .insert([data])
+      .select()
+      .single();
+
+    if (error) {
       throw error;
     }
-  },
 
-  async updatePaymentStatus(paymentId: string, status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED') {
-    try {
-      const payment = await prisma.payment.update({
-        where: { id: paymentId },
-        data: { status },
-      });
-      return payment;
-    } catch (error) {
-      console.error('Error updating payment status:', error);
+    return payment;
+  } catch (error) {
+    console.error('Error creating payment record:', error);
+    throw error;
+  }
+}
+
+export async function updatePaymentRecord(id: string, data: Partial<PaymentData>) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
       throw error;
     }
-  },
 
-  async getPaymentStatus(paymentId: string) {
-    try {
-      const payment = await prisma.payment.findUnique({
-        where: { id: paymentId },
-      });
-      return payment?.status || 'FAILED';
-    } catch (error) {
-      console.error('Error getting payment status:', error);
+    return payment;
+  } catch (error) {
+    console.error('Error updating payment record:', error);
+    throw error;
+  }
+}
+
+export async function getPaymentHistory(userId: string) {
+  try {
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        from_user:from_user_id (id, full_name, email),
+        to_user:to_user_id (id, full_name, email),
+        content:content_id (id, title, type)
+      `)
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
       throw error;
     }
-  },
 
-  async getPaymentHistory(userId: string) {
-    try {
-      const payments = await prisma.payment.findMany({
-        where: {
-          OR: [
-            { fromUserId: userId },
-            { toUserId: userId },
-          ],
-        },
-        include: {
-          fromUser: {
-            select: {
-              name: true,
-              walletAddress: true,
-            },
-          },
-          toUser: {
-            select: {
-              name: true,
-              walletAddress: true,
-            },
-          },
-          content: {
-            select: {
-              title: true,
-              type: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-      return payments;
-    } catch (error) {
-      console.error('Error getting payment history:', error);
+    return payments;
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    throw error;
+  }
+}
+
+export async function getPayment(id: string) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        from_user:from_user_id (id, full_name, email),
+        to_user:to_user_id (id, full_name, email),
+        content:content_id (id, title, type)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
       throw error;
     }
-  },
-}; 
+
+    return payment;
+  } catch (error) {
+    console.error('Error fetching payment:', error);
+    throw error;
+  }
+} 

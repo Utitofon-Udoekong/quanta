@@ -4,11 +4,27 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Button } from "@burnt-labs/ui";
-import { ContentData } from '@/app/lib/firebase';
 
 type ContentType = 'VIDEO' | 'AUDIO' | 'COURSE';
 type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-type PricingModel = 'PAY_PER_VIEW';
+type PricingModel = 'PAY_PER_VIEW' | 'PER_USE';
+
+interface ContentData {
+  id: string;
+  title: string;
+  description: string;
+  type: ContentType;
+  status: ContentStatus;
+  price: number;
+  pricing_model: PricingModel;
+  creator_id: string;
+  thumbnail_url?: string;
+  content_url: string;
+  preview_url?: string;
+  duration: number;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ContentEditPageProps {
   params: {
@@ -20,13 +36,13 @@ interface FormData {
   title: string;
   description: string;
   price: number;
-  thumbnailUrl: string;
-  contentUrl: string;
-  previewUrl: string;
+  thumbnail_url: string;
+  content_url: string;
+  preview_url: string;
   status: ContentStatus;
   type: ContentType;
   duration: number;
-  pricingModel: PricingModel;
+  pricing_model: PricingModel;
 }
 
 export default function ContentEditPage({ params }: ContentEditPageProps) {
@@ -40,13 +56,13 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
     title: '',
     description: '',
     price: 0,
-    thumbnailUrl: '',
-    contentUrl: '',
-    previewUrl: '',
+    thumbnail_url: '',
+    content_url: '',
+    preview_url: '',
     status: 'DRAFT',
     type: 'VIDEO',
     duration: 0,
-    pricingModel: 'PAY_PER_VIEW',
+    pricing_model: 'PER_USE',
   });
 
   useEffect(() => {
@@ -61,13 +77,13 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
           title: data.title,
           description: data.description,
           price: data.price,
-          thumbnailUrl: data.thumbnailUrl || '',
-          contentUrl: data.contentUrl || '',
-          previewUrl: data.previewUrl || '',
+          thumbnail_url: data.thumbnail_url || '',
+          content_url: data.content_url || '',
+          preview_url: data.preview_url || '',
           status: data.status as ContentStatus,
           type: data.type as ContentType,
           duration: data.duration,
-          pricingModel: data.pricingModel as PricingModel,
+          pricing_model: data.pricing_model as PricingModel,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -86,13 +102,22 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
     setSaving(true);
     setError(null);
 
+    if (!account?.bech32Address) {
+      setError('Please connect your wallet to update content');
+      setSaving(false);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/content/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          creator_id: account.bech32Address,
+        }),
       });
 
       if (!response.ok) {
@@ -236,17 +261,17 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
                 </div>
 
                 <div>
-                  <label htmlFor="pricingModel" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="pricing_model" className="block text-sm font-medium text-gray-200">
                     Pricing Model
                   </label>
                   <select
-                    id="pricingModel"
+                    id="pricing_model"
                     required
-                    value={formData.pricingModel}
-                    onChange={(e) => setFormData({ ...formData, pricingModel: e.target.value as PricingModel })}
+                    value={formData.pricing_model}
+                    onChange={(e) => setFormData({ ...formData, pricing_model: e.target.value as PricingModel })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {(['PAY_PER_VIEW'] as PricingModel[]).map(model => (
+                    {(['PAY_PER_VIEW', 'PER_USE'] as PricingModel[]).map(model => (
                       <option key={model} value={model}>
                         {model}
                       </option>
@@ -289,41 +314,41 @@ export default function ContentEditPage({ params }: ContentEditPageProps) {
                 </div>
 
                 <div>
-                  <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="thumbnail_url" className="block text-sm font-medium text-gray-200">
                     Thumbnail URL
                   </label>
                   <input
                     type="url"
-                    id="thumbnailUrl"
-                    value={formData.thumbnailUrl}
-                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                    id="thumbnail_url"
+                    value={formData.thumbnail_url}
+                    onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contentUrl" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="content_url" className="block text-sm font-medium text-gray-200">
                     Content URL
                   </label>
                   <input
                     type="url"
-                    id="contentUrl"
+                    id="content_url"
                     required
-                    value={formData.contentUrl}
-                    onChange={(e) => setFormData({ ...formData, contentUrl: e.target.value })}
+                    value={formData.content_url}
+                    onChange={(e) => setFormData({ ...formData, content_url: e.target.value })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="previewUrl" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="preview_url" className="block text-sm font-medium text-gray-200">
                     Preview URL (Optional)
                   </label>
                   <input
                     type="url"
-                    id="previewUrl"
-                    value={formData.previewUrl}
-                    onChange={(e) => setFormData({ ...formData, previewUrl: e.target.value })}
+                    id="preview_url"
+                    value={formData.preview_url}
+                    onChange={(e) => setFormData({ ...formData, preview_url: e.target.value })}
                     className="mt-1 block w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

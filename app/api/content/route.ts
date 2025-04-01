@@ -1,6 +1,5 @@
+import { supabase } from '@/app/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/firebase';
-import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -8,121 +7,88 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<any[]>>> {
+export async function GET(request: Request): Promise<NextResponse<ApiResponse<any[]>>> {
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const creatorId = searchParams.get('creatorId');
-    const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
 
-    let q = collection(db, 'content');
+    let query = supabase
+      .from('content')
+      .select(`
+        *,
+        creator:creator_id (id, full_name, email)
+      `)
+      .eq('status', 'PUBLISHED');
 
-    // Apply filters
-    if (type) q = query(q, where('type', '==', type));
-    if (creatorId) q = query(q, where('creatorId', '==', creatorId));
-    if (status) q = query(q, where('status', '==', status));
+    if (type) {
+      query = query.eq('type', type);
+    }
 
-    // Add ordering
-    q = query(q, orderBy('createdAt', 'desc'));
+    if (creatorId) {
+      query = query.eq('creator_id', creatorId);
+    }
 
-    const querySnapshot = await getDocs(q);
-    const content = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate().toISOString(),
-      updatedAt: doc.data().updatedAt?.toDate().toISOString(),
-    }));
+    const { data: content, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+      .select('*', { count: 'exact' });
 
-    return NextResponse.json({ success: true, data: content });
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      content,
+      pagination: {
+        total: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    });
   } catch (error) {
     console.error('Error fetching content:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch content' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<any>>> {
+export async function POST(request: Request): Promise<NextResponse<ApiResponse<any>>> {
   try {
-    const data = await request.json();
-    const {
-      title,
-      description,
-      type,
-      price,
-      pricingModel,
-      status,
-      creatorId,
-      thumbnailUrl,
-      contentUrl,
-      duration,
-    } = data;
+    const body = await request.json();
+    const { title, description, type, price, creator_id, thumbnail_url, content_url } = body;
 
-    // Validate required fields
-    if (!title || !description || !type || !creatorId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    const { data: content, error } = await supabase
+      .from('content')
+      .insert([{
+        title,
+        description,
+        type,
+        price,
+        creator_id,
+        thumbnail_url,
+        content_url,
+        status: 'DRAFT',
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
     }
 
-    // Validate content type
-    const validTypes = ['VIDEO', 'AUDIO', 'COURSE'];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json(
-        { error: 'Invalid content type' },
-        { status: 400 }
-      );
-    }
-
-    // Validate pricing model
-    const validPricingModels = ['FREE', 'PER_USE', 'PER_MINUTE', 'CUSTOM'];
-    if (!validPricingModels.includes(pricingModel)) {
-      return NextResponse.json(
-        { error: 'Invalid pricing model' },
-        { status: 400 }
-      );
-    }
-
-    // Validate status
-    const validStatuses = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status' },
-        { status: 400 }
-      );
-    }
-
-    // Create content
-    const contentRef = await addDoc(collection(db, 'content'), {
-      title,
-      description,
-      type,
-      price: price || 0,
-      pricingModel: pricingModel || 'FREE',
-      status: status || 'DRAFT',
-      creatorId,
-      thumbnailUrl,
-      contentUrl,
-      duration: duration || 0,
-      viewCount: 0,
-      purchaseCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const contentDoc = await getDoc(contentRef);
-    const contentData = contentDoc.data();
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        id: contentRef.id,
-        ...contentData,
-        createdAt: contentData.createdAt?.toDate().toISOString(),
-        updatedAt: contentData.updatedAt?.toDate().toISOString(),
-      }
-    });
+    return NextResponse.json(content);
   } catch (error) {
     console.error('Error creating content:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create content' },
+      { status: 500 }
+    );
   }
 } 

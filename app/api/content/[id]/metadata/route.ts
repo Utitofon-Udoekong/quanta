@@ -1,92 +1,74 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
-import { Metadata } from '@prisma/client';
-import { ApiResponse } from '@/app/types/api';
+import { supabase } from '@/app/lib/supabase';
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function PUT(request: Request, { params }: RouteParams): Promise<NextResponse<ApiResponse<Metadata>>> {
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const body = await request.json();
-    const {
-      readTime,
-      wordCount,
-      duration,
-      excerpt,
-      tags,
-      resolution,
-      format,
-      fps,
-      bitrate,
-      chapterCount,
-      level,
-      prerequisites,
-      syllabus,
-      platform,
-      requirements,
-      features,
-      version,
-      installGuide,
-    } = body;
+    const { data: content, error } = await supabase
+      .from('content')
+      .select(`
+        *,
+        creator:creator_id (id, full_name, email)
+      `)
+      .eq('id', params.id)
+      .single();
 
-    // First find the content to get its metadata ID
-    const content = await prisma.content.findUnique({
-      where: { id: params.id },
-      select: { metadataId: true }
-    });
-
-    if (!content?.metadataId) {
-      return NextResponse.json({
-        success: false,
-        error: {
-          message: 'No metadata found for this content'
-        }
-      }, { status: 404 });
+    if (error) {
+      throw error;
     }
 
-    const metadata = await prisma.metadata.update({
-      where: {
-        id: content.metadataId
-      },
-      data: {
-        readTime,
-        wordCount,
-        duration,
-        excerpt,
-        tags,
-        resolution,
-        format,
-        fps,
-        bitrate,
-        chapterCount,
-        level,
-        prerequisites,
-        syllabus,
-        platform,
-        requirements,
-        features,
-        version,
-        installGuide,
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: metadata,
-      message: 'Metadata updated successfully'
-    });
+    return NextResponse.json(content);
   } catch (error) {
-    console.error('Error updating metadata:', error);
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: 'Failed to update metadata',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }, { status: 500 });
+    console.error('Error fetching content metadata:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { data: account } = useAbstraxionAccount();
+    if (!account?.bech32Address) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: content, error: contentError } = await supabase
+      .from('content')
+      .select('creator_id')
+      .eq('id', params.id)
+      .single();
+
+    if (contentError) {
+      return NextResponse.json({ error: 'Content not found' }, { status: 404 });
+    }
+
+    if (content.creator_id !== account.bech32Address) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { data: updatedContent, error: updateError } = await supabase
+      .from('content')
+      .update({
+        ...body,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return NextResponse.json(updatedContent);
+  } catch (error) {
+    console.error('Error updating content metadata:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -5,6 +5,7 @@ import { ContentPlayer } from '@/app/components/content/ContentPlayer';
 import { ContentType, Content, Metadata, User } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import { useUserStore } from '@/app/store/use-user-store';
+import { ContentData } from '@/app/lib/firebase';
 
 type ContentWithMetadata = Content & {
   metadata: Metadata;
@@ -18,10 +19,22 @@ interface ContentPageProps {
   };
 }
 
-export default function ContentPage({ params }: ContentPageProps) {
+async function getContent(id: string): Promise<ContentData | null> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/content/${id}`, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json();
+}
+
+export default async function ContentPage({ params }: ContentPageProps) {
   const { data: account } = useAbstraxionAccount();
   const { user } = useUserStore();
-  const [content, setContent] = useState<ContentWithMetadata | null>(null);
+  const [content, setContent] = useState<ContentData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isContentLoading, setIsContentLoading] = useState(true);
@@ -85,77 +98,33 @@ export default function ContentPage({ params }: ContentPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
-          {/* Content Header */}
-          <div className="relative h-96">
-            {isLoading ? (
-              <div className="w-full h-full bg-gray-900/50 animate-pulse"></div>
-            ) : (
-              <img
-                src={content?.thumbnail || 'https://picsum.photos/1920/1080'}
-                alt={content?.title}
-                className="w-full h-full object-cover"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-              {isLoading ? (
-                <div className="space-y-4">
-                  <div className="h-8 bg-gray-700/50 rounded w-3/4 animate-pulse"></div>
-                  <div className="flex items-center space-x-4">
-                    <div className="h-8 w-8 bg-gray-700/50 rounded-full animate-pulse"></div>
-                    <div className="h-4 bg-gray-700/50 rounded w-24 animate-pulse"></div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-4xl font-bold mb-4">{content?.title}</h1>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <img
-                        src={content?.creator.image || 'https://picsum.photos/32/32'}
-                        alt={content?.creator.name || 'Creator'}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="text-gray-300">{content?.creator.name}</span>
-                    </div>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-300">{content?.viewCount} views</span>
-                    {content?.price > 0 && (
-                      <>
-                        <span className="text-gray-400">•</span>
-                        <span className="text-blue-400 font-medium">${content.price}</span>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-4">{content.title}</h1>
+        <p className="text-gray-600 mb-8">{content.description}</p>
+        
+        <div className="mb-8">
+          <ContentPlayer content={content} />
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-semibold mb-4">Content Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-gray-600">Type</p>
+              <p className="font-medium">{content.type}</p>
             </div>
-          </div>
-
-          {/* Content Body */}
-          <div className="p-8">
-            {isLoading ? (
-              <div className="space-y-4">
-                <div className="h-4 bg-gray-700/50 rounded w-full animate-pulse"></div>
-                <div className="h-4 bg-gray-700/50 rounded w-5/6 animate-pulse"></div>
-                <div className="h-4 bg-gray-700/50 rounded w-4/6 animate-pulse"></div>
-              </div>
-            ) : (
-              <div className="prose prose-invert max-w-none">
-                <p className="text-gray-300">{content?.description}</p>
-              </div>
-            )}
-
-            {/* Content Player/Viewer */}
-            <div className="mt-8">
-              <ContentPlayer
-                content={content}
-                isLoading={isContentLoading}
-                onLoad={() => setIsContentLoading(false)}
-              />
+            <div>
+              <p className="text-gray-600">Price</p>
+              <p className="font-medium">${content.price}</p>
+            </div>
+            <div>
+              <p className="text-gray-600">Duration</p>
+              <p className="font-medium">{content.duration} minutes</p>
+            </div>
+            <div>
+              <p className="text-gray-600">Status</p>
+              <p className="font-medium">{content.status}</p>
             </div>
           </div>
         </div>

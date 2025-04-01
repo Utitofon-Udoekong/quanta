@@ -12,11 +12,19 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { useUserStore } from '@/app/store/use-user-store';
-import { UserData } from '@/app/lib/firebase';
 
-interface ExtendedUserData extends UserData {
+interface UserData {
+  id: string;
+  wallet_address: string;
+  meta_account_id: string;
+  full_name: string;
+  email: string;
+  is_creator: boolean;
+  is_admin: boolean;
   bio?: string;
   avatar?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function ProfilePage() {
@@ -24,7 +32,7 @@ export default function ProfilePage() {
   const { user, setUser, updateUser } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [extendedUser, setExtendedUser] = useState<ExtendedUserData | null>(null);
+  const [extendedUser, setExtendedUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -37,7 +45,7 @@ export default function ProfilePage() {
         }
         const data = await response.json();
         setUser(data);
-        setExtendedUser(data as ExtendedUserData);
+        setExtendedUser(data as UserData);
       } catch (error) {
         console.error('Error fetching profile data:', error);
         toast.error('Failed to load profile data');
@@ -61,7 +69,7 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           walletAddress: account.bech32Address,
-          name: extendedUser.name,
+          full_name: extendedUser.full_name,
           email: extendedUser.email,
           bio: extendedUser.bio,
           avatar: extendedUser.avatar,
@@ -74,7 +82,7 @@ export default function ProfilePage() {
 
       const updatedUser = await response.json();
       updateUser(updatedUser);
-      setExtendedUser(updatedUser as ExtendedUserData);
+      setExtendedUser(updatedUser as UserData);
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -84,7 +92,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleUpdateUser = (updates: Partial<ExtendedUserData>) => {
+  const handleUpdateUser = (updates: Partial<UserData>) => {
     setExtendedUser(prev => prev ? { ...prev, ...updates } : null);
   };
 
@@ -165,8 +173,8 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Name</label>
                   <input
                     type="text"
-                    value={extendedUser.name}
-                    onChange={(e) => handleUpdateUser({ name: e.target.value })}
+                    value={extendedUser.full_name}
+                    onChange={(e) => handleUpdateUser({ full_name: e.target.value })}
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -206,11 +214,11 @@ export default function ProfilePage() {
                     <p className="text-sm text-gray-400">Ability to create and publish content</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    extendedUser.isCreator 
+                    extendedUser.is_creator 
                       ? 'bg-green-500/10 text-green-400' 
                       : 'bg-gray-700/50 text-gray-400'
                   }`}>
-                    {extendedUser.isCreator ? 'Active' : 'Inactive'}
+                    {extendedUser.is_creator ? 'Active' : 'Inactive'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -219,11 +227,11 @@ export default function ProfilePage() {
                     <p className="text-sm text-gray-400">Platform administration privileges</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    extendedUser.isAdmin 
+                    extendedUser.is_admin 
                       ? 'bg-blue-500/10 text-blue-400' 
                       : 'bg-gray-700/50 text-gray-400'
                   }`}>
-                    {extendedUser.isAdmin ? 'Active' : 'Inactive'}
+                    {extendedUser.is_admin ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
@@ -256,7 +264,7 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-gray-400 mb-2">XION Account ID</label>
                     <div className="flex items-center space-x-2 bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2">
                       <span className="text-sm text-gray-300">
-                        {extendedUser.metaAccountId || 'Not connected'}
+                        {extendedUser.meta_account_id || 'Not connected'}
                       </span>
                     </div>
                   </div>

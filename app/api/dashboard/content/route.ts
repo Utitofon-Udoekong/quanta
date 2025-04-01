@@ -1,32 +1,30 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
-import { Content } from '@prisma/client';
+import { supabase } from '@/app/lib/supabase';
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
-export async function GET(request: Request): Promise<NextResponse<Content[] | { error: string }>> {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const creatorId = searchParams.get('creatorId');
-
-    if (!creatorId) {
-      return NextResponse.json({ error: 'Creator ID is required' }, { status: 400 });
+    const { data: account } = useAbstraxionAccount();
+    if (!account?.bech32Address) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const content = await prisma.content.findMany({
-      where: {
-        creatorId: creatorId
-      },
-      include: {
-        creator: true,
-        metadata: true,
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const { data: content, error } = await supabase
+      .from('content')
+      .select(`
+        *,
+        creator:creator_id (id, full_name, email)
+      `)
+      .eq('creator_id', account.bech32Address)
+      .order('created_at', { ascending: false });
 
-    return NextResponse.json(content as Content[]);
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json(content);
   } catch (error) {
-    console.error('Error fetching content:', error);
-    return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 });
+    console.error('Error fetching creator content:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/app/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { supabase } from '@/app/lib/supabase';
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 
 export async function GET(request: Request) {
   try {
@@ -11,23 +11,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
-    const userRef = doc(db, 'users', walletAddress);
-    const userSnap = await getDoc(userRef);
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single();
 
-    if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (error) {
+      throw error;
     }
 
-    const userData = userSnap.data();
-    return NextResponse.json({
-      id: walletAddress,
-      name: userData.name,
-      email: userData.email,
-      walletAddress: userData.walletAddress,
-      metaAccountId: userData.metaAccountId,
-      isCreator: userData.isCreator,
-      isAdmin: userData.isAdmin,
-    });
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -36,41 +30,52 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { walletAddress, metaAccountId, name, email } = body;
-
-    if (!walletAddress || !metaAccountId) {
-      return NextResponse.json({ error: 'Wallet address and meta account ID are required' }, { status: 400 });
+    const { data: account } = useAbstraxionAccount();
+    if (!account?.bech32Address) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRef = doc(db, 'users', walletAddress);
-    const userSnap = await getDoc(userRef);
+    const body = await request.json();
+    const { metaAccountId, name, email } = body;
 
-    if (userSnap.exists()) {
+    if (!metaAccountId) {
+      return NextResponse.json({ error: 'Meta account ID is required' }, { status: 400 });
+    }
+
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('wallet_address', account.bech32Address)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+
+    if (existingUser) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
-    // Create new user
-    await setDoc(userRef, {
-      walletAddress,
-      metaAccountId,
-      name: name || `User ${walletAddress.slice(0, 6)}`,
-      email: email || `${walletAddress.slice(0, 6)}@xion.user`,
-      isCreator: false,
-      isAdmin: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    const { data: user, error: insertError } = await supabase
+      .from('users')
+      .insert([{
+        wallet_address: account.bech32Address,
+        meta_account_id: metaAccountId,
+        full_name: name || `User ${account.bech32Address.slice(0, 6)}`,
+        email: email || `${account.bech32Address.slice(0, 6)}@xion.user`,
+        is_creator: false,
+        is_admin: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
 
-    return NextResponse.json({
-      id: walletAddress,
-      name: name || `User ${walletAddress.slice(0, 6)}`,
-      email: email || `${walletAddress.slice(0, 6)}@xion.user`,
-      walletAddress,
-      metaAccountId,
-      isCreator: false,
-      isAdmin: false,
-    });
+    if (insertError) {
+      throw insertError;
+    }
+
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -79,38 +84,30 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { data: account } = useAbstraxionAccount();
+    if (!account?.bech32Address) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { walletAddress, name, email } = body;
+    const { name, email } = body;
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({
+        full_name: name,
+        email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('wallet_address', account.bech32Address)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
     }
 
-    const userRef = doc(db, 'users', walletAddress);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    await updateDoc(userRef, {
-      name,
-      email,
-      updatedAt: new Date().toISOString(),
-    });
-
-    const updatedUser = await getDoc(userRef);
-    const userData = updatedUser.data();
-
-    return NextResponse.json({
-      id: walletAddress,
-      name: userData.name,
-      email: userData.email,
-      walletAddress: userData.walletAddress,
-      metaAccountId: userData.metaAccountId,
-      isCreator: userData.isCreator,
-      isAdmin: userData.isAdmin,
-    });
+    return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

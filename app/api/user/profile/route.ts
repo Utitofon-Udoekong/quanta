@@ -1,68 +1,72 @@
+import { supabase } from '@/app/lib/supabase';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db/client';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get('walletAddress');
+    const userId = searchParams.get('userId');
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { walletAddress },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        walletAddress: true,
-        metaAccountId: true,
-        isCreator: true,
-        isAdmin: true,
-      },
-    });
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (error) {
+      throw error;
     }
 
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch user profile' },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { walletAddress, name, email } = body;
+    const { id, full_name, avatar_url, is_creator } = body;
 
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
     }
 
-    const user = await prisma.user.update({
-      where: { walletAddress },
-      data: {
-        name,
-        email,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        walletAddress: true,
-        metaAccountId: true,
-        isCreator: true,
-        isAdmin: true,
-      },
-    });
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({
+        full_name,
+        avatar_url,
+        is_creator,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error updating user profile:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update user profile' },
+      { status: 500 }
+    );
   }
 } 

@@ -1,59 +1,97 @@
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ContentType, Content } from '@prisma/client';
+import { useEffect, useState } from 'react';
+import { ContentData } from '@/app/lib/supabase';
+import { supabase } from '@/app/lib/supabase';
+import { ContentCard } from './ContentCard';
 
 interface ContentGridProps {
-  initialContent: Content[];
-  type?: ContentType;
+  type?: string;
+  creatorId?: string;
+  limit?: number;
 }
 
-export function ContentGrid({ initialContent, type }: ContentGridProps) {
-  const [content] = useState<Content[]>(initialContent);
+export function ContentGrid({ type, creatorId, limit = 12 }: ContentGridProps) {
+  const [content, setContent] = useState<ContentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredContent = type
-    ? content.filter((item) => item.type === type)
-    : content;
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-  return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {filteredContent.map((item) => (
-        <Link
-          key={item.id}
-          href={`/content/${item.type.toLowerCase()}/${item.id}`}
-          className="group relative flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md"
-        >
-          <div className="aspect-w-16 aspect-h-9 relative">
-            {item.thumbnail ? (
-              <Image
-                src={item.thumbnail}
-                alt={item.title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gray-100">
-                <span className="text-gray-400">No thumbnail</span>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-1 flex-col p-4">
-            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600">
-              {item.title}
-            </h3>
-            <p className="mt-2 flex-1 text-sm text-gray-500 line-clamp-2">
-              {item.description}
-            </p>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">
-                ${item.price.toFixed(2)}
-              </span>
-              <span className="text-sm text-gray-500">
-                by {item.creatorId}
-              </span>
+        let query = supabase
+          .from('content')
+          .select(`
+            *,
+            creator:creator_id (id, full_name, email)
+          `)
+          .eq('status', 'PUBLISHED');
+
+        if (type) {
+          query = query.eq('type', type);
+        }
+
+        if (creatorId) {
+          query = query.eq('creator_id', creatorId);
+        }
+
+        const { data, error } = await query
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (error) {
+          throw error;
+        }
+
+        setContent(data || []);
+      } catch (error) {
+        console.error('Error fetching content:', error);
+        setError('Failed to fetch content');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [type, creatorId, limit]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {Array.from({ length: limit }).map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-gray-200 rounded-lg aspect-video" />
+            <div className="mt-4 space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
             </div>
           </div>
-        </Link>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (content.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">No content found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {content.map((item) => (
+        <ContentCard key={item.id} content={item} />
       ))}
     </div>
   );

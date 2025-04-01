@@ -4,25 +4,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { AccountCreation } from './components/xion/AccountCreation';
-import { Button } from "@burnt-labs/ui";
-import { Menu, Transition, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
+import { Menu, Transition, MenuButton, MenuItems, MenuItem, Button } from '@headlessui/react';
 import { Fragment } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
-import { Content, Metadata, User } from '@prisma/client';
+import { ContentData } from '@/app/lib/supabase';
 import { useContent } from './hooks/use-content';
-
-type ContentWithRelations = Content & {
-  metadata: Metadata;
-  creator: User;
-};
 
 // Categories with proper spacing
 const categories = [
   { id: 'all', name: 'All' },
-  { id: 'videos', name: 'Videos' },
-  { id: 'articles', name: 'Articles' },
-  { id: 'courses', name: 'Courses' },
-  { id: 'software', name: 'Software' },
+  { id: 'video', name: 'Videos' },
+  { id: 'audio', name: 'Audio' },
 ];
 
 export default function LandingPage() {
@@ -30,27 +22,13 @@ export default function LandingPage() {
   const { logout } = useAbstraxionSigningClient();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showAccountCreation, setShowAccountCreation] = useState(false);
-  const [content, setContent] = useState<ContentWithRelations[]>([]);
-  const { isLoading, error, fetchAllContent } = useContent(undefined, {
-    onError: (error: string) => console.error('Failed to fetch content:', error)
+  const { content, loading, error, fetchContent } = useContent(undefined, {
+    onError: (error: Error) => console.error('Failed to fetch content:', error.message)
   });
 
-  console.log(account);
-
-  useEffect(() => {
-    const loadContent = async () => {
-      try {
-        const data = await fetchAllContent();
-        if (data) {
-          setContent(data);
-        }
-      } catch (error) {
-        // Error is already handled by the hook
-      }
-    };
-
-    loadContent();
-  }, [fetchAllContent]);
+  // useEffect(() => {
+  //   fetchContent();
+  // }, [fetchContent]);
 
   // Filter content based on selected category
   const filteredContent = selectedCategory === 'all' 
@@ -58,7 +36,7 @@ export default function LandingPage() {
     : content.filter(item => item.type.toLowerCase() === selectedCategory);
 
   const renderContentGrid = () => {
-    if (isLoading) {
+    if (loading) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(8)].map((_, index) => (
@@ -107,24 +85,24 @@ export default function LandingPage() {
           >
             <div className="relative">
               <img
-                src={item.thumbnail || 'https://picsum.photos/320/180'}
+                src={item.thumbnail_url || 'https://picsum.photos/320/180'}
                 alt={item.title}
                 className="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-200"
                 loading="lazy"
               />
               <span className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium">
-                {item.type === 'ARTICLE' ? `${item.metadata?.readTime || '5'} min read` :
-                 item.type === 'VIDEO' ? `${item.metadata?.duration || '00:00'}` :
-                 item.type === 'COURSE' ? `${item.metadata?.duration || '0h 0m'}` : ''}
+                {item.type === 'VIDEO' ? `${item.duration || 0} min` :
+                 item.type === 'AUDIO' ? `${item.duration || 0} min` :
+                 item.type === 'COURSE' ? `${item.duration || 0} min` : ''}
               </span>
             </div>
             <div className="p-4">
               <h3 className="font-semibold mb-1 line-clamp-2 text-lg group-hover:text-blue-400 transition-colors duration-200">
                 {item.title}
               </h3>
-              <p className="text-sm text-gray-400 mb-2">{item.creator.name}</p>
+              <p className="text-sm text-gray-400 mb-2">Creator ID: {item.creator_id}</p>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">{item.viewCount} views</span>
+                <span className="text-gray-400">{item.view_count} views</span>
                 {item.price > 0 && (
                   <span className="text-blue-400 font-medium">${item.price}</span>
                 )}
@@ -146,17 +124,6 @@ export default function LandingPage() {
       </div>
     );
   };
-
-  // if (error) {
-  //   return (
-  //     <div className="min-h-screen bg-[#0A0C10] text-white flex items-center justify-center">
-  //       <div className="text-center">
-  //         <h2 className="text-xl font-semibold text-red-400 mb-2">Error Loading Content</h2>
-  //         <p className="text-gray-400">{error}</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
@@ -192,7 +159,6 @@ export default function LandingPage() {
               {!account?.bech32Address ? (
                 <Button
                   onClick={() => setShowAccountCreation(true)}
-                  structure="base"
                   className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 shadow-lg shadow-blue-500/20"
                 >
                   Sign In
@@ -340,11 +306,9 @@ export default function LandingPage() {
 
             <div className="space-y-6">
               <AccountCreation 
-                onSuccess={() => {
-                  setShowAccountCreation(false);
-                }}
-                onError={(error) => {
-                  console.error('Account creation failed:', error);
+                onSuccess={() => setShowAccountCreation(false)}
+                onError={(error: Error) => {
+                  console.error('Account creation failed:', error.message);
                   setShowAccountCreation(false);
                 }}
               />

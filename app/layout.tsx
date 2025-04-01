@@ -22,11 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-      <AbstraxionProvider config={treasuryConfig}>
-        <XionProvider>
-          {children}
-          <Toaster position="bottom-right" />
-        </XionProvider>
+        <AbstraxionProvider config={treasuryConfig}>
+          <XionProvider>
+            {children}
+            <Toaster position="bottom-right" />
+          </XionProvider>
         </AbstraxionProvider>
       </body>
     </html>

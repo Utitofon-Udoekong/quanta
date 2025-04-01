@@ -1,21 +1,27 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { useAbstraxionAccount, useModal } from '@burnt-labs/abstraxion';
+import { Abstraxion } from '@burnt-labs/abstraxion';
 import { useUserStore } from '@/app/store/use-user-store';
-import { useModal } from '@/app/hooks/use-modal';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { toast } from 'sonner';
+import { UserData } from '@/app/lib/supabase';
 
-export function AccountCreation() {
+interface AccountCreationProps {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
+export function AccountCreation({ onSuccess, onError }: AccountCreationProps) {
   const { data: account } = useAbstraxionAccount();
   const { user, updateUser, fetchUser } = useUserStore();
-  const { onClose } = useModal();
+  const [, setShowModal] = useModal();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    full_name: '',
     email: '',
   });
 
@@ -28,11 +34,16 @@ export function AccountCreation() {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
+        full_name: user.full_name || '',
         email: user.email || '',
       });
     }
   }, [user]);
+
+  const handleClose = () => {
+    setShowModal(false);
+    setIsLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +55,21 @@ export function AccountCreation() {
     setIsLoading(true);
     try {
       await updateUser({
-        walletAddress: account.bech32Address,
-        metaAccountId: account.bech32Address,
-        ...formData,
+        id: account.bech32Address,
+        full_name: formData.full_name,
+        email: formData.email,
+        is_creator: false,
+        is_admin: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
       toast.success('Profile updated successfully');
-      onClose();
+      handleClose();
+      onSuccess?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      const err = error instanceof Error ? error : new Error('Failed to update profile');
+      toast.error(err.message);
+      onError?.(err);
     } finally {
       setIsLoading(false);
     }
@@ -59,11 +77,19 @@ export function AccountCreation() {
 
   if (!account?.bech32Address) {
     return (
-      <div className="p-6">
+      <div className="p-6 text-center">
         <h2 className="text-2xl font-bold mb-4">Connect Wallet</h2>
         <p className="text-gray-600 mb-4">
-          Please connect your wallet to create or update your account.
+          Please connect your wallet to create or access your account.
         </p>
+        <Button 
+          onClick={() => setShowModal(true)} 
+          disabled={isLoading}
+          className="w-full bg-blue-500 hover:bg-blue-600"
+        >
+          {isLoading ? 'Connecting...' : 'Connect Wallet'}
+        </Button>
+        <Abstraxion onClose={handleClose} />
       </div>
     );
   }
@@ -75,11 +101,11 @@ export function AccountCreation() {
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
+          <Label htmlFor="full_name">Name</Label>
           <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            id="full_name"
+            value={formData.full_name}
+            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
             placeholder="Enter your name"
             required
           />
@@ -99,7 +125,7 @@ export function AccountCreation() {
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
           >
             Cancel

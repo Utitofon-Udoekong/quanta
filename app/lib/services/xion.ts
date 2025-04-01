@@ -1,122 +1,163 @@
-import { prisma } from '../db/client';
-import { hash } from 'bcryptjs';
+import { supabase } from '@/app/lib/supabase';
+import { UserData } from '@/app/lib/supabase';
 
 export const treasuryConfig = {
   treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
 };
 
-export const xionService = {
-  // Store user's XION account info
-  async storeUserAccount(userId: string, accountAddress: string) {
-    // First, check if the user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+export async function storeUserAccount(userId: string, data: Partial<UserData>) {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .upsert([{
+        id: userId,
+        ...data,
+        updated_at: new Date().toISOString(),
+      }])
+      .select()
+      .single();
 
-    if (existingUser) {
-      // Update existing user
-      return prisma.user.update({
-        where: { id: userId },
-        data: { 
-          metaAccountId: accountAddress,
-          walletAddress: accountAddress 
-        },
-      });
-    } else {
-      // Create new user with a temporary password
-      const hashedPassword = await hash(Math.random().toString(36), 10);
-      return prisma.user.create({
-        data: {
-          id: userId,
-          email: `${userId}@xion.user`,
-          password: hashedPassword,
-          metaAccountId: accountAddress,
-          walletAddress: accountAddress,
-          isCreator: false,
-          isAdmin: false,
-        },
-      });
+    if (error) {
+      throw error;
     }
-  },
 
-  // Remove user's XION account info
-  async removeUserAccount(userId: string) {
-    return prisma.user.update({
-      where: { id: userId },
-      data: { 
-        metaAccountId: null,
-        walletAddress: null 
-      },
-    });
-  },
+    return user;
+  } catch (error) {
+    console.error('Error storing user account:', error);
+    throw error;
+  }
+}
 
-  // Get user by ID
-  async getUser(userId: string) {
-    return prisma.user.findUnique({
-      where: { id: userId },
-      select: { metaAccountId: true },
-    });
-  },
+export async function removeUserAccount(userId: string) {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
 
-  // Store payment record
-  async createPaymentRecord(data: {
-    fromUserId: string;
-    toUserId: string;
-    contentId: string;
-    amount: number;
-    status: 'PENDING' | 'COMPLETED' | 'FAILED';
-    transactionHash?: string;
-  }) {
-    return prisma.payment.create({
-      data,
-    });
-  },
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error removing user account:', error);
+    throw error;
+  }
+}
 
-  // Update payment record
-  async updatePaymentRecord(paymentId: string, data: {
-    status: 'PENDING' | 'COMPLETED' | 'FAILED';
-    transactionHash?: string;
-  }) {
-    return prisma.payment.update({
-      where: { id: paymentId },
-      data,
-    });
-  },
+export async function getUser(userId: string) {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
-  // Get payment history
-  async getPaymentHistory(userId: string) {
-    return prisma.payment.findMany({
-      where: {
-        OR: [
-          { fromUserId: userId },
-          { toUserId: userId },
-        ],
-      },
-      include: {
-        content: true,
-        fromUser: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-        toUser: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  },
+    if (error) {
+      throw error;
+    }
 
-  // Get payment by ID
-  async getPayment(paymentId: string) {
-    return prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-  },
-}; 
+    return user;
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    throw error;
+  }
+}
+
+export async function createPaymentRecord(data: {
+  from_user_id: string;
+  to_user_id: string;
+  content_id?: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  transaction_hash?: string;
+}) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .insert([data])
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return payment;
+  } catch (error) {
+    console.error('Error creating payment record:', error);
+    throw error;
+  }
+}
+
+export async function updatePaymentRecord(id: string, data: Partial<{
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  transaction_hash?: string;
+}>) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return payment;
+  } catch (error) {
+    console.error('Error updating payment record:', error);
+    throw error;
+  }
+}
+
+export async function getPaymentHistory(userId: string) {
+  try {
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        from_user:from_user_id (id, full_name, email),
+        to_user:to_user_id (id, full_name, email),
+        content:content_id (id, title, type)
+      `)
+      .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return payments;
+  } catch (error) {
+    console.error('Error fetching payment history:', error);
+    throw error;
+  }
+}
+
+export async function getPayment(id: string) {
+  try {
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        from_user:from_user_id (id, full_name, email),
+        to_user:to_user_id (id, full_name, email),
+        content:content_id (id, title, type)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return payment;
+  } catch (error) {
+    console.error('Error fetching payment:', error);
+    throw error;
+  }
+} 

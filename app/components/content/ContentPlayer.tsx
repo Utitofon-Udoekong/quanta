@@ -1,36 +1,69 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { ContentType } from '@prisma/client';
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
+import { ContentData } from '@/app/lib/supabase';
+import { supabase } from '@/app/lib/supabase';
+import { getAuth } from 'firebase/auth';
 
 interface ContentPlayerProps {
-  contentId: string;
-  type: ContentType;
-  price: number;
-  creatorId: string;
-  contentUrl: string;
-  previewUrl: string;
+  content: ContentData;
+  onProgress?: (progress: number) => void;
+  onComplete?: () => void;
 }
 
-export function ContentPlayer({
-  contentId,
-  type,
-  price,
-  creatorId,
-  contentUrl,
-  previewUrl,
-}: ContentPlayerProps) {
+export function ContentPlayer({ content, onProgress, onComplete }: ContentPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isPurchased, setIsPurchased] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const { client } = useAbstraxionSigningClient();
 
+  useEffect(() => {
+    // Reset player state when content changes
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [content.id]);
+
+  useEffect(() => {
+    const trackUsage = async () => {
+      try {
+        const { data: usage, error } = await supabase
+          .from('content_usage')
+          .insert([{
+            user_id: content.creator_id,
+            content_id: content.id,
+            start_time: new Date().toISOString(),
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        return usage.id;
+      } catch (error) {
+        console.error('Error tracking content usage:', error);
+      }
+    };
+
+    trackUsage();
+  }, [content.id, content.creator_id]);
+
   const handlePurchase = async () => {
     try {
       setError(null);
       
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        throw new Error('User not authenticated');
+      }
+
       // Create payment intent
       const response = await fetch('/api/payments/create-intent', {
         method: 'POST',
@@ -38,9 +71,9 @@ export function ContentPlayer({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contentId,
-          price,
-          creatorId,
+          contentId: content.id,
+          price: content.price,
+          creatorId: content.creatorId,
         }),
       });
 
@@ -59,11 +92,11 @@ export function ContentPlayer({
         typeUrl: "/cosmos.bank.v1beta1.MsgSend",
         value: MsgSend.fromPartial({
           fromAddress: account.bech32Address,
-          toAddress: creatorId,
+          toAddress: content.creatorId,
           amount: [
             {
               denom: "uxion",
-              amount: (price * 1_000_000).toString(), // Convert to micro XION
+              amount: (content.price * 1_000_000).toString(), // Convert to micro XION
             },
           ],
         }),
@@ -84,6 +117,29 @@ export function ContentPlayer({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed');
     }
+  };
+
+  const handleTimeUpdate = async (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget;
+    const progress = (video.currentTime / video.duration) * 100;
+    setCurrentTime(video.currentTime);
+    setDuration(video.duration);
+
+    if (onProgress) {
+      onProgress(progress);
+    }
+
+    if (progress >= 100 && onComplete) {
+      onComplete();
+    }
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
   };
 
   if (!account?.bech32Address) {
@@ -112,7 +168,7 @@ export function ContentPlayer({
     return (
       <div className="text-center p-4">
         <div className="mb-4">
-          <p className="text-xl font-semibold">Price: ${price}</p>
+          <p className="text-xl font-semibold">Price: ${content.price}</p>
         </div>
         <button
           onClick={handlePurchase}
@@ -126,23 +182,28 @@ export function ContentPlayer({
 
   return (
     <div className="w-full aspect-video bg-black rounded-lg overflow-hidden">
-      {type === ContentType.VIDEO ? (
+      {content.type === 'VIDEO' ? (
         <video
-          src={contentUrl}
-          controls
+          src={content.content_url}
           className="w-full h-full"
-          autoPlay={isPlaying}
-        />
-      ) : type === ContentType.AUDIO ? (
-        <audio
-          src={contentUrl}
           controls
-          className="w-full"
-          autoPlay={isPlaying}
+          onTimeUpdate={handleTimeUpdate}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={onComplete}
+        />
+      ) : content.type === 'AUDIO' ? (
+        <audio
+          src={content.content_url}
+          controls
+          onTimeUpdate={handleTimeUpdate}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={onComplete}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <p className="text-white">Preview not available for this content type</p>
+        <div className="w-full h-full flex items-center justify-center text-white">
+          Course content viewer not implemented yet
         </div>
       )}
     </div>

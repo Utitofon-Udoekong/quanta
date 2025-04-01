@@ -4,7 +4,7 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/app/store/use-user-store';
 import { useContent } from '@/app/hooks/use-content';
-import { ContentData } from '@/app/lib/firebase';
+import { ContentData } from '@/app/lib/supabase';
 import { Input } from '@/app/components/ui/input';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Select } from '@/app/components/ui/select';
@@ -12,29 +12,32 @@ import { FileUpload } from '@/app/components/ui/file-upload';
 import { toast } from '@/app/components/ui/toast';
 import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
 import { Button } from '@/app/components/ui/button';
+import { uploadFile } from '@/app/lib/storage';
 
-type ContentType = 'VIDEO' | 'AUDIO' | 'COURSE';
+type ContentType = 'VIDEO' | 'AUDIO';
 type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-type PricingModel = 'PAY_PER_VIEW';
+type PricingModel = 'PER_USE' | 'PER_MINUTE' | 'CUSTOM';
 
 export default function CreateContentPage() {
   const router = useRouter();
   const { data: account } = useAbstraxionAccount();
-  const { createContent, isLoading, error } = useContent();
+  const { createContent, loading: isLoading, error } = useContent();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  const [formData, setFormData] = useState({
+  const initialData: Partial<ContentData> = {
     title: '',
     description: '',
-    type: 'VIDEO' as ContentType,
+    type: 'VIDEO',
     price: 0,
-    pricingModel: 'PAY_PER_VIEW' as PricingModel,
-    status: 'DRAFT' as ContentStatus,
-    thumbnailUrl: '',
-    contentUrl: '',
+    pricing_model: 'PER_USE',
+    content_url: '',
+    thumbnail_url: '',
     duration: 0,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialData);
 
   const [selectedFiles, setSelectedFiles] = useState<{
     thumbnail: File | null;
@@ -59,6 +62,7 @@ export default function CreateContentPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setUploadError(null);
+    setUploadProgress(0);
 
     if (!account?.bech32Address) {
       toast('You must be logged in to create content', 'error');
@@ -77,7 +81,9 @@ export default function CreateContentPage() {
       const uploadPromises = [];
       if (selectedFiles.thumbnail) {
         uploadPromises.push(
-          uploadFile(selectedFiles.thumbnail, 'thumbnails')
+          uploadFile(selectedFiles.thumbnail, `thumbnails/${Date.now()}-${selectedFiles.thumbnail.name}`, {
+            onProgress: (progress) => setUploadProgress(progress),
+          })
             .then(url => ({ type: 'thumbnail', url }))
             .catch(err => {
               setUploadError('Failed to upload thumbnail');
@@ -87,7 +93,9 @@ export default function CreateContentPage() {
       }
       if (selectedFiles.content) {
         uploadPromises.push(
-          uploadFile(selectedFiles.content, 'content')
+          uploadFile(selectedFiles.content, `${formData.type?.toLowerCase()}/${Date.now()}-${selectedFiles.content.name}`, {
+            onProgress: (progress) => setUploadProgress(progress),
+          })
             .then(url => ({ type: 'content', url }))
             .catch(err => {
               setUploadError('Failed to upload content file');
@@ -103,10 +111,16 @@ export default function CreateContentPage() {
       }, {} as Record<string, string>);
 
       const content = await createContent({
-        ...formData,
-        creatorId: account.bech32Address,
-        thumbnailUrl: uploadedFiles.thumbnail,
-        contentUrl: uploadedFiles.content,
+        title: formData.title || '',
+        description: formData.description || '',
+        type: formData.type as 'VIDEO' | 'AUDIO',
+        price: formData.price || 0,
+        pricing_model: formData.pricing_model as 'PER_USE' | 'PER_MINUTE' | 'CUSTOM',
+        content_url: uploadedFiles.content || '',
+        thumbnail_url: uploadedFiles.thumbnail,
+        duration: formData.duration || 0,
+        creator_id: account.bech32Address,
+        status: 'DRAFT' as ContentStatus,
       });
 
       if (content) {
@@ -130,29 +144,6 @@ export default function CreateContentPage() {
     }));
   };
 
-  const uploadFile = async (file: File, prefix: string): Promise<string> => {
-    if (!account?.bech32Address) {
-      throw new Error('Wallet address is required for upload');
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('prefix', prefix);
-
-    const response = await fetch(`/api/upload?walletAddress=${encodeURIComponent(account.bech32Address)}`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.url;
-  };
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -170,12 +161,6 @@ export default function CreateContentPage() {
       case 'AUDIO':
         return {
           'audio/*': ['.mp3', '.wav', '.ogg']
-        };
-      case 'COURSE':
-        return {
-          'video/*': ['.mp4', '.webm', '.ogg'],
-          'audio/*': ['.mp3', '.wav', '.ogg'],
-          'application/pdf': ['.pdf']
         };
       default:
         return {};
@@ -269,17 +254,17 @@ export default function CreateContentPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="pricingModel" className="block text-sm font-medium text-gray-200">
+                  <label htmlFor="pricing_model" className="block text-sm font-medium text-gray-200">
                     Pricing Model
                   </label>
                   <Select
-                    id="pricingModel"
-                    name="pricingModel"
-                    value={formData.pricingModel}
+                    id="pricing_model"
+                    name="pricing_model"
+                    value={formData.pricing_model}
                     onChange={handleInputChange}
                     className="mt-1 block w-full bg-[#0A0C10]/90 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {(['PAY_PER_VIEW'] as PricingModel[]).map(model => (
+                    {(['PER_USE', 'PER_MINUTE', 'CUSTOM'] as PricingModel[]).map(model => (
                       <option key={model} value={model}>
                         {model}
                       </option>
@@ -368,9 +353,9 @@ export default function CreateContentPage() {
               </Button>
             </div>
 
-            {(error || uploadError) && (
+            {(error?.message || uploadError) && (
               <div className="text-red-400 text-sm mt-2">
-                {error || uploadError}
+                {error?.message || uploadError}
               </div>
             )}
           </form>

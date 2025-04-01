@@ -1,20 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/app/lib/firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { supabase } from '@/app/lib/supabase';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const prefix = formData.get('prefix') as string;
-    const walletAddress = request.nextUrl.searchParams.get('walletAddress');
-
-    if (!walletAddress) {
-      return NextResponse.json(
-        { error: 'Wallet address is required' },
-        { status: 400 }
-      );
-    }
+    const path = formData.get('path') as string;
 
     if (!file) {
       return NextResponse.json(
@@ -23,21 +14,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a unique path for the file
-    const timestamp = Date.now();
-    const path = `${prefix}/${walletAddress}/${timestamp}-${file.name}`;
-    const storageRef = ref(storage, path);
+    if (!path) {
+      return NextResponse.json(
+        { error: 'No path provided' },
+        { status: 400 }
+      );
+    }
 
-    // Upload to Firebase Storage
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
+    const { data, error } = await supabase.storage
+      .from('content')
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('content')
+      .getPublicUrl(path);
 
     return NextResponse.json({
-      key: path,
-      url: url
+      url: publicUrl,
+      path: data.path,
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Error uploading file:', error);
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }
@@ -45,30 +49,25 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Methods': 'POST',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
-}
-
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: Request) {
   try {
-    const { key } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const path = searchParams.get('path');
 
-    if (!key) {
+    if (!path) {
       return NextResponse.json(
-        { error: 'No file key provided' },
+        { error: 'No path provided' },
         { status: 400 }
       );
     }
 
-    const storageRef = ref(storage, key);
-    await deleteObject(storageRef);
+    const { error } = await supabase.storage
+      .from('content')
+      .remove([path]);
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
