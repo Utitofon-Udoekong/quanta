@@ -5,8 +5,8 @@ import { NextRequest } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
-) {
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { data: content, error } = await supabase
       .from('content')
@@ -14,7 +14,7 @@ export async function GET(
         *,
         creator:creator_id (id, full_name, email)
       `)
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .single();
 
     if (error) {
@@ -30,8 +30,8 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
-) {
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { data: account } = useAbstraxionAccount();
     if (!account?.bech32Address) {
@@ -41,7 +41,7 @@ export async function PUT(
     const { data: content, error: contentError } = await supabase
       .from('content')
       .select('creator_id')
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .single();
 
     if (contentError) {
@@ -59,7 +59,7 @@ export async function PUT(
         ...body,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .select()
       .single();
 
