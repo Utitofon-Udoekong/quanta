@@ -26,12 +26,6 @@ export function AccountCreation({ onSuccess, onError }: AccountCreationProps) {
   });
 
   useEffect(() => {
-    if (account?.bech32Address) {
-      fetchUser(account.bech32Address);
-    }
-  }, [account?.bech32Address, fetchUser]);
-
-  useEffect(() => {
     if (user) {
       setFormData({
         full_name: user.full_name || '',
@@ -54,15 +48,29 @@ export function AccountCreation({ onSuccess, onError }: AccountCreationProps) {
 
     setIsLoading(true);
     try {
-      await updateUser({
-        id: account.bech32Address,
-        full_name: formData.full_name,
-        email: formData.email,
-        is_creator: false,
-        is_admin: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+      // First, try to create the user
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': account.bech32Address,
+        },
+        body: JSON.stringify({
+          full_name: formData.full_name,
+          email: formData.email,
+          is_creator: false,
+          is_admin: false,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to create user');
+      }
+
+      const userData = await response.json();
+      await updateUser(userData);
+      // Only fetch the user after successful creation
+      await fetchUser(account.bech32Address);
       toast.success('Profile updated successfully');
       handleClose();
       onSuccess?.();

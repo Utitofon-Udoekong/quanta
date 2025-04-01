@@ -7,7 +7,7 @@ interface UserStore {
   isLoading: boolean;
   error: string | null;
   setUser: (user: UserData | null) => void;
-  fetchUser: (userId: string) => Promise<void>;
+  fetchUser: (walletAddress: string) => Promise<void>;
   updateUser: (data: Partial<UserData>) => Promise<void>;
 }
 
@@ -16,15 +16,24 @@ export const useUserStore = create<UserStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    set({ user });
+    if (typeof window !== 'undefined') {
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('user');
+      }
+    }
+  },
 
-  fetchUser: async (userId) => {
+  fetchUser: async (walletAddress) => {
     try {
       set({ isLoading: true, error: null });
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
+        .eq('wallet_address', walletAddress)
         .single();
 
       if (error) {
@@ -32,6 +41,9 @@ export const useUserStore = create<UserStore>((set, get) => ({
       }
 
       set({ user, isLoading: false });
+      if (user && typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(user));
+      }
     } catch (error) {
       console.error('Error fetching user:', error);
       set({ error: 'Failed to fetch user', isLoading: false });
@@ -43,7 +55,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       set({ isLoading: true, error: null });
       const { user } = get();
 
-      if (!user?.id) {
+      if (!user?.wallet_address) {
         throw new Error('No user found');
       }
 
@@ -53,7 +65,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
           ...data,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id)
+        .eq('wallet_address', user.wallet_address)
         .select()
         .single();
 
@@ -62,9 +74,26 @@ export const useUserStore = create<UserStore>((set, get) => ({
       }
 
       set({ user: updatedUser, isLoading: false });
+      if (updatedUser && typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       set({ error: 'Failed to update user', isLoading: false });
     }
   },
-})); 
+}));
+
+// Load persisted user on store initialization (client-side only)
+if (typeof window !== 'undefined') {
+  const persistedUser = localStorage.getItem('user');
+  if (persistedUser) {
+    try {
+      const user = JSON.parse(persistedUser);
+      useUserStore.getState().setUser(user);
+    } catch (error) {
+      console.error('Error parsing persisted user:', error);
+      localStorage.removeItem('user');
+    }
+  }
+} 
