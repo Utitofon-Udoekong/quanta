@@ -21,7 +21,7 @@ export async function GET(request: Request): Promise<NextResponse<ApiResponse<an
       .select(`
         *,
         creator:creator_id (id, full_name, email)
-      `)
+      `, { count: 'exact' })
       .eq('status', 'PUBLISHED');
 
     if (type) {
@@ -34,15 +34,15 @@ export async function GET(request: Request): Promise<NextResponse<ApiResponse<an
 
     const { data: content, error, count } = await query
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
-      .select('*', { count: 'exact' });
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw error;
     }
 
     return NextResponse.json({
-      content,
+      success: true,
+      data: content,
       pagination: {
         total: count || 0,
         page,
@@ -53,7 +53,7 @@ export async function GET(request: Request): Promise<NextResponse<ApiResponse<an
   } catch (error) {
     console.error('Error fetching content:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch content' },
+      { success: false, error: 'Failed to fetch content' },
       { status: 500 }
     );
   }
@@ -87,7 +87,7 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<a
   } catch (error) {
     console.error('Error creating content:', error);
     return NextResponse.json(
-      { error: 'Failed to create content' },
+      { success: false, error: 'Failed to create content' },
       { status: 500 }
     );
   }

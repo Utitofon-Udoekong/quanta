@@ -29,8 +29,8 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
     const { data: account } = useAbstraxionAccount();
@@ -41,7 +41,7 @@ export async function PUT(
     const { data: content, error: contentError } = await supabase
       .from('content')
       .select('creator_id')
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (contentError) {
@@ -59,7 +59,7 @@ export async function PUT(
         ...body,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .select()
       .single();
 
