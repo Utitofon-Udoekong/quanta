@@ -12,7 +12,7 @@ interface ContentPageProps {
   }>;
 }
 
-export default function ContentPage({ params }: ContentPageProps) {
+export default function ContentPage({ params }: any) {
   const { data: account } = useAbstraxionAccount();
   const [content, setContent] = useState<ContentData | null>(null);
   const [error, setError] = useState<string | null>(null);
