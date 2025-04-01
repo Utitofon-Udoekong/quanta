@@ -5,14 +5,14 @@ import { ContentPlayer } from '@/app/components/content/ContentPlayer';
 import { useEffect, useState } from 'react';
 import { ContentData } from '@/app/lib/supabase';
 
-interface ContentPageProps {
+type ContentPageProps = {
   params: Promise<{
     type: string;
     id: string;
   }>;
-}
+};
 
-export default function ContentPage({ params }: any) {
+export default function ContentPage({ params }: ContentPageProps) {
   const { data: account } = useAbstraxionAccount();
   const [content, setContent] = useState<ContentData | null>(null);
   const [error, setError] = useState<string | null>(null);
