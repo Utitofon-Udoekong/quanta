@@ -11,6 +11,7 @@ import {
   PhotoIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import { useUserStore } from '@/app/store/use-user-store';
 
 interface UserData {
   id: string;
@@ -28,7 +29,7 @@ interface UserData {
 
 export default function ProfilePage() {
   const { data: account } = useAbstraxionAccount();
-  // const { user, setUser, updateUser } = useUserStore();
+  const { user, setUser, updateUser } = useUserStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [extendedUser, setExtendedUser] = useState<UserData | null>(null);
@@ -43,7 +44,7 @@ export default function ProfilePage() {
           throw new Error('Failed to fetch profile data');
         }
         const data = await response.json();
-        // setUser(data);
+        setUser(data);
         setExtendedUser(data as UserData);
       } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -80,7 +81,7 @@ export default function ProfilePage() {
       }
 
       const updatedUser = await response.json();
-      // updateUser(updatedUser);
+      updateUser(updatedUser);
       setExtendedUser(updatedUser as UserData);
       toast.success('Profile updated successfully');
     } catch (error) {

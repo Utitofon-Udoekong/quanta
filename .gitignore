@@ -44,4 +44,6 @@ next-env.d.ts
 guide/
 
 # supabase
-supabase/migrations/*
+supabase
+
+pnpm-lock.yaml
