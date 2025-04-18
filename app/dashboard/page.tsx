@@ -76,7 +76,7 @@ export default function Dashboard() {
           // Update user's wallet address if not set
           if (!user.user_metadata?.wallet_address) {
             await supabase.auth.updateUser({
-              data: { wallet_address: account.bech32Address }
+              data: { wallet_address: account.bech32Address, }
             });
             setProfile(prev => prev ? { ...prev, wallet_address: account.bech32Address } : null);
           }
@@ -280,7 +280,7 @@ export default function Dashboard() {
             </div>
             <p className="text-3xl font-bold mb-4">{contentStats.articles}</p>
             <Link 
-              href="/dashboard/articles" 
+              href="/dashboard/content/articles" 
               className="text-blue-400 hover:text-blue-300 transition-colors"
             >
               Manage Articles
@@ -296,7 +296,7 @@ export default function Dashboard() {
             </div>
             <p className="text-3xl font-bold mb-4">{contentStats.videos}</p>
             <Link 
-              href="/dashboard/videos" 
+              href="/dashboard/content/videos" 
               className="text-green-400 hover:text-green-300 transition-colors"
             >
               Manage Videos
@@ -314,7 +314,7 @@ export default function Dashboard() {
             </div>
             <p className="text-3xl font-bold mb-4">{contentStats.audio}</p>
             <Link 
-              href="/dashboard/audio" 
+              href="/dashboard/content/audio" 
               className="text-purple-400 hover:text-purple-300 transition-colors"
             >
               Manage Audio
@@ -494,177 +494,3 @@ export default function Dashboard() {
     </div>
   );
 } 
-
-
-// 'use client';
-
-// import { useEffect, useState } from 'react';
-// import { createClient } from '@/app/utils/supabase/client';
-// import Link from 'next/link';
-// import { Article, Video, Audio } from '../types'; 
-
-// export default function Dashboard() {
-//   const [articles, setArticles] = useState<Article[]>([]);
-//   const [videos, setVideos] = useState<Video[]>([]);
-//   const [audio, setAudio] = useState<Audio[]>([]);
-//   const [loading, setLoading] = useState(true);
-  
-//   const supabase = createClient();
-  
-//   useEffect(() => {
-//     const fetchContent = async () => {
-//       try {
-//         // Fetch latest articles
-//         const { data: articlesData, error: articlesError } = await supabase
-//           .from('articles')
-//           .select('*')
-//           .order('created_at', { ascending: false })
-//           .limit(5);
-          
-//         if (articlesError) throw articlesError;
-//         setArticles(articlesData || []);
-        
-//         // Fetch latest videos
-//         const { data: videosData, error: videosError } = await supabase
-//           .from('videos')
-//           .select('*')
-//           .order('created_at', { ascending: false })
-//           .limit(5);
-          
-//         if (videosError) throw videosError;
-//         setVideos(videosData || []);
-        
-//         // Fetch latest audio
-//         const { data: audioData, error: audioError } = await supabase
-//           .from('audio')
-//           .select('*')
-//           .order('created_at', { ascending: false })
-//           .limit(5);
-          
-//         if (audioError) throw audioError;
-//         setAudio(audioData || []);
-//       } catch (error) {
-//         console.error('Error fetching content:', error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-    
-//     fetchContent();
-//   }, [supabase]);
-  
-//   const ContentSection = ({ title, count, createLink, viewAllLink }: { 
-//     title: string; 
-//     count: number; 
-//     createLink: string; 
-//     viewAllLink: string;
-//   }) => (
-//     <div className="bg-white shadow rounded-lg p-6">
-//       <div className="flex justify-between items-center mb-4">
-//         <h3 className="text-lg font-medium">{title}</h3>
-//         <span className="text-sm bg-indigo-100 text-indigo-800 rounded-full px-3 py-1">
-//           {count} items
-//         </span>
-//       </div>
-//       <div className="flex space-x-3 mt-4">
-//         <Link
-//           href={createLink}
-//           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-sm"
-//         >
-//           Create New
-//         </Link>
-//         <Link
-//           href={viewAllLink}
-//           className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 text-sm"
-//         >
-//           View All
-//         </Link>
-//       </div>
-//     </div>
-//   );
-  
-//   if (loading) {
-//     return <div className="p-8 text-center">Loading dashboard data...</div>;
-//   }
-  
-//   return (
-//     <div>
-//       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-      
-//       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//         <ContentSection 
-//           title="Articles" 
-//           count={articles.length} 
-//           createLink="/dashboard/articles/create" 
-//           viewAllLink="/dashboard/articles" 
-//         />
-        
-//         <ContentSection 
-//           title="Videos" 
-//           count={videos.length} 
-//           createLink="/dashboard/videos/create" 
-//           viewAllLink="/dashboard/videos" 
-//         />
-        
-//         <ContentSection 
-//           title="Audio" 
-//           count={audio.length} 
-//           createLink="/dashboard/audio/create" 
-//           viewAllLink="/dashboard/audio" 
-//         />
-//       </div>
-      
-//       <div className="mt-8">
-//         <h2 className="text-xl font-semibold mb-4">Recent Content</h2>
-        
-//         {articles.length === 0 && videos.length === 0 && audio.length === 0 ? (
-//           <div className="bg-white p-6 rounded-lg shadow text-center">
-//             <p>You haven't created any content yet. Get started by creating an article, video, or audio file.</p>
-//           </div>
-//         ) : (
-//           <div className="space-y-6">
-//             {articles.length > 0 && (
-//               <div>
-//                 <h3 className="text-lg font-medium mb-3">Recent Articles</h3>
-//                 <div className="bg-white shadow overflow-hidden rounded-md">
-//                   <ul className="divide-y divide-gray-200">
-//                     {articles.map((article) => (
-//                       <li key={article.id}>
-//                         <Link href={`/dashboard/articles/${article.id}`} className="block hover:bg-gray-50">
-//                           <div className="px-4 py-4 sm:px-6">
-//                             <div className="flex items-center justify-between">
-//                               <p className="text-sm font-medium text-indigo-600 truncate">{article.title}</p>
-//                               <div className="ml-2 flex-shrink-0 flex">
-//                                 <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-//                                   {article.published ? 'Published' : 'Draft'}
-//                                 </p>
-//                               </div>
-//                             </div>
-//                             <div className="mt-2 sm:flex sm:justify-between">
-//                               <div className="sm:flex">
-//                                 <p className="flex items-center text-sm text-gray-500">
-//                                   {article.excerpt || 'No excerpt available'}
-//                                 </p>
-//                               </div>
-//                               <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-//                                 <p>
-//                                   Created: {new Date(article.created_at).toLocaleDateString()}
-//                                 </p>
-//                               </div>
-//                             </div>
-//                           </div>
-//                         </Link>
-//                       </li>
-//                     ))}
-//                   </ul>
-//                 </div>
-//               </div>
-//             )}
-            
-//             {/* Similar lists for videos and audio can be added here */}
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }

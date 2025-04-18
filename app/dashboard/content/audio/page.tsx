@@ -7,35 +7,41 @@ import { Audio } from '@/app/types';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { toast } from '@/app/components/helpers/toast';
+import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
+import { useUserStore } from '@/app/stores/user';
+
 export default function AudioPage() {
   const [audioFiles, setAudioFiles] = useState<Audio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-  
+
   const supabase = createClient();
-  
+  const {user, error: userError} = useUserStore();
+
   const fetchAudio = async () => {
     if (!account?.bech32Address) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         setError('Authentication error. Please sign in again.');
         return;
       }
-      
-      const { data, error } = await supabase
+
+      const { data, error: audioError } = await supabase
         .from('audio')
-        .select('*')
+        .select('*, author:users (id, full_name, avatar_url)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-        
-      if (error) throw error;
+
+      if (audioError) {
+        setError(audioError.message || 'Failed to fetch audio files');
+        return;
+      }
       setAudioFiles(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch audio files');
@@ -44,37 +50,39 @@ export default function AudioPage() {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchAudio();
   }, [account?.bech32Address]);
-  
+
   const deleteAudio = async (id: string) => {
     if (!account?.bech32Address) return;
     if (!confirm('Are you sure you want to delete this audio file?')) return;
-    
+
     try {
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         toast('Authentication error. Please sign in again.', 'error');
         return;
       }
-      
+
       const { error } = await supabase
         .from('audio')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-        
-      if (error) throw error;
+
+      if (error) {
+        toast(error.message || 'Failed to delete audio file', 'error');
+        return;
+      }
       fetchAudio(); // Refresh the list
     } catch (err: any) {
-      console.error('Error deleting audio:', err);
-      toast('Failed to delete audio file. Please try again.', 'error');
+      toast(err.message || 'Failed to delete audio file', 'error');
+      console.error(err);
     }
   };
-  
+
   if (!account?.bech32Address) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
@@ -97,22 +105,22 @@ export default function AudioPage() {
       </div>
     );
   }
-  
+
   if (loading) {
     return <div className="text-center p-8">Loading audio files...</div>;
   }
-  
+
   if (error) {
     return <div className="text-center p-8 text-red-600">Error: {error}</div>;
   }
-  
+
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return 'Unknown duration';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
-  
+
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white p-8">
       <div className="flex justify-between items-center mb-6">
@@ -124,7 +132,7 @@ export default function AudioPage() {
           Upload New Audio
         </Link>
       </div>
-      
+
       {audioFiles.length === 0 ? (
         <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50 text-center">
           <p className="text-gray-400">You haven't uploaded any audio files yet.</p>
@@ -142,42 +150,45 @@ export default function AudioPage() {
               <li key={audio.id}>
                 <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-white">{audio.title}</h3>
-                    <p className="mt-1 text-sm text-gray-400 truncate">
-                      {audio.description || 'No description available'}
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-white">{audio.title}</h3>
+                        <p className="mt-1 text-sm text-gray-400 truncate">
+                          {audio.description || 'No description available'}
+                        </p>
+                      </div>
+                      <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
+                        <Link
+                          href={`/dashboard/content/audio/${audio.id}/edit`}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => deleteAudio(audio.id)}
+                          className="text-red-400 hover:text-red-300 text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                     <p className="mt-1 text-xs text-gray-500">
                       Created: {new Date(audio.created_at).toLocaleDateString()}
                       {audio.duration && ` | Duration: ${formatDuration(audio.duration)}`}
                       {' | '}
                       Status: {audio.published ? 'Published' : 'Draft'}
                     </p>
-                    
+
                     {/* Audio player */}
                     <div className="mt-2">
-                      <audio 
-                        controls 
-                        className="w-full max-w-md" 
+                      <CustomAudioPlayer
                         src={audio.audio_url}
-                      >
-                        Your browser does not support the audio element.
-                      </audio>
+                        title={audio.title}
+                        className="mb-6"
+                      />
                     </div>
                   </div>
-                  <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
-                    <Link
-                      href={`/dashboard/content/audio/${audio.id}`}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => deleteAudio(audio.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
+
                 </div>
               </li>
             ))}

@@ -1,60 +1,159 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
-import AudioForm from '@/app/components/ui/forms/AudioForm';
-import { Audio } from '@/app/types';
-import { useRouter } from 'next/navigation';
+import { createClient } from "@/app/utils/supabase/client";
+import { useState, useEffect } from "react";
+import { type Audio } from "@/app/types";
+import Link from 'next/link';
+import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { trackContentView } from '@/app/utils/content';
+import AuthorInfo from '@/app/components/ui/AuthorInfo';
+import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
+import { useUserStore } from '@/app/stores/user';
+export default function AudioPage({ params }: { params: { id: string } }) {
+    const [audio, setAudio] = useState<Audio | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-export default function EditAudioPage({ params }: { params: { id: string } }) {
-  const [audio, setAudio] = useState<Audio | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const supabase = createClient();
-  const router = useRouter();
-  
-  useEffect(() => {
-    const fetchAudio = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('audio')
-          .select('*')
-          .eq('id', params.id)
-          .single();
-          
-        if (error) throw error;
-        setAudio(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch audio');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchAudio();
-  }, [params.id]);
-  
-  if (loading) {
-    return <div className="text-center p-8">Loading audio...</div>;
-  }
-  
-  if (error) {
-    return <div className="text-center p-8 text-red-600">Error: {error}</div>;
-  }
-  
-  if (!audio) {
-    return <div className="text-center p-8">Audio not found.</div>;
-  }
-  
-  return (
-    <div className='my-8'>
-      <h1 className="text-2xl font-bold mb-6">Edit Audio</h1>
-      <div className="bg-[#1a1f28] shadow-md rounded-lg p-6">
-        <AudioForm audio={audio} isEditing />
-      </div>
-    </div>
-  );
+    const supabase = createClient();
+    const {user, error: userError} = useUserStore();
+    useEffect(() => {
+        const fetchAudio = async () => {
+            try {
+                setLoading(true);
+                // First, fetch the audio data
+                const { data: audioData, error: audioError } = await supabase
+                    .from('audio')
+                    .select('*')
+                    .eq('id', params.id)
+                    .single();
+
+                if (audioError) {
+                    console.error(audioError);
+                    setError(audioError.message);
+                    return;
+                }
+
+                // Then, fetch the author details from auth
+                
+                
+                if (userError || !user) {
+                    console.error(userError);
+                    // Continue with the audio data even if we can't get the author
+                    setAudio(audioData);
+                } else {
+                    // Combine the audio data with the author information
+                    const combinedData = {
+                        ...audioData,
+                        author: {
+                            id: user.id,
+                            full_name: user.full_name,
+                            avatar_url: user.avatar_url,
+                        }
+                    };
+                    setAudio(combinedData);
+                }
+                
+                // Track view if audio exists
+                if (audioData) {
+                    trackContentView(audioData.id, 'audio', audioData.user_id);
+                }
+            } catch (err: any) {
+                setError(err.message || 'Failed to fetch audio');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAudio();
+    }, [params.id]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-[#0A0C10]">
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-[#0A0C10] text-white p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
+                        <h1 className="text-2xl font-bold mb-4">Error</h1>
+                        <p className="text-gray-300">{error}</p>
+                        <Link href="/dashboard/content/audio" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+                            Back to Audio
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!audio) {
+        return (
+            <div className="min-h-screen bg-[#0A0C10] text-white p-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-gray-800/50 border border-gray-700/50 p-6 rounded-lg text-center">
+                        <h1 className="text-2xl font-bold mb-4">Audio Not Found</h1>
+                        <p className="text-gray-300">The audio you're looking for doesn't exist or is not published.</p>
+                        <Link href="/dashboard/content/audio" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+                            Back to Audio
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-[#0A0C10] text-white">
+            <div className="my-8">
+                <Link 
+                    href="/dashboard/content/audio" 
+                    className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
+                >
+                    <ArrowLeftIcon className="h-4 w-4 mr-1" />
+                    Back to Audio
+                </Link>
+                
+                <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
+                    <div className="p-8">
+                        <div className="mb-6">
+                            <AuthorInfo author={audio.author} createdAt={audio.created_at} />
+                        </div>
+                        
+                        <h1 className="text-3xl font-bold mb-4">{audio.title}</h1>
+                        
+                        {audio.description && (
+                            <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-blue-500 pl-4">
+                                {audio.description}
+                            </p>
+                        )}
+                        
+                        <div className="flex items-center text-sm text-gray-400 mb-8">
+                            <div className="flex items-center mr-4">
+                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                {new Date(audio.created_at).toLocaleDateString()}
+                            </div>
+                            {audio.duration && (
+                                <div className="flex items-center">
+                                    <ClockIcon className="h-4 w-4 mr-1" />
+                                    {Math.floor(audio.duration / 60)}:{(audio.duration % 60).toString().padStart(2, '0')}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <CustomAudioPlayer 
+                            src={audio.audio_url} 
+                            title={audio.title}
+                            className="mb-6"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }

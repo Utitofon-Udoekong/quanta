@@ -7,13 +7,16 @@ import { Article } from '@/app/types';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { toast } from '@/app/components/helpers/toast';
+import ArticleCard from '@/app/components/ui/dashboard/ArticleCard';
+import { useUserStore } from '@/app/stores/user';
+
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-  
+  const {user, error: userError} = useUserStore();
   const supabase = createClient();
   
   const fetchArticles = async () => {
@@ -23,22 +26,31 @@ export default function ArticlesPage() {
       setLoading(true);
       
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         setError('Authentication error. Please sign in again.');
         return;
       }
       
-      const { data, error } = await supabase
+      const { data, error: articleError } = await supabase
         .from('articles')
-        .select('*')
+        .select(`
+          *,
+          author:users (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (articleError) {
+        toast(articleError.message || 'Failed to fetch articles', 'error');
+        return;
+      }
       setArticles(data || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch articles');
+      toast(err.message || 'Failed to fetch articles', 'error');
       console.error(err);
     } finally {
       setLoading(false);
@@ -55,7 +67,7 @@ export default function ArticlesPage() {
     
     try {
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {user, error: userError} = useUserStore();
       if (userError || !user) {
         toast('Authentication error. Please sign in again.', 'error');
         return;
@@ -67,7 +79,10 @@ export default function ArticlesPage() {
         .eq('id', id)
         .eq('user_id', user.id);
         
-      if (error) throw error;
+      if (error) {
+        toast(error.message || 'Failed to delete article', 'error');
+        return;
+      }
       fetchArticles(); // Refresh the list
     } catch (err: any) {
       console.error('Error deleting article:', err);
@@ -129,40 +144,30 @@ export default function ArticlesPage() {
           </Link>
         </div>
       ) : (
-        <div className="bg-gray-800/50 shadow overflow-hidden rounded-md border border-gray-700/50">
-          <ul className="divide-y divide-gray-700/50">
-            {articles.map((article) => (
-              <li key={article.id}>
-                <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-white">{article.title}</h3>
-                    <p className="mt-1 text-sm text-gray-400 truncate">
-                      {article.excerpt || article.content.substring(0, 100) + '...'}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Created: {new Date(article.created_at).toLocaleDateString()}
-                      {' | '}
-                      Status: {article.published ? 'Published' : 'Draft'}
-                    </p>
-                  </div>
-                  <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
-                    <Link
-                      href={`/dashboard/content/articles/${article.id}`}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => deleteArticle(article.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.map((article) => (
+            <div key={article.id} className="relative group">
+              <ArticleCard article={article} />
+              <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link
+                  href={`/dashboard/content/articles/${article.id}`}
+                  className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </Link>
+                <button
+                  onClick={() => deleteArticle(article.id)}
+                  className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

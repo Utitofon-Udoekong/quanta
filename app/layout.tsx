@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
+import UserProvider from './components/providers/UserProvider';
 
 export const treasuryConfig = {
     treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
@@ -15,8 +16,8 @@ export const treasuryConfig = {
 const inter = Inter({ subsets: ['latin'] });
 
 const metadata: Metadata = {
-    title: 'Content Platform',
-    description: 'A platform for managing videos, audio and articles',
+    title: 'Quanta',
+    description: 'Web3 Content Platform',
 };
 
 export default function RootLayout({
@@ -27,10 +28,12 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={inter.className}>
-                <AbstraxionProvider config={treasuryConfig}>
-                    {children}
-                    <Toaster position="bottom-right" />
-                </AbstraxionProvider>
+                <UserProvider>
+                    <AbstraxionProvider config={treasuryConfig}>
+                        {children}
+                        <Toaster position="bottom-right" />
+                    </AbstraxionProvider>
+                </UserProvider>
             </body>
         </html>
     );

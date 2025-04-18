@@ -44,6 +44,6 @@ next-env.d.ts
 guide/
 
 # supabase
-supabase
+*.sql
 
 pnpm-lock.yaml

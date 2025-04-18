@@ -30,6 +30,7 @@ type ContentStats = {
 };
 
 export default function ContentManagement() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'articles' | 'videos' | 'audio'>('overview');
   const [stats, setStats] = useState<ContentStats>({
     articles: 0,
     videos: 0,
@@ -147,7 +148,7 @@ export default function ContentManagement() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Content Management</h1>
-          <div className="flex space-x-4">
+          {/* <div className="flex space-x-4">
             <Link 
               href="/dashboard/content/articles/create" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -166,10 +167,56 @@ export default function ContentManagement() {
             >
               New Audio
             </Link>
+          </div> */}
+        </div>
+        
+        {/* Tabs Navigation */}
+        <div className="mb-8 border-b border-gray-700/50">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`pb-4 px-1 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('articles')}
+              className={`pb-4 px-1 font-medium text-sm ${
+                activeTab === 'articles'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Articles
+            </button>
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`pb-4 px-1 font-medium text-sm ${
+                activeTab === 'videos'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Videos
+            </button>
+            <button
+              onClick={() => setActiveTab('audio')}
+              className={`pb-4 px-1 font-medium text-sm ${
+                activeTab === 'audio'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Audio
+            </button>
           </div>
         </div>
         
-        {/* Content Stats */}
+        {/* Content Stats - Always visible */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
             <div className="flex items-center justify-between">
@@ -220,70 +267,215 @@ export default function ContentManagement() {
           </div>
         </div>
         
-        {/* Content Type Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Articles</h3>
-              <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <DocumentTextIcon className="w-4 h-4 text-blue-400" />
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div>
+            {/* Content Type Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Articles</h3>
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center">
+                    <DocumentTextIcon className="w-4 h-4 text-blue-400" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mb-4">{stats.articles}</p>
+                <Link 
+                  href="/dashboard/content/articles" 
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Manage Articles
+                </Link>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Videos</h3>
+                  <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center">
+                    <VideoCameraIcon className="w-4 h-4 text-green-400" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mb-4">{stats.videos}</p>
+                <Link 
+                  href="/dashboard/content/videos" 
+                  className="text-green-400 hover:text-green-300 transition-colors"
+                >
+                  Manage Videos
+                </Link>
+              </div>
+              
+              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Audio</h3>
+                  <div className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center">
+                    <MusicalNoteIcon className="w-4 h-4 text-purple-400" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold mb-4">{stats.audio}</p>
+                <Link 
+                  href="/dashboard/content/audio" 
+                  className="text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  Manage Audio
+                </Link>
               </div>
             </div>
-            <p className="text-3xl font-bold mb-4">{stats.articles}</p>
-            <Link 
-              href="/dashboard/content/articles" 
-              className="text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Manage Articles
-            </Link>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Videos</h3>
-              <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center">
-                <VideoCameraIcon className="w-4 h-4 text-green-400" />
+            
+            {/* Recent Content */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-6">Recent Content</h2>
+              
+              {/* Recent Articles */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Articles</h3>
+                  <Link 
+                    href="/dashboard/content/articles" 
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    View All
+                  </Link>
+                </div>
+                
+                {stats.recentContent.articles.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {stats.recentContent.articles.map((article) => (
+                      <div key={article.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200">
+                        <div className="p-4">
+                          <h4 className="font-bold mb-2 text-white">{article.title}</h4>
+                          <p className="text-gray-400 text-sm mb-3">
+                            {new Date(article.created_at).toLocaleDateString()}
+                          </p>
+                          <Link 
+                            href={`/dashboard/content/articles/${article.id}/edit`}
+                            className="text-blue-400 hover:text-blue-300 transition-colors"
+                          >
+                            Edit Article
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
+                    <p className="text-gray-400">No articles yet. Create your first one!</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Recent Videos */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Videos</h3>
+                  <Link 
+                    href="/dashboard/content/videos" 
+                    className="text-green-400 hover:text-green-300 transition-colors"
+                  >
+                    View All
+                  </Link>
+                </div>
+                
+                {stats.recentContent.videos.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {stats.recentContent.videos.map((video) => (
+                      <div key={video.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-green-500/50 transition-all duration-200">
+                        {video.thumbnail_url && (
+                          <div className="h-40 overflow-hidden">
+                            <img 
+                              src={video.thumbnail_url} 
+                              alt={video.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <h4 className="font-bold mb-2 text-white">{video.title}</h4>
+                          <p className="text-gray-400 text-sm mb-3">
+                            {new Date(video.created_at).toLocaleDateString()}
+                          </p>
+                          <Link 
+                            href={`/dashboard/content/videos/${video.id}/edit`}
+                            className="text-green-400 hover:text-green-300 transition-colors"
+                          >
+                            Edit Video
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
+                    <p className="text-gray-400">No videos yet. Upload your first one!</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Recent Audio */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Audio</h3>
+                  <Link 
+                    href="/dashboard/content/audio" 
+                    className="text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    View All
+                  </Link>
+                </div>
+                
+                {stats.recentContent.audio.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {stats.recentContent.audio.map((audioItem) => (
+                      <div key={audioItem.id} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-200">
+                        <h4 className="font-bold mb-2 text-white">{audioItem.title}</h4>
+                        <p className="text-gray-400 text-sm mb-3">
+                          {new Date(audioItem.created_at).toLocaleDateString()}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <Link 
+                            href={`/dashboard/content/audio/${audioItem.id}/edit`}
+                            className="text-purple-400 hover:text-purple-300 transition-colors"
+                          >
+                            Edit Audio
+                          </Link>
+                          {audioItem.audio_url && (
+                            <button 
+                              className="p-2 rounded-full bg-gray-700/50 hover:bg-gray-700 transition-colors"
+                              onClick={() => {
+                                const audio = new Audio(audioItem.audio_url);
+                                console.log('Audio:', audio.paused);
+                                if (audio.paused) {
+                                  audio.play();
+                                } else {
+                                  audio.pause();
+                                }
+                              }}
+                            >
+                              <MusicalNoteIcon className="size-5 text-purple-400" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
+                    <p className="text-gray-400">No audio yet. Upload your first one!</p>
+                  </div>
+                )}
               </div>
             </div>
-            <p className="text-3xl font-bold mb-4">{stats.videos}</p>
-            <Link 
-              href="/dashboard/content/videos" 
-              className="text-green-400 hover:text-green-300 transition-colors"
-            >
-              Manage Videos
-            </Link>
           </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Audio</h3>
-              <div className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center">
-                <MusicalNoteIcon className="w-4 h-4 text-purple-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold mb-4">{stats.audio}</p>
-            <Link 
-              href="/dashboard/content/audio" 
-              className="text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              Manage Audio
-            </Link>
-          </div>
-        </div>
+        )}
         
-        {/* Recent Content */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">Recent Content</h2>
-          
-          {/* Recent Articles */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Articles</h3>
+        {activeTab === 'articles' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Articles</h2>
               <Link 
-                href="/dashboard/content/articles" 
-                className="text-blue-400 hover:text-blue-300 transition-colors"
+                href="/dashboard/content/articles/create" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                View All
+                Create New Article
               </Link>
             </div>
             
@@ -296,12 +488,19 @@ export default function ContentManagement() {
                       <p className="text-gray-400 text-sm mb-3">
                         {new Date(article.created_at).toLocaleDateString()}
                       </p>
-                      <Link 
-                        href={`/dashboard/content/articles/${article.id}`}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        Edit Article
-                      </Link>
+                      <div className="flex justify-between items-center">
+                        <Link 
+                          href={`/dashboard/content/articles/${article.id}`}
+                          className="text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          View Article
+                        </Link>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          article.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {article.published ? 'Published' : 'Draft'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -309,19 +508,26 @@ export default function ContentManagement() {
             ) : (
               <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
                 <p className="text-gray-400">No articles yet. Create your first one!</p>
+                <Link 
+                  href="/dashboard/content/articles/create" 
+                  className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Create New Article
+                </Link>
               </div>
             )}
           </div>
-          
-          {/* Recent Videos */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Videos</h3>
+        )}
+        
+        {activeTab === 'videos' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Videos</h2>
               <Link 
-                href="/dashboard/content/videos" 
-                className="text-green-400 hover:text-green-300 transition-colors"
+                href="/dashboard/content/videos/create" 
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                View All
+                Create New Video
               </Link>
             </div>
             
@@ -343,12 +549,19 @@ export default function ContentManagement() {
                       <p className="text-gray-400 text-sm mb-3">
                         {new Date(video.created_at).toLocaleDateString()}
                       </p>
-                      <Link 
-                        href={`/dashboard/content/videos/${video.id}`}
-                        className="text-green-400 hover:text-green-300 transition-colors"
-                      >
-                        Edit Video
-                      </Link>
+                      <div className="flex justify-between items-center">
+                        <Link 
+                          href={`/dashboard/content/videos/${video.id}`}
+                          className="text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          View Video
+                        </Link>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          video.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {video.published ? 'Published' : 'Draft'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -356,19 +569,26 @@ export default function ContentManagement() {
             ) : (
               <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
                 <p className="text-gray-400">No videos yet. Upload your first one!</p>
+                <Link 
+                  href="/dashboard/content/videos/create" 
+                  className="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Create New Video
+                </Link>
               </div>
             )}
           </div>
-          
-          {/* Recent Audio */}
+        )}
+        
+        {activeTab === 'audio' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Audio</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Audio</h2>
               <Link 
-                href="/dashboard/content/audio" 
-                className="text-purple-400 hover:text-purple-300 transition-colors"
+                href="/dashboard/content/audio/create" 
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                View All
+                Create New Audio
               </Link>
             </div>
             
@@ -385,24 +605,31 @@ export default function ContentManagement() {
                         href={`/dashboard/content/audio/${audioItem.id}`}
                         className="text-purple-400 hover:text-purple-300 transition-colors"
                       >
-                        Edit Audio
+                        View Audio
                       </Link>
-                      {audioItem.audio_url && (
-                        <button 
-                          className="p-2 rounded-full bg-gray-700/50 hover:bg-gray-700 transition-colors"
-                          onClick={() => {
-                            const audio = new Audio(audioItem.audio_url);
-                            console.log('Audio:', audio.paused);
-                            if (audio.paused) {
-                              audio.play();
-                            } else {
-                              audio.pause();
-                            }
-                          }}
-                        >
-                          <MusicalNoteIcon className="size-5 text-purple-400" />
-                        </button>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          audioItem.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {audioItem.published ? 'Published' : 'Draft'}
+                        </span>
+                        {audioItem.audio_url && (
+                          <button 
+                            className="p-2 rounded-full bg-gray-700/50 hover:bg-gray-700 transition-colors"
+                            onClick={() => {
+                              const audio = new Audio(audioItem.audio_url);
+                              console.log('Audio:', audio.paused);
+                              if (audio.paused) {
+                                audio.play();
+                              } else {
+                                audio.pause();
+                              }
+                            }}
+                          >
+                            <MusicalNoteIcon className="size-5 text-purple-400" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -410,10 +637,16 @@ export default function ContentManagement() {
             ) : (
               <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
                 <p className="text-gray-400">No audio yet. Upload your first one!</p>
+                <Link 
+                  href="/dashboard/content/audio/create" 
+                  className="mt-4 inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Create New Audio
+                </Link>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { Video } from '@/app/types';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { toast } from '@/app/components/helpers/toast';
+import { useUserStore } from '@/app/stores/user';
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -17,6 +18,7 @@ export default function VideosPage() {
   
   const supabase = createClient();
   
+  const {user, error: userError} = useUserStore();
   const fetchVideos = async () => {
     if (!account?.bech32Address) return;
     
@@ -24,19 +26,21 @@ export default function VideosPage() {
       setLoading(true);
       
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         setError('Authentication error. Please sign in again.');
         return;
       }
       
-      const { data, error } = await supabase
+      const { data, error: videoError } = await supabase
         .from('videos')
-        .select('*')
+        .select('*, author:users (id, full_name, avatar_url)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (videoError) {
+        setError(videoError.message || 'Failed to fetch videos');
+        return;
+      }
       setVideos(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch videos');
@@ -48,7 +52,7 @@ export default function VideosPage() {
   
   useEffect(() => {
     fetchVideos();
-  }, [account?.bech32Address]);
+  }, [account?.bech32Address, user]);
   
   const deleteVideo = async (id: string) => {
     if (!account?.bech32Address) return;
@@ -56,7 +60,6 @@ export default function VideosPage() {
     
     try {
       // Get current user from Supabase auth
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         toast('Authentication error. Please sign in again.', 'error');
         return;
@@ -148,7 +151,7 @@ export default function VideosPage() {
                   </div>
                   <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
                     <Link
-                      href={`/dashboard/content/videos/${video.id}`}
+                      href={`/dashboard/content/videos/${video.id}/edit`}
                       className="text-blue-400 hover:text-blue-300 text-sm"
                     >
                       Edit
