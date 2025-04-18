@@ -109,9 +109,9 @@ export default function DashboardLayout({
       </div>
 
       {/* Main Content */}
-      <main className="pt-16 pb-16 md:pb-0">
+      <main className="pt-16 pb-16 md:pb-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>
   );
-} 
+}

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/utils/supabase/client';
 import { Article } from '@/app/types';
-
+import { toast } from '@/app/components/helpers/toast';
 type ArticleFormProps = {
   article?: Article;
   isEditing?: boolean;
@@ -72,8 +72,8 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
           
         if (error) throw error;
       }
-      
-      router.push('/dashboard/articles');
+      toast('Article saved successfully', 'success');
+      router.push('/dashboard/content/articles');
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'An error occurred while saving the article');

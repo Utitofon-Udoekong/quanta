@@ -2,48 +2,48 @@ export type Article = {
     id: string;
     title: string;
     content: string;
-    excerpt?: string | null;
+    excerpt?: string;
     created_at: string;
     updated_at: string;
     published: boolean;
     is_premium: boolean;
-    category_id?: string | null;
+    category_id?: string;
     user_id: string;
   };
   
   export type Video = {
     id: string;
     title: string;
-    description?: string | null;
+    description?: string;
     video_url: string;
-    thumbnail_url?: string | null;
-    duration?: number | null;
+    thumbnail_url?: string;
+    duration?: number;
     created_at: string;
     updated_at: string;
     published: boolean;
     is_premium: boolean;
-    category_id?: string | null;
+    category_id?: string;
     user_id: string;
   };
   
   export type Audio = {
     id: string;
     title: string;
-    description?: string | null;
+    description?: string;
     audio_url: string;
-    duration?: number | null;
+    duration?: number;
     created_at: string;
     updated_at: string;
     published: boolean;
     is_premium: boolean;
-    category_id?: string | null;
+    category_id?: string;
     user_id: string;
   };
   
   export type Wallet = {
     id: string;
     user_id: string;
-    wallet_address?: string | null;
+    wallet_address?: string;
     wallet_type: string;
     balance: number;
     created_at: string;
@@ -57,7 +57,7 @@ export type Article = {
     status: string;
     start_date: string;
     end_date: string;
-    payment_method?: string | null;
+    payment_method?: string;
     amount: number;
     currency: string;
     created_at: string;
@@ -67,7 +67,7 @@ export type Article = {
   export type Category = {
     id: string;
     name: string;
-    description?: string | null;
+    description?: string;
     created_at: string;
   };
   
@@ -79,7 +79,29 @@ export type Article = {
     currency: string;
     transaction_type: string;
     status: string;
-    reference?: string | null;
+    reference?: string;
+    created_at: string;
+  };
+  
+  export type ContentView = {
+    id: string;
+    content_id: string;
+    content_type: 'article' | 'video' | 'audio';
+    user_id: string;
+    viewer_id?: string;
+    viewed_at: string;
+    created_at: string;
+  };
+  
+  export type Earning = {
+    id: string;
+    user_id: string;
+    content_id: string;
+    content_type: 'article' | 'video' | 'audio';
+    amount: number;
+    currency: string;
+    source: string;
+    transaction_id?: string;
     created_at: string;
   };
   
@@ -120,6 +142,16 @@ export type Article = {
           Row: Transaction;
           Insert: Omit<Transaction, 'id' | 'created_at'>;
           Update: Partial<Omit<Transaction, 'id' | 'created_at'>>;
+        };
+        content_views: {
+          Row: ContentView;
+          Insert: Omit<ContentView, 'id' | 'created_at' | 'viewed_at'>;
+          Update: Partial<Omit<ContentView, 'id' | 'created_at' | 'viewed_at'>>;
+        };
+        earnings: {
+          Row: Earning;
+          Insert: Omit<Earning, 'id' | 'created_at'>;
+          Update: Partial<Omit<Earning, 'id' | 'created_at'>>;
         };
       };
     };

@@ -4,20 +4,35 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
 import Link from 'next/link';
 import { Audio } from '@/app/types';
-
+import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
+import { Abstraxion } from "@burnt-labs/abstraxion";
+import { toast } from '@/app/components/helpers/toast';
 export default function AudioPage() {
   const [audioFiles, setAudioFiles] = useState<Audio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { data: account } = useAbstraxionAccount();
+  const [, setShowModal] = useModal();
   
   const supabase = createClient();
   
   const fetchAudio = async () => {
+    if (!account?.bech32Address) return;
+    
     try {
       setLoading(true);
+      
+      // Get current user from Supabase auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setError('Authentication error. Please sign in again.');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('audio')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -32,24 +47,56 @@ export default function AudioPage() {
   
   useEffect(() => {
     fetchAudio();
-  }, []);
+  }, [account?.bech32Address]);
   
   const deleteAudio = async (id: string) => {
+    if (!account?.bech32Address) return;
     if (!confirm('Are you sure you want to delete this audio file?')) return;
     
     try {
+      // Get current user from Supabase auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        toast('Authentication error. Please sign in again.', 'error');
+        return;
+      }
+      
       const { error } = await supabase
         .from('audio')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
         
       if (error) throw error;
       fetchAudio(); // Refresh the list
     } catch (err: any) {
       console.error('Error deleting audio:', err);
-      alert('Failed to delete audio. Please try again.');
+      toast('Failed to delete audio file. Please try again.', 'error');
     }
   };
+  
+  if (!account?.bech32Address) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
+        <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold mb-4 text-white">Connect Your Wallet</h1>
+        <p className="text-gray-400 mb-6 text-center max-w-md">
+          Connect your wallet to manage your audio files and access premium features.
+        </p>
+        <button
+          onClick={() => setShowModal(true)}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Connect Wallet
+        </button>
+        <Abstraxion onClose={() => setShowModal(false)} />
+      </div>
+    );
+  }
   
   if (loading) {
     return <div className="text-center p-8">Loading audio files...</div>;
@@ -67,37 +114,37 @@ export default function AudioPage() {
   };
   
   return (
-    <div>
+    <div className="min-h-screen bg-[#0A0C10] text-white p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Audio Files</h1>
         <Link
-          href="/dashboard/audio/create"
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          href="/dashboard/content/audio/create"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
         >
           Upload New Audio
         </Link>
       </div>
       
       {audioFiles.length === 0 ? (
-        <div className="bg-white p-6 rounded-lg shadow text-center">
-          <p>You haven't uploaded any audio files yet.</p>
+        <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50 text-center">
+          <p className="text-gray-400">You haven't uploaded any audio files yet.</p>
           <Link
-            href="/dashboard/audio/create"
-            className="text-indigo-600 hover:text-indigo-800 mt-2 inline-block"
+            href="/dashboard/content/audio/create"
+            className="text-blue-400 hover:text-blue-300 mt-2 inline-block"
           >
             Upload your first audio file
           </Link>
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden rounded-md">
-          <ul className="divide-y divide-gray-200">
+        <div className="bg-gray-800/50 shadow overflow-hidden rounded-md border border-gray-700/50">
+          <ul className="divide-y divide-gray-700/50">
             {audioFiles.map((audio) => (
               <li key={audio.id}>
                 <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">{audio.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500 truncate">
-                      {audio.description || 'No description'}
+                    <h3 className="text-lg font-medium text-white">{audio.title}</h3>
+                    <p className="mt-1 text-sm text-gray-400 truncate">
+                      {audio.description || 'No description available'}
                     </p>
                     <p className="mt-1 text-xs text-gray-500">
                       Created: {new Date(audio.created_at).toLocaleDateString()}
@@ -119,14 +166,14 @@ export default function AudioPage() {
                   </div>
                   <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
                     <Link
-                      href={`/dashboard/audio/${audio.id}`}
-                      className="text-indigo-600 hover:text-indigo-900 text-sm"
+                      href={`/dashboard/content/audio/${audio.id}`}
+                      className="text-blue-400 hover:text-blue-300 text-sm"
                     >
                       Edit
                     </Link>
                     <button
                       onClick={() => deleteAudio(audio.id)}
-                      className="text-red-600 hover:text-red-900 text-sm"
+                      className="text-red-400 hover:text-red-300 text-sm"
                     >
                       Delete
                     </button>

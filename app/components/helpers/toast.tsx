@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cn } from '@/app/old/lib/utils';
+import { cn } from '@/app/utils/helpers';
 
 export interface ToastProps {
   message: string;

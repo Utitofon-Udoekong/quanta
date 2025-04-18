@@ -50,9 +50,9 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
   }
   
   return (
-    <div>
+    <div className='my-8'>
       <h1 className="text-2xl font-bold mb-6">Edit Video</h1>
-      <div className="bg-white shadow-md rounded-lg p-6">
+      <div className="bg-[#1a1f28] shadow-md rounded-lg p-6">
         <VideoForm video={video} isEditing />
       </div>
     </div>

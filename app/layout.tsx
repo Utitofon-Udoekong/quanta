@@ -1,9 +1,16 @@
+"use client";
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
-import { treasuryConfig } from './old/lib/services/xion';
+
+export const treasuryConfig = {
+    treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
+    rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
+    restUrl: process.env.NEXT_PUBLIC_REST_URL,
+  };
 
 const inter = Inter({ subsets: ['latin'] });
 
