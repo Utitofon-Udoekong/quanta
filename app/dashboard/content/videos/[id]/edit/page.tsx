@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
 import VideoForm from '@/app/components/ui/forms/VideoForm';
 import { Video } from '@/app/types';
 import { useRouter } from 'next/navigation';
 
-export default function EditVideoPage({ params }: { params: { id: string } }) {
+export default function EditVideoPage({ params }: { params: Promise<{ id: string }> }) {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const {id} = use(params);
   const supabase = createClient();
   const router = useRouter();
   
@@ -21,7 +21,7 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
         const { data, error } = await supabase
           .from('videos')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', id)
           .single();
           
         if (error) throw error;
@@ -35,7 +35,7 @@ export default function EditVideoPage({ params }: { params: { id: string } }) {
     };
     
     fetchVideo();
-  }, [params.id]);
+  }, [id]);
   
   if (loading) {
     return <div className="text-center p-8">Loading video...</div>;

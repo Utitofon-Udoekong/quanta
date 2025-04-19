@@ -1,14 +1,14 @@
-// app/dashboard/page.tsx
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Article, Video, type Audio, Subscription } from '@/app/types';
-// import WalletConnect from '@/app/components/wallet/WalletConnect';
 import { createClient } from '../utils/supabase/client';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
-import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, MusicalNoteIcon, PlayIcon, PauseIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { Button } from '@burnt-labs/ui';
+import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, MusicalNoteIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { useUserStore } from '@/app/stores/user';
+import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
 
 type UserProfile = {
   id: string;
@@ -16,25 +16,6 @@ type UserProfile = {
   display_name?: string;
   avatar_url?: string;
   wallet_address?: string;
-};
-
-// type Subscription = {
-//   id: string;
-//   plan_type: string;
-//   status: string;
-//   start_date: string;
-//   end_date: string;
-// };
-
-type ContentItem = {
-  id: string;
-  title: string;
-  type: 'article' | 'video' | 'audio';
-  created_at: string;
-  published: boolean;
-  views?: number;
-  thumbnail_url?: string;
-  duration?: number;
 };
 
 export default function Dashboard() {
@@ -64,7 +45,6 @@ export default function Dashboard() {
           console.error('Error fetching user:', userError);
           return;
         }
-        
         // Set profile from auth user data
         setProfile({
           id: user.id,
@@ -85,51 +65,51 @@ export default function Dashboard() {
           }
           
           // Fetch subscription data using user ID
-          const { data: subscriptionData } = await supabase
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+          // const { data: subscriptionData } = await supabase
+          //   .from('subscriptions')
+          //   .select('*')
+          //   .eq('user_id', user.id)
+          //   .eq('status', 'active')
+          //   .order('created_at', { ascending: false })
+          //   .limit(1)
+          //   .single();
             
-          setSubscription(subscriptionData || null);
+          // setSubscription(subscriptionData || null);
           
           // Get content counts and stats using user ID
-          const [articlesRes, videosRes, audioRes, viewsRes, earningsRes] = await Promise.all([
+          const [articlesRes, videosRes, audioRes, viewsRes] = await Promise.all([
             supabase.from('articles').select('id', { count: 'exact' }).eq('user_id', user.id),
             supabase.from('videos').select('id', { count: 'exact' }).eq('user_id', user.id),
             supabase.from('audio').select('id', { count: 'exact' }).eq('user_id', user.id),
-            supabase.from('content_usage').select('*', { count: 'exact', head: true }).eq('content.user_id', user.id),
-            supabase.from('payments').select('amount').eq('to_user_id', user.id).eq('status', 'COMPLETED')
+            supabase.from('content_views').select('id', { count: 'exact' }).eq('user_id', user.id),
+            // supabase.from('payments').select('amount').eq('to_user_id', user.id).eq('status', 'COMPLETED')
           ]);
           
-          const totalEarnings = earningsRes.data?.reduce((sum: number, payment: any) => sum + payment.amount, 0) || 0;
+          // const totalEarnings = earningsRes.data?.reduce((sum: number, payment: any) => sum + payment.amount, 0) || 0;
           
           setContentStats({
             articles: articlesRes.count || 0,
             videos: videosRes.count || 0,
             audio: audioRes.count || 0,
             totalViews: viewsRes.count || 0,
-            totalEarnings
+            totalEarnings: 0
           });
           
           // Get all content using user ID
           const [articlesData, videosData, audioData] = await Promise.all([
             supabase
               .from('articles')
-              .select('id, title, created_at, published')
+              .select('id, title, created_at, published, is_premium')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false }),
             supabase
               .from('videos')
-              .select('id, title, created_at, published, thumbnail_url, duration')
+              .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false }),
             supabase
               .from('audio')
-              .select('id, title, created_at, published, duration')
+              .select('id, title, created_at, published, duration, is_premium')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
           ]);
@@ -138,15 +118,18 @@ export default function Dashboard() {
           const combinedContent: ContentItem[] = [
             ...(articlesData.data || []).map(article => ({
               ...article,
-              type: 'article' as const
+              type: 'article' as const,
+              is_premium: article.is_premium || false
             })),
             ...(videosData.data || []).map(video => ({
               ...video,
-              type: 'video' as const
+              type: 'video' as const,
+              is_premium: video.is_premium || false
             })),
             ...(audioData.data || []).map(audio => ({
               ...audio,
-              type: 'audio' as const
+              type: 'audio' as const,
+              is_premium: audio.is_premium || false
             }))
           ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           
@@ -160,7 +143,83 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [supabase, account?.bech32Address]);
+  }, [supabase, account?.bech32Address, user]);
+  
+  const handleDeleteContent = async (id: string, type: string) => {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+    
+    try {
+      let table = '';
+      switch (type) {
+        case 'article':
+          table = 'articles';
+          break;
+        case 'video':
+          table = 'videos';
+          break;
+        case 'audio':
+          table = 'audio';
+          break;
+        default:
+          return;
+      }
+      
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Refresh content after deletion
+      const fetchDashboardData = async () => {
+        // Re-fetch content data
+        const [articlesData, videosData, audioData] = await Promise.all([
+          supabase
+            .from('articles')
+            .select('id, title, created_at, published, is_premium')
+            .eq('user_id', user?.id)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('videos')
+            .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
+            .eq('user_id', user?.id)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('audio')
+            .select('id, title, created_at, published, duration, is_premium')
+            .eq('user_id', user?.id)
+            .order('created_at', { ascending: false })
+        ]);
+        
+        // Combine all content with type information
+        const combinedContent: ContentItem[] = [
+          ...(articlesData.data || []).map(article => ({
+            ...article,
+            type: 'article' as const,
+            is_premium: article.is_premium || false
+          })),
+          ...(videosData.data || []).map(video => ({
+            ...video,
+            type: 'video' as const,
+            is_premium: video.is_premium || false
+          })),
+          ...(audioData.data || []).map(audio => ({
+            ...audio,
+            type: 'audio' as const,
+            is_premium: audio.is_premium || false
+          }))
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        setAllContent(combinedContent);
+      };
+      
+      fetchDashboardData();
+    } catch (error) {
+      console.error(`Error deleting ${type}:`, error);
+      alert(`Failed to delete ${type}. Please try again.`);
+    }
+  };
   
   if (loading) {
     return (
@@ -199,68 +258,16 @@ export default function Dashboard() {
         <p className="text-gray-400 mb-6 text-center max-w-md">
           Connect your wallet to create and manage content, track earnings, and access premium features.
         </p>
-        <button
+        <Button
           onClick={() => setShowModal(true)}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Connect Wallet
-        </button>
+        </Button>
         <Abstraxion onClose={() => setShowModal(false)} />
       </div>
     );
   }
-
-  const getContentTypeIcon = (type: string) => {
-    switch (type) {
-      case 'article':
-        return <NewspaperIcon className="w-5 h-5 text-blue-400" />;
-      case 'video':
-        return <VideoCameraIcon className="w-5 h-5 text-green-400" />;
-      case 'audio':
-        return <MusicalNoteIcon className="w-5 h-5 text-purple-400" />;
-      default:
-        return null;
-    }
-  };
-
-  const getContentTypeColor = (type: string) => {
-    switch (type) {
-      case 'article':
-        return 'text-blue-400';
-      case 'video':
-        return 'text-green-400';
-      case 'audio':
-        return 'text-purple-400';
-      default:
-        return 'text-gray-400';
-    }
-  };
-
-  const getContentTypeLink = (item: ContentItem) => {
-    switch (item.type) {
-      case 'article':
-        return `/articles/${item.id}`;
-      case 'video':
-        return `/videos/${item.id}`;
-      case 'audio':
-        return `/audio/${item.id}`;
-      default:
-        return '#';
-    }
-  };
-
-  const getContentEditLink = (item: ContentItem) => {
-    switch (item.type) {
-      case 'article':
-        return `/dashboard/content/articles/${item.id}`;
-      case 'video':
-        return `/dashboard/content/videos/${item.id}/edit`;
-      case 'audio':
-        return `/dashboard/content/audio/${item.id}/edit`;
-      default:
-        return '#';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
@@ -322,7 +329,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Subscription</p>
-                <h3 className="text-2xl font-bold">{subscription ? subscription.plan_type : 'None'}</h3>
+                <h3 className="text-2xl font-bold">{subscription ? subscription.plan?.name : 'None'}</h3>
               </div>
               <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,7 +342,7 @@ export default function Dashboard() {
         
         {/* Content Table */}
         <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden mb-8">
-          <div className="flex justify-between items-center p-6 border-b border-gray-700/50">
+          <div className="flex justify-between items-center p-6 border-gray-700/50">
             <h2 className="text-xl font-bold">Your Content</h2>
             <div className="flex space-x-3">
               <Link 
@@ -373,91 +380,21 @@ export default function Dashboard() {
                 href="/dashboard/content/articles/create" 
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center"
               >
-                <NewspaperIcon className="w-5 h-5 mr-2" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 Create Content
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-700/30 text-left">
-                    <th className="py-3 px-4 font-medium text-gray-400">Type</th>
-                    <th className="py-3 px-4 font-medium text-gray-400">Title</th>
-                    <th className="py-3 px-4 font-medium text-gray-400">Date</th>
-                    <th className="py-3 px-4 font-medium text-gray-400">Status</th>
-                    <th className="py-3 px-4 font-medium text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allContent.map((item) => (
-                    <tr key={`${item.type}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          {getContentTypeIcon(item.type)}
-                          <span className="ml-2 capitalize">{item.type}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 font-medium">{item.title}</td>
-                      <td className="py-3 px-4 text-gray-400">
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          item.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                        }`}>
-                          {item.published ? 'Published' : 'Draft'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex space-x-3">
-                          <Link 
-                            href={getContentEditLink(item)}
-                            className={`${getContentTypeColor(item.type)} hover:opacity-80 transition-opacity`}
-                          >
-                            Edit
-                          </Link>
-                          <Link 
-                            href={getContentTypeLink(item)}
-                            className="text-gray-400 hover:text-gray-300 transition-colors"
-                            target="_blank"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ContentTable 
+              content={allContent} 
+              onDelete={handleDeleteContent}
+            />
           )}
         </div>
         
-        {/* Create New Content */}
-        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-          <h2 className="text-xl font-bold mb-4">Create New Content</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
-              href="/dashboard/content/articles/create" 
-              className="block p-4 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Create Article
-            </Link>
-            <Link 
-              href="/dashboard/content/videos/create" 
-              className="block p-4 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Upload Video
-            </Link>
-            <Link 
-              href="/dashboard/content/audio/create" 
-              className="block p-4 bg-purple-600 text-white text-center rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Upload Audio
-            </Link>
-          </div>
-        </div>
+        
       </div>
     </div>
   );

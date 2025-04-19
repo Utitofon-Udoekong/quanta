@@ -84,7 +84,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         <h1 className="text-2xl font-bold mb-4">Error</h1>
                         <p className="text-gray-300">{error}</p>
                         <Link href="/dashboard/content/audio" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
-                            Back to Audio
+                            Back
                         </Link>
                     </div>
                 </div>
@@ -100,7 +100,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         <h1 className="text-2xl font-bold mb-4">Audio Not Found</h1>
                         <p className="text-gray-300">The audio you're looking for doesn't exist or is not published.</p>
                         <Link href="/dashboard/content/audio" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
-                            Back to Audio
+                            Back
                         </Link>
                     </div>
                 </div>
@@ -113,10 +113,10 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
             <div className="my-8">
                 <Link 
                     href="/dashboard/content/audio" 
-                    className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
+                    className="inline-flex items-center text-purple-400 hover:text-purple-300 mb-6"
                 >
                     <ArrowLeftIcon className="h-4 w-4 mr-1" />
-                    Back to Audio
+                    Back
                 </Link>
                 
                 <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
@@ -128,7 +128,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         <h1 className="text-3xl font-bold mb-4">{audio.title}</h1>
                         
                         {audio.description && (
-                            <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-blue-500 pl-4">
+                            <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-purple-500 pl-4">
                                 {audio.description}
                             </p>
                         )}

@@ -6,12 +6,14 @@ import { createClient } from '@/app/utils/supabase/client';
 import { Article } from '@/app/types';
 import { toast } from '@/app/components/helpers/toast';
 import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
-import MDEditor, { commands } from '@uiw/react-md-editor';
+import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeKatex from 'rehype-katex';
+import FileDropzone from '@/app/components/ui/forms/FileDropzone';
+import { uploadFileResumable } from '@/app/utils/upload';
 import 'katex/dist/katex.min.css';
 
 type ArticleFormProps = {
@@ -26,15 +28,25 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
     excerpt: '',
     published: false,
     is_premium: false,
+    thumbnail_url: '',
   };
 
   const [formData, setFormData] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<'edit' | 'preview'>('edit');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailError, setThumbnailError] = useState<string | undefined>(undefined);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const router = useRouter();
   const supabase = createClient();
+
+  const allowedImageTypes = {
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/webp': ['.webp']
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -46,14 +58,50 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
     });
   };
 
+  const handleThumbnailSelect = (file: File) => {
+    setThumbnailFile(file);
+    setThumbnailError(undefined);
+  };
+
+  const uploadFile = async (file: File, bucketName: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    
+    try {
+      // Use the resumable upload function
+      const publicUrl = await uploadFileResumable(
+        bucketName,
+        fileName,
+        file,
+        (percentage: number) => {
+          setUploadProgress(Math.round(percentage));
+        }
+      );
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setThumbnailError(undefined);
+    setUploadProgress(0);
 
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('You must be logged in');
+
+      let thumbnailUrl = formData.thumbnail_url;
+
+      // Upload thumbnail if a file was selected
+      if (thumbnailFile) {
+        thumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
+      }
 
       if (isEditing && article) {
         // Update existing article
@@ -65,6 +113,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
             excerpt: formData.excerpt || null,
             published: formData.published,
             is_premium: formData.is_premium,
+            thumbnail_url: thumbnailUrl || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', article.id);
@@ -80,6 +129,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
             excerpt: formData.excerpt || null,
             published: formData.published,
             is_premium: formData.is_premium,
+            thumbnail_url: thumbnailUrl || null,
             user_id: userData.user.id,
           });
 
@@ -134,6 +184,22 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
           value={formData.excerpt || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Thumbnail Image (optional)
+        </label>
+        <FileDropzone
+          onFileSelect={handleThumbnailSelect}
+          accept={allowedImageTypes}
+          maxSize={5 * 1024 * 1024} // 5MB
+          file={thumbnailFile}
+          label="Thumbnail"
+          error={thumbnailError}
+          currentFileUrl={formData.thumbnail_url}
+          isEditing={isEditing}
         />
       </div>
 

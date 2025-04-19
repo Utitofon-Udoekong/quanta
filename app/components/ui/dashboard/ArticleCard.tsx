@@ -33,7 +33,7 @@ export default function ArticleCard({ article, onDelete }: ArticleCardProps) {
         <div className="flex justify-between items-center">
           <div className="flex space-x-3">
             <Link 
-              href={`/dashboard/content/articles/${article.id}`}
+              href={`/dashboard/content/articles/${article.id}/edit`}
               className="text-blue-400 hover:text-blue-300 transition-colors flex items-center"
             >
               <PencilIcon className="w-4 h-4 mr-1" />

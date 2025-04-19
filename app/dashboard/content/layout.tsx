@@ -63,7 +63,7 @@ export default function ContentLayout({
               href="/dashboard/content/videos"
               className={`pb-4 px-1 font-medium text-sm flex items-center ${
                 activeTab === 'videos'
-                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  ? 'text-green-400 border-b-2 border-green-400'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
@@ -74,7 +74,7 @@ export default function ContentLayout({
               href="/dashboard/content/audio"
               className={`pb-4 px-1 font-medium text-sm flex items-center ${
                 activeTab === 'audio'
-                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  ? 'text-purple-400 border-b-2 border-purple-400'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >

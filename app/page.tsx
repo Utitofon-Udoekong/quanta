@@ -7,14 +7,15 @@ import { createClient } from '@/app/utils/supabase/client';
 import { Article, Video, Audio } from '@/app/types';
 import { Menu, Transition, MenuButton, MenuItems, MenuItem, Button } from '@headlessui/react';
 import { Fragment } from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/solid';
 import { signOut } from '@/app/utils/helpers';
 import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
+import ContentSection from '@/app/components/ui/content/ContentSection';
 
-// Categories with proper spacing
-const categories = [
-    { id: 'all', name: 'All' },
+// Content types for filtering
+const contentTypes = [
+    { id: 'all', name: 'All Content' },
     { id: 'video', name: 'Videos' },
     { id: 'audio', name: 'Audio' },
     { id: 'article', name: 'Articles' },
@@ -22,7 +23,9 @@ const categories = [
 
 export default function Home() {
     const router = useRouter();
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedType, setSelectedType] = useState('all');
+    const [showFilters, setShowFilters] = useState(false);
     const [featuredContent, setFeaturedContent] = useState<{
         videos: Video[];
         audio: Audio[];
@@ -43,16 +46,27 @@ export default function Home() {
             toast('Signed out successfully');
         }
     };
-    
-    useEffect(() => {
 
+    useEffect(() => {
         const fetchFeaturedContent = async () => {
             try {
-                // Get current user
+                if (userError || !user) {
+                    console.error('Error fetching user:', userError);
+                    return;
+                }
+
                 // Fetch published videos
                 const { data: videosData } = await supabase
                     .from('videos')
-                    .select('*')
+                    .select(`
+                        *,
+                        author:users(
+                            id,
+                            full_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
@@ -60,7 +74,15 @@ export default function Home() {
                 // Fetch published audio
                 const { data: audioData } = await supabase
                     .from('audio')
-                    .select('*')
+                    .select(`
+                        *,
+                        author:users(
+                            id,
+                            full_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
@@ -68,11 +90,19 @@ export default function Home() {
                 // Fetch published articles
                 const { data: articlesData } = await supabase
                     .from('articles')
-                    .select('*')
+                    .select(`
+                        *,
+                        author:users(
+                            id,
+                            full_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
-
+                console.log(articlesData);
                 setFeaturedContent({
                     videos: videosData || [],
                     audio: audioData || [],
@@ -86,150 +116,82 @@ export default function Home() {
         };
 
         fetchFeaturedContent();
-    }, []);
+    }, [user]);
 
-    // Filter content based on selected category
+    // Filter content based on search term and selected type
     const getFilteredContent = () => {
-        if (selectedCategory === 'all') {
-            return {
-                videos: featuredContent.videos,
-                audio: featuredContent.audio,
-                articles: featuredContent.articles,
+        let filteredContent = {
+            videos: featuredContent.videos,
+            audio: featuredContent.audio,
+            articles: featuredContent.articles,
+        };
+
+        // Apply search filter
+        if (searchTerm.trim() !== '') {
+            const term = searchTerm.toLowerCase();
+            filteredContent = {
+                videos: filteredContent.videos.filter(video =>
+                    video.title.toLowerCase().includes(term) ||
+                    (video.description && video.description.toLowerCase().includes(term))
+                ),
+                audio: filteredContent.audio.filter(audio =>
+                    audio.title.toLowerCase().includes(term) ||
+                    (audio.description && audio.description.toLowerCase().includes(term))
+                ),
+                articles: filteredContent.articles.filter(article =>
+                    article.title.toLowerCase().includes(term) ||
+                    (article.excerpt && article.excerpt.toLowerCase().includes(term)) ||
+                    article.content.toLowerCase().includes(term)
+                ),
             };
         }
 
-        return {
-            videos: selectedCategory === 'video' ? featuredContent.videos : [],
-            audio: selectedCategory === 'audio' ? featuredContent.audio : [],
-            articles: selectedCategory === 'article' ? featuredContent.articles : [],
-        };
+        // Apply type filter
+        if (selectedType !== 'all') {
+            return {
+                videos: selectedType === 'video' ? filteredContent.videos : [],
+                audio: selectedType === 'audio' ? filteredContent.audio : [],
+                articles: selectedType === 'article' ? filteredContent.articles : [],
+            };
+        }
+
+        return filteredContent;
     };
 
-    // Function to render content cards based on type and premium status
-    const ContentCard = ({ item, type }: { item: Video | Audio | Article; type: 'video' | 'audio' | 'article' }) => {
-        const isPremium = item.is_premium;
-
-        return (
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1">
-                {/* Thumbnail or placeholder */}
-                <div className="relative h-48 bg-gray-700/50">
-                    {type === 'video' && (item as Video).thumbnail_url && (
-                        <img src={(item as Video).thumbnail_url || ''} alt={item.title} className="w-full h-full object-cover" />
-                    )}
-                    {type === 'audio' && (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 01-1.414-2.172m-1.414-9.9a9 9 0 012.828-3.9M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                            </svg>
-                        </div>
-                    )}
-                    {type === 'article' && (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-teal-500/20">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3m0 0l3-3m-3 3V8" />
-                            </svg>
-                        </div>
-                    )}
-
-                    {/* Premium badge */}
-                    {isPremium && (
-                        <div className="absolute top-2 right-2 bg-blue-500/20 backdrop-blur-sm px-2 py-1 rounded text-sm font-medium text-blue-400">
-                            PREMIUM
-                        </div>
-                    )}
-                </div>
-
-                {/* Content info */}
-                <div className="p-4">
-                    <h3 className="font-semibold text-lg truncate text-white">{item.title}</h3>
-                    <div className="mt-3 flex justify-between items-center">
-                        <span className="text-xs text-gray-400">
-                            {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                        {!user && isPremium ? (
-                            <Button
-                                onClick={() => router.push('/auth')}
-                                className="text-sm font-medium px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 text-white"
-                            >
-                                Sign in to access
-                            </Button>
-                        ) : (
-                            <Link
-                                href={`/content/${type}/${item.id}`}
-                                className={`text-sm font-medium px-3 py-1 rounded ${
-                                    isPremium
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                            >
-                                {isPremium ? 'Unlock' : 'View'}
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const ContentSection = ({ title, items, type, showMoreLink }: {
-        title: string;
-        items: (Video | Audio | Article)[];
-        type: 'video' | 'audio' | 'article';
-        showMoreLink: string;
-    }) => (
-        <section className="mb-12">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-white">{title}</h2>
-                <Link href={showMoreLink} className="text-blue-400 hover:text-blue-300">
-                    View All
-                </Link>
-            </div>
-
-            {items.length === 0 ? (
-                <div className="text-center p-8 bg-gray-800/50 rounded-lg text-gray-400">
-                    No content available
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {items.map((item) => (
-                        <ContentCard key={item.id} item={item} type={type} />
-                    ))}
-                </div>
-            )}
-        </section>
-    );
-
-  return (
+    return (
         <div className="min-h-screen bg-[#0A0C10] text-white">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 bg-[#0A0C10]/90 backdrop-blur-md border-b border-gray-800/50 z-50">
-                <div className="container mx-auto px-6">
+                <div className="mx-auto px-6">
                     <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center space-x-12">
-                            <Link href="/" className="flex items-center space-x-2">
-                                <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                    QUANTA
-                                </span>
-                            </Link>
-                            <nav className="hidden md:flex">
-                                <div className="flex gap-x-4 bg-gray-800/50 px-8 py-2 rounded-lg">
-                                    {categories.map((category) => (
-                                        <button
-                                            key={category.id}
-                                            onClick={() => setSelectedCategory(category.id)}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                                selectedCategory === category.id
-                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                                            }`}
-                                        >
-                                            {category.name}
-                                        </button>
-                                    ))}
+                        <Link href="/" className="flex flex-1/4 items-center space-x-2">
+                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                                QUANTA
+                            </span>
+                        </Link>
+                        <div className="hidden md:flex md:flex-2/4 justify-center items-center space-x-4">
+                            <div className="relative w-full">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <MagnifyingGlassIcon className="size-5 text-gray-400" />
                                 </div>
-                            </nav>
+                                <input
+                                    type="text"
+                                    placeholder="Search content..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-md leading-5 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex items-center space-x-1 px-3 py-2 rounded-md ${showFilters ? 'bg-blue-600 text-white' : 'bg-gray-800/50 text-gray-300 hover:text-white'
+                                    }`}
+                            >
+                                <FunnelIcon className="h-4 w-4" />
+                                <span>Filters</span>
+                            </button>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-1/4 justify-end items-center space-x-4">
                             {!user ? (
                                 <Button
                                     onClick={() => router.push('/auth')}
@@ -263,9 +225,8 @@ export default function Home() {
                                                     {({ active }) => (
                                                         <Link
                                                             href="/dashboard"
-                                                            className={`${
-                                                                active ? 'bg-gray-700' : ''
-                                                            } block px-3 py-2 rounded-md text-sm text-white`}
+                                                            className={`${active ? 'bg-gray-700' : ''
+                                                                } block px-3 py-2 rounded-md text-sm text-white`}
                                                         >
                                                             Dashboard
                                                         </Link>
@@ -275,9 +236,8 @@ export default function Home() {
                                                     {({ active }) => (
                                                         <button
                                                             onClick={handleSignOut}
-                                                            className={`${
-                                                                active ? 'bg-gray-700' : ''
-                                                            } block w-full text-left px-3 py-2 rounded-md text-sm text-red-400`}
+                                                            className={`${active ? 'bg-gray-700' : ''
+                                                                } block w-full text-left px-3 py-2 rounded-md text-sm text-red-400`}
                                                         >
                                                             Sign Out
                                                         </button>
@@ -295,25 +255,43 @@ export default function Home() {
 
             {/* Main content */}
             <main className="pt-20">
-                <div className="container mx-auto px-6 py-8">
-                    {/* Mobile Categories */}
-                    <div className="md:hidden overflow-x-auto pb-6">
-                        <div className="flex space-x-2 bg-gray-800/50 p-1 rounded-lg">
-                            {categories.map((category) => (
-                                <button
-                                    key={category.id}
-                                    onClick={() => setSelectedCategory(category.id)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                                        selectedCategory === category.id
-                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                            : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                                    }`}
-                                >
-                                    {category.name}
-                                </button>
-                            ))}
+                <div className="mx-auto px-6 py-8">
+                    {/* Mobile Search */}
+                    <div className="md:hidden mb-6">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search content..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-md leading-5 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
                         </div>
                     </div>
+
+                    {/* Filters Panel */}
+                    {showFilters && (
+                        <div className="mb-6 p-4 bg-gray-800/50 rounded-lg">
+                            <h3 className="text-lg font-medium text-white mb-3">Filter Content</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {contentTypes.map((type) => (
+                                    <button
+                                        key={type.id}
+                                        onClick={() => setSelectedType(type.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedType === type.id
+                                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                            : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                                            }`}
+                                    >
+                                        {type.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {loading ? (
                         <div className="flex justify-center items-center h-64">
@@ -324,18 +302,20 @@ export default function Home() {
                         </div>
                     ) : (
                         <>
-                            {getFilteredContent().videos.length === 0 && 
-                             getFilteredContent().audio.length === 0 && 
-                             getFilteredContent().articles.length === 0 ? (
+                            {getFilteredContent().videos.length === 0 &&
+                                getFilteredContent().audio.length === 0 &&
+                                getFilteredContent().articles.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
                                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                         </svg>
                                     </div>
-                                    <h3 className="text-xl font-semibold text-gray-200 mb-2">No Content Available</h3>
+                                    <h3 className="text-xl font-semibold text-gray-200 mb-2">No Content Found</h3>
                                     <p className="text-gray-400 max-w-md">
-                                        There are no published contents at the moment. Please check back later or try a different category.
+                                        {searchTerm ?
+                                            `No content matches your search for "${searchTerm}". Try different keywords or filters.` :
+                                            "There are no published contents at the moment. Please check back later."}
                                     </p>
                                 </div>
                             ) : (
@@ -346,34 +326,35 @@ export default function Home() {
                                             items={getFilteredContent().videos}
                                             type="video"
                                             showMoreLink="/explore/videos"
+                                            userLoggedIn={!!user}
                                         />
                                     )}
-                                    
+
                                     {getFilteredContent().audio.length > 0 && (
                                         <ContentSection
                                             title="Popular Audio"
                                             items={getFilteredContent().audio}
                                             type="audio"
                                             showMoreLink="/explore/audio"
+                                            userLoggedIn={!!user}
                                         />
                                     )}
-                                    
+
                                     {getFilteredContent().articles.length > 0 && (
                                         <ContentSection
                                             title="Latest Articles"
                                             items={getFilteredContent().articles}
                                             type="article"
                                             showMoreLink="/explore/articles"
+                                            userLoggedIn={!!user}
                                         />
                                     )}
                                 </>
                             )}
                         </>
                     )}
+                </div>
+            </main>
         </div>
-      </main>
-
-            
-    </div>
-  );
+    );
 }

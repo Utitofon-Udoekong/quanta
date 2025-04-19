@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
 import ArticleForm from '@/app/components/ui/forms/ArticleForm';
 import { Article } from '@/app/types';
 import { useRouter } from 'next/navigation';
 
-export default function EditArticlePage({ params }: { params: { id: string } }) {
+export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const {id} = use(params);
   const supabase = createClient();
   const router = useRouter();
   
@@ -21,7 +21,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
         const { data, error } = await supabase
           .from('articles')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', id)
           .single();
           
         if (error) throw error;
@@ -35,7 +35,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     };
     
     fetchArticle();
-  }, [params.id]);
+  }, [id]);
   
   if (loading) {
     return <div className="text-center p-8">Loading article...</div>;

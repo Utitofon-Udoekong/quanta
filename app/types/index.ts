@@ -21,6 +21,7 @@ export type Article = {
   published: boolean;
   is_premium: boolean;
   user_id: string;
+  thumbnail_url?: string;
   author?: {
     id: string;
     full_name?: string;
@@ -62,6 +63,7 @@ export type Audio = {
   published: boolean;
   is_premium: boolean;
   user_id: string;
+  thumbnail_url?: string;
   author?: {
     id: string;
     full_name?: string;
@@ -76,20 +78,6 @@ export type Wallet = {
   wallet_address: string;
   wallet_type: string;
   balance: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Subscription = {
-  id: string;
-  user_id: string;
-  plan_type: string;
-  status: string;
-  start_date: string;
-  end_date: string;
-  payment_method?: string;
-  amount: number;
-  currency: string;
   created_at: string;
   updated_at: string;
 };
@@ -188,3 +176,48 @@ export type Database = {
     };
   };
 };
+
+// Subscription types
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  interval: 'month' | 'year';
+  features: {
+    features: string[];
+  };
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: 'active' | 'canceled' | 'expired' | 'past_due';
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  payment_method: string | null;
+  payment_status: 'succeeded' | 'failed' | 'pending' | null;
+  last_payment_date: string | null;
+  next_payment_date: string | null;
+  plan?: SubscriptionPlan;
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  subscription_id: string;
+  amount: number;
+  currency: string;
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded';
+  payment_method: string | null;
+  payment_date: string;
+  created_at: string;
+}

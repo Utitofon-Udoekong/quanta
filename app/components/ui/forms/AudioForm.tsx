@@ -7,7 +7,7 @@ import { Audio } from '@/app/types';
 import FileDropzone from './FileDropzone';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
-import { toast } from '@/app/components/helpers/toast';
+
 type AudioFormProps = {
   audio?: Audio;
   isEditing?: boolean;
@@ -21,6 +21,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     duration: 0,
     published: false,
     is_premium: false,
+    thumbnail_url: '',
   };
 
   const allowedAudioTypes = {
@@ -30,11 +31,19 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     'audio/x-m4a': ['.m4a']
   };
 
+  const allowedImageTypes = {
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/webp': ['.webp']
+  };
+
   const [formData, setFormData] = useState(initialState);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [thumbnailError, setThumbnailError] = useState<string | undefined>(undefined);
 
   const router = useRouter();
   const supabase = createClient();
@@ -50,6 +59,10 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
   };
 
   const handleFileSelect = (file: File) => {
+    if (!Object.keys(allowedAudioTypes).includes(file.type)) {
+      setError('Please select a valid audio file (MP3, WAV, OGG, or M4A)');
+      return;
+    }
     const duration = getDuration(file, 'audio');
     setFormData({
       ...formData,
@@ -59,21 +72,29 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     setError(undefined);
   };
 
-  const uploadFile = async (file: File) => {
+  const handleThumbnailSelect = (file: File) => {
+    if (!Object.keys(allowedImageTypes).includes(file.type)) {
+      setThumbnailError('Please select a valid image file (JPEG, PNG, or WebP)');
+      return;
+    }
+    setThumbnailFile(file);
+    setThumbnailError(undefined);
+  };
+
+  const uploadFile = async (file: File, bucketName: string) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
-
+    
     try {
-      // Use the resumable upload function
       const publicUrl = await uploadFileResumable(
-        'audio',
+        bucketName,
         fileName,
         file,
-        (percentage) => {
+        (percentage: number) => {
           setUploadProgress(Math.round(percentage));
         }
       );
-
+      
       return publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -83,58 +104,56 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(undefined);
-    setUploadProgress(0);
+    setThumbnailError(undefined);
+    setLoading(true);
 
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('You must be logged in');
+      const { data: { user } } = await supabase.auth.getUser();
 
-      let audioUrl = formData.audio_url;
+      if (!user) {
+        throw new Error('You must be logged in to create audio content');
+      }
 
-      // Upload audio if a file was selected
+      let thumbnailUrl = formData.thumbnail_url;
+
+      if (thumbnailFile) {
+        thumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
+      }
+
       if (audioFile) {
-        audioUrl = await uploadFile(audioFile);
+        const audioUrl = await uploadFile(audioFile, 'audio');
+        formData.audio_url = audioUrl;
       }
 
       const audioData = {
-        title: formData.title,
-        description: formData.description || null,
-        audio_url: audioUrl,
-        duration: formData.duration || undefined,
-        published: formData.published,
-        is_premium: formData.is_premium,
+        ...formData,
+        thumbnail_url: thumbnailUrl,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      if (isEditing && audio) {
+      if (audio) {
         // Update existing audio
         const { error } = await supabase
           .from('audio')
-          .update({
-            ...audioData,
-            updated_at: new Date().toISOString(),
-          })
+          .update(audioData)
           .eq('id', audio.id);
+
         if (error) throw error;
-        toast('Audio updated successfully', 'success');
       } else {
         // Create new audio
         const { error } = await supabase
           .from('audio')
-          .insert({
-            ...audioData,
-            user_id: userData.user.id,
-          });
+          .insert([audioData]);
+
         if (error) throw error;
-        toast('Audio created successfully', 'success');
       }
 
       router.push('/dashboard/content/audio');
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while saving the audio');
-      console.error(err);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -191,6 +210,31 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
           currentFileUrl={formData.audio_url}
           isEditing={isEditing}
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Thumbnail Image
+        </label>
+        <FileDropzone
+          onFileSelect={handleThumbnailSelect}
+          accept={allowedImageTypes}
+          maxSize={5 * 1024 * 1024} // 5MB
+          error={thumbnailError}
+          file={thumbnailFile}
+          label="Thumbnail Image"
+          currentFileUrl={formData.thumbnail_url}
+          isEditing={isEditing}
+        />
+        {formData.thumbnail_url && !thumbnailFile && (
+          <div className="mt-2">
+            <img
+              src={formData.thumbnail_url}
+              alt="Current thumbnail"
+              className="h-32 w-32 object-cover rounded-lg"
+            />
+          </div>
+        )}
       </div>
 
       {/* Manual URL input as fallback */}

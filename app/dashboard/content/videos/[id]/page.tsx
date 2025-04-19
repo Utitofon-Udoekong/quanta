@@ -75,7 +75,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0C10]">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
           <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
             <h1 className="text-2xl font-bold mb-4">Error</h1>
             <p className="text-gray-300">{error}</p>
-            <Link href="/dashboard/content/videos" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+            <Link href="/dashboard/content/videos" className="mt-4 inline-block text-green-400 hover:text-green-300">
               Back to Videos
             </Link>
           </div>
@@ -103,7 +103,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
           <div className="bg-gray-800/50 border border-gray-700/50 p-6 rounded-lg text-center">
             <h1 className="text-2xl font-bold mb-4">Video Not Found</h1>
             <p className="text-gray-300">The video you're looking for doesn't exist or is not published.</p>
-            <Link href="/dashboard/content/videos" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+            <Link href="/dashboard/content/videos" className="mt-4 inline-block text-green-400 hover:text-green-300">
               Back to Videos
             </Link>
           </div>
@@ -115,16 +115,9 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
       <div className="my-8">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back
-        </button>
         <Link
           href="/dashboard/content/videos"
-          className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
+          className="inline-flex items-center text-green-400 hover:text-green-300 mb-6"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
           Back
@@ -139,7 +132,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
             <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
 
             {video.description && (
-              <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-blue-500 pl-4">
+              <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-green-500 pl-4">
                 {video.description}
               </p>
             )}

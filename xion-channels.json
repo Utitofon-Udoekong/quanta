@@ -1,0 +1,73 @@
+{
+    "metadatas": [
+      {
+        "description": "IBC token from transfer/channel-2/uosmo",
+        "denom_units": [
+          {
+            "denom": "uosmo",
+            "exponent": 0,
+            "aliases": []
+          }
+        ],
+        "base": "ibc/13B2C536BB057AC79D5616B8EA1B9540EC1F2170718CAFF6F0083C966FFFED0B",
+        "display": "transfer/channel-2/uosmo",
+        "name": "transfer/channel-2/uosmo IBC token",
+        "symbol": "UOSMO",
+        "uri": "",
+        "uri_hash": ""
+      },
+      {
+        "description": "IBC token from transfer/channel-3/uusdc",
+        "denom_units": [
+          {
+            "denom": "uusdc",
+            "exponent": 0,
+            "aliases": []
+          }
+        ],
+        "base": "ibc/6490A7EAB61059BFC1CDDEB05917DD70BDF3A611654162A1A47DB930D40D8AF4",
+        "display": "transfer/channel-3/uusdc",
+        "name": "transfer/channel-3/uusdc IBC token",
+        "symbol": "UUSDC",
+        "uri": "",
+        "uri_hash": ""
+      },
+      {
+        "description": "The native staking token of the Xion network.",
+        "denom_units": [
+          {
+            "denom": "uxion",
+            "exponent": 0,
+            "aliases": [
+              "microxion"
+            ]
+          },
+          {
+            "denom": "mxion",
+            "exponent": 3,
+            "aliases": [
+              "millixion"
+            ]
+          },
+          {
+            "denom": "XION",
+            "exponent": 6,
+            "aliases": [
+              "xion"
+            ]
+          }
+        ],
+        "base": "uxion",
+        "display": "XION",
+        "name": "xion",
+        "symbol": "XION",
+        "uri": "",
+        "uri_hash": ""
+      }
+    ],
+    "pagination": {
+      "next_key": null,
+      "total": "11"
+    }
+  }
+  
