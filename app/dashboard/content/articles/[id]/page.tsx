@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { createClient } from '@/app/utils/supabase/client';
 import { type Article } from '@/app/types';
 import Link from 'next/link';
@@ -8,13 +8,15 @@ import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outl
 import MarkdownViewer from '@/app/components/ui/MarkdownViewer';
 import { trackContentView } from '@/app/utils/content';
 import ArticleAuthor from '@/app/components/ui/ArticleAuthor';
+import { useUserStore } from '@/app/stores/user';
 
-export default function ArticlePage({ params }: { params: { id: string } }) {
+export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const {id} = use(params);
   const supabase = createClient();
+  const {user, error: userError} = useUserStore();
   
   useEffect(() => {
     const fetchArticle = async () => {
@@ -24,13 +26,10 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
         const { data: articleData, error: articleError } = await supabase
           .from('articles')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', id)
           .single();
           
         if (articleError) throw articleError;
-        
-        // Then, fetch the author details from auth
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
           console.error(userError);
@@ -42,16 +41,16 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
             ...articleData,
             author: {
               id: user.id,
-              email: user.email,
-              user_metadata: user.user_metadata
+              full_name: user.full_name,
+              avatar_url: user.avatar_url
             }
           };
           setArticle(combinedData);
         }
         
         // Track view if article exists
-        if (articleData) {
-          trackContentView(articleData.id, 'article', articleData.user_id);
+        if (articleData && user) {
+          trackContentView(articleData.id, 'article', user.id);
         }
       } catch (err: any) {
         setError(err.message || 'Failed to fetch article');
@@ -62,7 +61,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
     };
     
     fetchArticle();
-  }, [params.id]);
+  }, [id]);
   
   if (loading) {
     return (
@@ -95,7 +94,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
           <div className="bg-gray-800/50 border border-gray-700/50 p-6 rounded-lg text-center">
             <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
             <p className="text-gray-300">The article you're looking for doesn't exist or is not published.</p>
-            <Link href="/explore/articles" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+            <Link href="/dashboard/content/articles" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
               Back to Articles
             </Link>
           </div>
@@ -106,9 +105,9 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
   
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
-      <div className="max-w-4xl mx-auto p-8">
+      <div className="p-8">
         <Link 
-          href="/explore/articles" 
+          href="/dashboard/content/articles" 
           className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
@@ -140,7 +139,7 @@ export default function ArticlePage({ params }: { params: { id: string } }) {
               </div>
             </div>
             
-            <div className="prose prose-invert max-w-none">
+            <div className="prose prose-invert">
               <MarkdownViewer content={article.content} />
             </div>
           </div>

@@ -7,8 +7,10 @@ import { Audio } from '@/app/types';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { toast } from '@/app/components/helpers/toast';
-import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import { useUserStore } from '@/app/stores/user';
+import { PlusIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
+import AudioCard from '@/app/components/ui/dashboard/AudioCard';
+import EmptyState from '@/app/components/ui/dashboard/EmptyState';
 
 export default function AudioPage() {
   const [audioFiles, setAudioFiles] = useState<Audio[]>([]);
@@ -16,28 +18,27 @@ export default function AudioPage() {
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-
   const supabase = createClient();
   const {user, error: userError} = useUserStore();
 
-  const fetchAudio = async () => {
+  const fetchAudioFiles = async () => {
     if (!account?.bech32Address) return;
-
+    
     try {
       setLoading(true);
-
+      
       // Get current user from Supabase auth
       if (userError || !user) {
         setError('Authentication error. Please sign in again.');
         return;
       }
-
+      
       const { data, error: audioError } = await supabase
         .from('audio')
         .select('*, author:users (id, full_name, avatar_url)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
+        
       if (audioError) {
         setError(audioError.message || 'Failed to fetch audio files');
         return;
@@ -50,48 +51,45 @@ export default function AudioPage() {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
-    fetchAudio();
-  }, [account?.bech32Address]);
-
+    fetchAudioFiles();
+  }, [account?.bech32Address, user]);
+  
   const deleteAudio = async (id: string) => {
     if (!account?.bech32Address) return;
     if (!confirm('Are you sure you want to delete this audio file?')) return;
-
+    
     try {
       // Get current user from Supabase auth
       if (userError || !user) {
         toast('Authentication error. Please sign in again.', 'error');
         return;
       }
-
+      
       const { error } = await supabase
         .from('audio')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-
-      if (error) {
-        toast(error.message || 'Failed to delete audio file', 'error');
-        return;
-      }
-      fetchAudio(); // Refresh the list
+        
+      if (error) throw error;
+      fetchAudioFiles(); // Refresh the list
     } catch (err: any) {
-      toast(err.message || 'Failed to delete audio file', 'error');
-      console.error(err);
+      console.error('Error deleting audio:', err);
+      toast('Failed to delete audio. Please try again.', 'error');
     }
   };
-
+  
   if (!account?.bech32Address) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-4 text-white">Connect Your Wallet</h1>
+        <h1 className="text-2xl font-bold mb-4">Connect Your Wallet</h1>
         <p className="text-gray-400 mb-6 text-center max-w-md">
           Connect your wallet to manage your audio files and access premium features.
         </p>
@@ -105,94 +103,54 @@ export default function AudioPage() {
       </div>
     );
   }
-
+  
   if (loading) {
-    return <div className="text-center p-8">Loading audio files...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
-
+  
   if (error) {
-    return <div className="text-center p-8 text-red-600">Error: {error}</div>;
+    return (
+      <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
+        <p className="text-red-400">Error: {error}</p>
+      </div>
+    );
   }
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return 'Unknown duration';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
+  
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white p-8">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Audio Files</h1>
+        <h2 className="text-2xl font-bold">Audio Files</h2>
         <Link
           href="/dashboard/content/audio/create"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
         >
+          <PlusIcon className="w-4 h-4 mr-2" />
           Upload New Audio
         </Link>
       </div>
-
+      
       {audioFiles.length === 0 ? (
-        <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50 text-center">
-          <p className="text-gray-400">You haven't uploaded any audio files yet.</p>
-          <Link
-            href="/dashboard/content/audio/create"
-            className="text-blue-400 hover:text-blue-300 mt-2 inline-block"
-          >
-            Upload your first audio file
-          </Link>
-        </div>
+        <EmptyState
+          title="No Audio Files Yet"
+          description="You haven't uploaded any audio files yet."
+          actionText="Upload your first audio file"
+          actionHref="/dashboard/content/audio/create"
+          icon={<MusicalNoteIcon className="w-8 h-8" />}
+          color="purple"
+        />
       ) : (
-        <div className="bg-gray-800/50 shadow overflow-hidden rounded-md border border-gray-700/50">
-          <ul className="divide-y divide-gray-700/50">
-            {audioFiles.map((audio) => (
-              <li key={audio.id}>
-                <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-white">{audio.title}</h3>
-                        <p className="mt-1 text-sm text-gray-400 truncate">
-                          {audio.description || 'No description available'}
-                        </p>
-                      </div>
-                      <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
-                        <Link
-                          href={`/dashboard/content/audio/${audio.id}/edit`}
-                          className="text-blue-400 hover:text-blue-300 text-sm"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => deleteAudio(audio.id)}
-                          className="text-red-400 hover:text-red-300 text-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Created: {new Date(audio.created_at).toLocaleDateString()}
-                      {audio.duration && ` | Duration: ${formatDuration(audio.duration)}`}
-                      {' | '}
-                      Status: {audio.published ? 'Published' : 'Draft'}
-                    </p>
-
-                    {/* Audio player */}
-                    <div className="mt-2">
-                      <CustomAudioPlayer
-                        src={audio.audio_url}
-                        title={audio.title}
-                        className="mb-6"
-                      />
-                    </div>
-                  </div>
-
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {audioFiles.map((audio) => (
+            <AudioCard 
+              key={audio.id} 
+              audio={audio} 
+              onDelete={deleteAudio} 
+            />
+          ))}
         </div>
       )}
     </div>

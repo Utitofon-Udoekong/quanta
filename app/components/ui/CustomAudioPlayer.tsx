@@ -123,18 +123,18 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
             max={duration || 0}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:mt-[-4px] 
+            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:mt-[-6px] 
               [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-lg 
+              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
               [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-blue-500 
               [&::-webkit-slider-runnable-track]:to-blue-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
               [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 
+              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
               [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-400 [&::-moz-range-thumb]:border 
               [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-2 
+              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
               [&::-moz-range-progress]:bg-blue-500 [&::-moz-range-track]:bg-gray-700"
             style={{ '--background-size': `${(currentTime / (duration || 1)) * 100}%` } as React.CSSProperties}
           />
@@ -162,18 +162,18 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
             step="0.1"
             value={volume}
             onChange={handleVolumeChange}
-            className="w-20 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:mt-[-4px] 
+            className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:mt-[-6px] 
               [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-lg 
+              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
               [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-blue-500 
               [&::-webkit-slider-runnable-track]:to-blue-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
               [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 
+              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
               [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-400 [&::-moz-range-thumb]:border 
               [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-2 
+              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
               [&::-moz-range-progress]:bg-blue-500 [&::-moz-range-track]:bg-gray-700"
             style={{ '--background-size': `${volume * 100}%` } as React.CSSProperties}
           />

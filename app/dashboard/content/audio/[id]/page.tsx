@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from "@/app/utils/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { type Audio } from "@/app/types";
 import Link from 'next/link';
 import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
@@ -9,11 +9,11 @@ import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import { useUserStore } from '@/app/stores/user';
-export default function AudioPage({ params }: { params: { id: string } }) {
+export default function AudioPage({ params }: { params: Promise<{ id: string }> }) {
     const [audio, setAudio] = useState<Audio | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
+    const {id} = use(params);
     const supabase = createClient();
     const {user, error: userError} = useUserStore();
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function AudioPage({ params }: { params: { id: string } }) {
                 const { data: audioData, error: audioError } = await supabase
                     .from('audio')
                     .select('*')
-                    .eq('id', params.id)
+                    .eq('id', id)
                     .single();
 
                 if (audioError) {
@@ -54,8 +54,8 @@ export default function AudioPage({ params }: { params: { id: string } }) {
                 }
                 
                 // Track view if audio exists
-                if (audioData) {
-                    trackContentView(audioData.id, 'audio', audioData.user_id);
+                if (audioData && user) {
+                    trackContentView(audioData.id, 'audio', user.id);
                 }
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch audio');
@@ -66,7 +66,7 @@ export default function AudioPage({ params }: { params: { id: string } }) {
         };
 
         fetchAudio();
-    }, [params.id]);
+    }, [id]);
 
     if (loading) {
         return (

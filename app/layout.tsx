@@ -11,7 +11,7 @@ export const treasuryConfig = {
     treasury: process.env.NEXT_PUBLIC_TREASURY_CONTRACT_ADDRESS,
     rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
     restUrl: process.env.NEXT_PUBLIC_REST_URL,
-  };
+};
 
 const inter = Inter({ subsets: ['latin'] });
 

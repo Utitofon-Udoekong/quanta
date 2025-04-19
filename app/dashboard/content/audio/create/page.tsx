@@ -1,12 +1,15 @@
+'use client';
+
 import AudioForm from '@/app/components/ui/forms/AudioForm';
+import WalletGuard from '@/app/components/ui/WalletGuard';
 
 export default function CreateAudioPage() {
   return (
-    <div className='my-8'>
-      <h1 className="text-2xl font-bold mb-6">Upload New Audio</h1>
-      <div className="bg-[#1a1f28] shadow-md rounded-lg p-6">
+    <WalletGuard contentType="audio">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Create New Audio</h1>
         <AudioForm />
       </div>
-    </div>
+    </WalletGuard>
   );
 }

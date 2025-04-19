@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/utils/supabase/client';
 import { Article } from '@/app/types';
 import { toast } from '@/app/components/helpers/toast';
-import ReactMarkdown from 'react-markdown';
 import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
 import MDEditor, { commands } from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
@@ -26,6 +25,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
     content: '',
     excerpt: '',
     published: false,
+    is_premium: false,
   };
 
   const [formData, setFormData] = useState(initialState);
@@ -64,6 +64,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
             content: formData.content,
             excerpt: formData.excerpt || null,
             published: formData.published,
+            is_premium: formData.is_premium,
             updated_at: new Date().toISOString(),
           })
           .eq('id', article.id);
@@ -78,6 +79,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
             content: formData.content,
             excerpt: formData.excerpt || null,
             published: formData.published,
+            is_premium: formData.is_premium,
             user_id: userData.user.id,
           });
 
@@ -180,18 +182,34 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
         )}
       </div>
 
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="published"
-          id="published"
-          checked={formData.published}
-          onChange={handleChange}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-700 rounded bg-gray-800"
-        />
-        <label htmlFor="published" className="ml-2 block text-sm text-gray-300">
-          Publish this article
-        </label>
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="published"
+            id="published"
+            checked={formData.published}
+            onChange={handleChange}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-700 rounded bg-gray-800"
+          />
+          <label htmlFor="published" className="ml-2 block text-sm text-gray-300">
+            Publish this article
+          </label>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="is_premium"
+            id="is_premium"
+            checked={formData.is_premium}
+            onChange={handleChange}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-700 rounded bg-gray-800"
+          />
+          <label htmlFor="is_premium" className="ml-2 block text-sm text-gray-300">
+            Premium content
+          </label>
+        </div>
       </div>
 
       <div className="flex space-x-3">

@@ -4,27 +4,35 @@ import { createClient } from '@/app/utils/supabase/client';
  * Track a content view
  * @param contentId The ID of the content being viewed
  * @param contentType The type of content ('article', 'video', or 'audio')
- * @param userId The ID of the user who owns the content
- * @param viewerId The ID of the user viewing the content (optional)
+ * @param userId The ID of the user viewing the content
  */
 export async function trackContentView(
   contentId: string,
   contentType: 'article' | 'video' | 'audio',
-  userId: string,
-  viewerId?: string
+  userId: string
 ) {
   const supabase = createClient();
   
   try {
-    const { error } = await supabase.from('content_views').insert({
-      content_id: contentId,
-      content_type: contentType,
-      user_id: userId,
-      viewer_id: viewerId || null,
-    });
+    // Use upsert with a unique constraint on (content_id, user_id)
+    // This will either insert a new view or update the existing one
+    const { error } = await supabase
+      .from('content_views')
+      .upsert({
+        content_id: contentId,
+        content_type: contentType,
+        user_id: userId,
+        viewed_at: new Date().toISOString(),
+      }, {
+        onConflict: 'content_id,user_id',
+        ignoreDuplicates: true
+      });
     
     if (error) {
-      console.error('Error tracking content view:', error);
+      // Only log errors that aren't related to duplicate entries
+      if (error.code !== '23505') { // PostgreSQL unique violation code
+        console.error('Error tracking content view:', error);
+      }
     }
   } catch (error) {
     console.error('Error tracking content view:', error);

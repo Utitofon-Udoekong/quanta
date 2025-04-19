@@ -118,7 +118,6 @@ export type ContentView = {
   content_id: string;
   content_type: 'article' | 'video' | 'audio';
   user_id: string;
-  viewer_id?: string;
   viewed_at: string;
 };
 

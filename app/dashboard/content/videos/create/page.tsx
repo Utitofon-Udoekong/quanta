@@ -1,12 +1,15 @@
+'use client';
+
 import VideoForm from '@/app/components/ui/forms/VideoForm';
+import WalletGuard from '@/app/components/ui/WalletGuard';
 
 export default function CreateVideoPage() {
   return (
-    <div className='my-8'>
-      <h1 className="text-2xl font-bold mb-6">Upload New Video</h1>
-      <div className="bg-[#1a1f28] shadow-md rounded-lg p-6">
+    <WalletGuard contentType="videos">
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Create New Video</h1>
         <VideoForm />
       </div>
-    </div>
+    </WalletGuard>
   );
 }

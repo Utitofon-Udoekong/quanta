@@ -12,8 +12,8 @@ type ArticleAuthorProps = {
 export default function ArticleAuthor({ article, showDate = true }: ArticleAuthorProps) {
   if (!article.author) return null;
 
-  const authorName = article.author.user_metadata?.full_name || article.author.email.split('@')[0] || article.author.user_metadata?.wallet_address;
-  const authorAvatar = article.author.user_metadata?.avatar_url;
+  const authorName = article.author.full_name || article.author.wallet_address;
+  const authorAvatar = article.author.avatar_url;
 
   return (
     <div className="flex items-center space-x-3">

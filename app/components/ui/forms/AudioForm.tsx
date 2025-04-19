@@ -20,6 +20,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     audio_url: '',
     duration: 0,
     published: false,
+    is_premium: false,
   };
 
   const allowedAudioTypes = {
@@ -101,8 +102,9 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
         title: formData.title,
         description: formData.description || null,
         audio_url: audioUrl,
-        duration: formData.duration || null,
+        duration: formData.duration || undefined,
         published: formData.published,
+        is_premium: formData.is_premium,
       };
 
       if (isEditing && audio) {
@@ -191,21 +193,6 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
         />
       </div>
 
-      {/* <div>
-        <label htmlFor="duration" className="block text-sm font-medium text-gray-200">
-          Duration (seconds, optional)
-        </label>
-        <input
-          type="number"
-          name="duration"
-          id="duration"
-          min="0"
-          value={formData.duration || ''}
-          onChange={handleChange}
-          className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-      </div> */}
-
       {/* Manual URL input as fallback */}
       <div>
         <label htmlFor="audio_url" className="block text-sm font-medium text-gray-200">
@@ -222,18 +209,34 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
         <p className="mt-1 text-xs text-gray-500">Only needed if not uploading a file directly</p>
       </div>
 
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="published"
-          id="published"
-          checked={formData.published}
-          onChange={handleChange}
-          className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
-        />
-        <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
-          Publish this audio
-        </label>
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="published"
+            id="published"
+            checked={formData.published}
+            onChange={handleChange}
+            className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
+            Publish this audio
+          </label>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="is_premium"
+            id="is_premium"
+            checked={formData.is_premium}
+            onChange={handleChange}
+            className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="is_premium" className="ml-2 block text-sm text-gray-200">
+            Premium content
+          </label>
+        </div>
       </div>
 
       {loading && uploadProgress > 0 && (

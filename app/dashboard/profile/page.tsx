@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const supabase = createClient();
   const [, setShowModal] = useModal();
+  const { user, error } = useUserStore()
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -30,9 +31,14 @@ export default function ProfilePage() {
         setLoading(true);
         
         // Get current user from Supabase auth
-        const { user, loading, error } = useUserStore()
         if (error || !user) {
           throw new Error('Failed to fetch user data');
+        }
+        if (account?.bech32Address && !user.wallet_address) {
+          await supabase.from('users').update({
+            wallet_address: account.bech32Address,
+            updated_at: new Date().toISOString()
+          }).eq('id', user.id);
         }
         // Combine auth user data with extended data
         setUserData(user);
@@ -45,7 +51,7 @@ export default function ProfilePage() {
     };
 
     fetchProfileData();
-  }, [supabase]);
+  }, [supabase, user]);
 
   const handleSaveProfile = async () => {
     if (!userData) return;

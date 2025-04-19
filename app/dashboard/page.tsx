@@ -6,8 +6,9 @@ import { Article, Video, type Audio, Subscription } from '@/app/types';
 // import WalletConnect from '@/app/components/wallet/WalletConnect';
 import { createClient } from '../utils/supabase/client';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
-import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, MusicalNoteIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, AcademicCapIcon, MusicalNoteIcon, PlayIcon, PauseIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { Abstraxion } from "@burnt-labs/abstraxion";
+import { useUserStore } from '@/app/stores/user';
 
 type UserProfile = {
   id: string;
@@ -25,6 +26,17 @@ type UserProfile = {
 //   end_date: string;
 // };
 
+type ContentItem = {
+  id: string;
+  title: string;
+  type: 'article' | 'video' | 'audio';
+  created_at: string;
+  published: boolean;
+  views?: number;
+  thumbnail_url?: string;
+  duration?: number;
+};
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -35,28 +47,19 @@ export default function Dashboard() {
     totalViews: 0,
     totalEarnings: 0
   });
-  const [recentContent, setRecentContent] = useState<{
-    articles: Article[];
-    videos: Video[];
-    audio: Audio[];
-  }>({
-    articles: [],
-    videos: [],
-    audio: []
-  });
+  const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-  
   const supabase = createClient()
-
+  const { user, error: userError } = useUserStore();
+  
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
         // Get current user from Supabase auth
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
           console.error('Error fetching user:', userError);
           return;
@@ -66,15 +69,15 @@ export default function Dashboard() {
         setProfile({
           id: user.id,
           email: user.email || '',
-          display_name: user.user_metadata?.display_name,
-          avatar_url: user.user_metadata?.avatar_url,
-          wallet_address: user.user_metadata?.wallet_address
+          display_name: user.full_name,
+          avatar_url: user.avatar_url,
+          wallet_address: user.wallet_address
         });
         
         // Only fetch content if wallet is connected
         if (account?.bech32Address) {
           // Update user's wallet address if not set
-          if (!user.user_metadata?.wallet_address) {
+          if (!user.wallet_address) {
             await supabase.auth.updateUser({
               data: { wallet_address: account.bech32Address, }
             });
@@ -112,33 +115,42 @@ export default function Dashboard() {
             totalEarnings
           });
           
-          // Get recent content using user ID
-          const [recentArticlesRes, recentVideosRes, recentAudioRes] = await Promise.all([
+          // Get all content using user ID
+          const [articlesData, videosData, audioData] = await Promise.all([
             supabase
               .from('articles')
-              .select('*')
+              .select('id, title, created_at, published')
               .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(3),
+              .order('created_at', { ascending: false }),
             supabase
               .from('videos')
-              .select('*')
+              .select('id, title, created_at, published, thumbnail_url, duration')
               .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(3),
+              .order('created_at', { ascending: false }),
             supabase
               .from('audio')
-              .select('*')
+              .select('id, title, created_at, published, duration')
               .eq('user_id', user.id)
               .order('created_at', { ascending: false })
-              .limit(3)
           ]);
           
-          setRecentContent({
-            articles: recentArticlesRes.data || [],
-            videos: recentVideosRes.data || [],
-            audio: recentAudioRes.data || []
-          });
+          // Combine all content with type information
+          const combinedContent: ContentItem[] = [
+            ...(articlesData.data || []).map(article => ({
+              ...article,
+              type: 'article' as const
+            })),
+            ...(videosData.data || []).map(video => ({
+              ...video,
+              type: 'video' as const
+            })),
+            ...(audioData.data || []).map(audio => ({
+              ...audio,
+              type: 'audio' as const
+            }))
+          ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          setAllContent(combinedContent);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -197,6 +209,58 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  const getContentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'article':
+        return <NewspaperIcon className="w-5 h-5 text-blue-400" />;
+      case 'video':
+        return <VideoCameraIcon className="w-5 h-5 text-green-400" />;
+      case 'audio':
+        return <MusicalNoteIcon className="w-5 h-5 text-purple-400" />;
+      default:
+        return null;
+    }
+  };
+
+  const getContentTypeColor = (type: string) => {
+    switch (type) {
+      case 'article':
+        return 'text-blue-400';
+      case 'video':
+        return 'text-green-400';
+      case 'audio':
+        return 'text-purple-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  const getContentTypeLink = (item: ContentItem) => {
+    switch (item.type) {
+      case 'article':
+        return `/articles/${item.id}`;
+      case 'video':
+        return `/videos/${item.id}`;
+      case 'audio':
+        return `/audio/${item.id}`;
+      default:
+        return '#';
+    }
+  };
+
+  const getContentEditLink = (item: ContentItem) => {
+    switch (item.type) {
+      case 'article':
+        return `/dashboard/content/articles/${item.id}`;
+      case 'video':
+        return `/dashboard/content/videos/${item.id}/edit`;
+      case 'audio':
+        return `/dashboard/content/audio/${item.id}/edit`;
+      default:
+        return '#';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
@@ -269,201 +333,105 @@ export default function Dashboard() {
           </div>
         </div>
         
-        {/* Content Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Your Articles</h3>
-              <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <NewspaperIcon className="w-4 h-4 text-blue-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold mb-4">{contentStats.articles}</p>
-            <Link 
-              href="/dashboard/content/articles" 
-              className="text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Manage Articles
-            </Link>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Your Videos</h3>
-              <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center">
-                <VideoCameraIcon className="w-4 h-4 text-green-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold mb-4">{contentStats.videos}</p>
-            <Link 
-              href="/dashboard/content/videos" 
-              className="text-green-400 hover:text-green-300 transition-colors"
-            >
-              Manage Videos
-            </Link>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Your Audio</h3>
-              <div className="w-8 h-8 bg-purple-500/10 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-3xl font-bold mb-4">{contentStats.audio}</p>
-            <Link 
-              href="/dashboard/content/audio" 
-              className="text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              Manage Audio
-            </Link>
-          </div>
-        </div>
-        
-        {/* Recent Content */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">Recent Content</h2>
-          
-          {/* Recent Articles */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Articles</h3>
+        {/* Content Table */}
+        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden mb-8">
+          <div className="flex justify-between items-center p-6 border-b border-gray-700/50">
+            <h2 className="text-xl font-bold">Your Content</h2>
+            <div className="flex space-x-3">
               <Link 
-                href="/dashboard/articles" 
-                className="text-blue-400 hover:text-blue-300 transition-colors"
+                href="/dashboard/content/articles/create" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
               >
-                View All
+                <NewspaperIcon className="w-4 h-4 mr-2" />
+                New Article
+              </Link>
+              <Link 
+                href="/dashboard/content/videos/create" 
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+              >
+                <VideoCameraIcon className="w-4 h-4 mr-2" />
+                New Video
+              </Link>
+              <Link 
+                href="/dashboard/content/audio/create" 
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+              >
+                <MusicalNoteIcon className="w-4 h-4 mr-2" />
+                New Audio
               </Link>
             </div>
-            
-            {recentContent.articles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {recentContent.articles.map((article) => (
-                  <div key={article.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-200">
-                    <div className="p-4">
-                      <h4 className="font-bold mb-2 text-white">{article.title}</h4>
-                      <p className="text-gray-400 text-sm mb-3">
-                        {new Date(article.created_at).toLocaleDateString()}
-                      </p>
-                      <Link 
-                        href={`/dashboard/articles/${article.id}`}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        Edit Article
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
-                <p className="text-gray-400">No articles yet. Create your first one!</p>
-              </div>
-            )}
           </div>
           
-          {/* Recent Videos */}
-      <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Videos</h3>
+          {allContent.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ChartBarIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No Content Yet</h3>
+              <p className="text-gray-400 mb-6">Create your first piece of content to get started.</p>
               <Link 
-                href="/dashboard/videos" 
-                className="text-green-400 hover:text-green-300 transition-colors"
+                href="/dashboard/content/articles/create" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center"
               >
-                View All
+                <NewspaperIcon className="w-5 h-5 mr-2" />
+                Create Content
               </Link>
             </div>
-            
-            {recentContent.videos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {recentContent.videos.map((video) => (
-                  <div key={video.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 hover:border-green-500/50 transition-all duration-200">
-                    {video.thumbnail_url && (
-                      <div className="h-40 overflow-hidden">
-                        <img 
-                          src={video.thumbnail_url} 
-                          alt={video.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <h4 className="font-bold mb-2 text-white">{video.title}</h4>
-                      <p className="text-gray-400 text-sm mb-3">
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </p>
-                      <Link 
-                        href={`/dashboard/videos/${video.id}`}
-                        className="text-green-400 hover:text-green-300 transition-colors"
-                      >
-                        Edit Video
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
-                <p className="text-gray-400">No videos yet. Upload your first one!</p>
-              </div>
-            )}
-          </div>
-          
-          {/* Recent Audio */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Audio</h3>
-              <Link 
-                href="/dashboard/audio" 
-                className="text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                View All
-              </Link>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-700/30 text-left">
+                    <th className="py-3 px-4 font-medium text-gray-400">Type</th>
+                    <th className="py-3 px-4 font-medium text-gray-400">Title</th>
+                    <th className="py-3 px-4 font-medium text-gray-400">Date</th>
+                    <th className="py-3 px-4 font-medium text-gray-400">Status</th>
+                    <th className="py-3 px-4 font-medium text-gray-400">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allContent.map((item) => (
+                    <tr key={`${item.type}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          {getContentTypeIcon(item.type)}
+                          <span className="ml-2 capitalize">{item.type}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-medium">{item.title}</td>
+                      <td className="py-3 px-4 text-gray-400">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          item.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {item.published ? 'Published' : 'Draft'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-3">
+                          <Link 
+                            href={getContentEditLink(item)}
+                            className={`${getContentTypeColor(item.type)} hover:opacity-80 transition-opacity`}
+                          >
+                            Edit
+                          </Link>
+                          <Link 
+                            href={getContentTypeLink(item)}
+                            className="text-gray-400 hover:text-gray-300 transition-colors"
+                            target="_blank"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            
-            {recentContent.audio.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {recentContent.audio.map((audioItem) => (
-                  <div key={audioItem.id} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-200">
-                    <h4 className="font-bold mb-2 text-white">{audioItem.title}</h4>
-                    <p className="text-gray-400 text-sm mb-3">
-                      {new Date(audioItem.created_at).toLocaleDateString()}
-                    </p>
-                    <div className="flex justify-between items-center">
-                      <Link 
-                        href={`/dashboard/audio/${audioItem.id}`}
-                        className="text-purple-400 hover:text-purple-300 transition-colors"
-                      >
-                        Edit Audio
-                      </Link>
-                      {audioItem.audio_url && (
-                        <button 
-                        className="p-2 rounded-full bg-gray-700/50 hover:bg-gray-700 transition-colors"
-                        onClick={() => {
-                          const audio = new Audio(audioItem.audio_url);
-                          console.log('Audio:', audio.paused);
-                          if (audio.paused) {
-                            audio.play();
-                          } else {
-                            audio.pause();
-                          }
-                        }}
-                      >
-                        {new Audio(audioItem.audio_url).paused ? <PlayIcon className="h-5 w-5 text-purple-400" /> : <PauseIcon className="h-5 w-5 text-purple-400" />}
-                      </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 text-center">
-                <p className="text-gray-400">No audio yet. Upload your first one!</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
         
         {/* Create New Content */}
@@ -471,19 +439,19 @@ export default function Dashboard() {
           <h2 className="text-xl font-bold mb-4">Create New Content</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link 
-              href="/dashboard/articles/new" 
+              href="/dashboard/content/articles/create" 
               className="block p-4 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Article
             </Link>
             <Link 
-              href="/dashboard/videos/new" 
+              href="/dashboard/content/videos/create" 
               className="block p-4 bg-green-600 text-white text-center rounded-lg hover:bg-green-700 transition-colors"
             >
               Upload Video
             </Link>
             <Link 
-              href="/dashboard/audio/new" 
+              href="/dashboard/content/audio/create" 
               className="block p-4 bg-purple-600 text-white text-center rounded-lg hover:bg-purple-700 transition-colors"
             >
               Upload Audio

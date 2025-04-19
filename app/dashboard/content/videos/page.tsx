@@ -8,6 +8,9 @@ import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Abstraxion } from "@burnt-labs/abstraxion";
 import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
+import { PlusIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
+import VideoCard from '@/app/components/ui/dashboard/VideoCard';
+import EmptyState from '@/app/components/ui/dashboard/EmptyState';
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -15,10 +18,9 @@ export default function VideosPage() {
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-  
   const supabase = createClient();
-  
   const {user, error: userError} = useUserStore();
+
   const fetchVideos = async () => {
     if (!account?.bech32Address) return;
     
@@ -81,13 +83,13 @@ export default function VideosPage() {
   
   if (!account?.bech32Address) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-4 text-white">Connect Your Wallet</h1>
+        <h1 className="text-2xl font-bold mb-4">Connect Your Wallet</h1>
         <p className="text-gray-400 mb-6 text-center max-w-md">
           Connect your wallet to manage your videos and access premium features.
         </p>
@@ -103,70 +105,52 @@ export default function VideosPage() {
   }
   
   if (loading) {
-    return <div className="text-center p-8">Loading videos...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
   
   if (error) {
-    return <div className="text-center p-8 text-red-600">Error: {error}</div>;
+    return (
+      <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
+        <p className="text-red-400">Error: {error}</p>
+      </div>
+    );
   }
   
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white p-8">
+    <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Videos</h1>
+        <h2 className="text-2xl font-bold">Videos</h2>
         <Link
           href="/dashboard/content/videos/create"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
         >
+          <PlusIcon className="w-4 h-4 mr-2" />
           Upload New Video
         </Link>
       </div>
       
       {videos.length === 0 ? (
-        <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50 text-center">
-          <p className="text-gray-400">You haven't uploaded any videos yet.</p>
-          <Link
-            href="/dashboard/content/videos/create"
-            className="text-blue-400 hover:text-blue-300 mt-2 inline-block"
-          >
-            Upload your first video
-          </Link>
-        </div>
+        <EmptyState
+          title="No Videos Yet"
+          description="You haven't uploaded any videos yet."
+          actionText="Upload your first video"
+          actionHref="/dashboard/content/videos/create"
+          icon={<VideoCameraIcon className="w-8 h-8" />}
+          color="green"
+        />
       ) : (
-        <div className="bg-gray-800/50 shadow overflow-hidden rounded-md border border-gray-700/50">
-          <ul className="divide-y divide-gray-700/50">
-            {videos.map((video) => (
-              <li key={video.id}>
-                <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-white">{video.title}</h3>
-                    <p className="mt-1 text-sm text-gray-400 truncate">
-                      {video.description || 'No description available'}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Created: {new Date(video.created_at).toLocaleDateString()}
-                      {' | '}
-                      Status: {video.published ? 'Published' : 'Draft'}
-                    </p>
-                  </div>
-                  <div className="mt-4 sm:mt-0 sm:ml-6 flex space-x-3">
-                    <Link
-                      href={`/dashboard/content/videos/${video.id}/edit`}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => deleteVideo(video.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {videos.map((video) => (
+            <VideoCard 
+              key={video.id} 
+              video={video} 
+              onDelete={deleteVideo} 
+            />
+          ))}
         </div>
       )}
     </div>

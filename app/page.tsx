@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/app/utils/supabase/client';
 import { Article, Video, Audio } from '@/app/types';
-import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
-// import { AccountCreation } from './components/xion/AccountCreation';
 import { Menu, Transition, MenuButton, MenuItems, MenuItem, Button } from '@headlessui/react';
 import { Fragment } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/solid';
 import { signOut } from '@/app/utils/helpers';
 import { toast } from '@/app/components/helpers/toast';
+import { useUserStore } from '@/app/stores/user';
+
 // Categories with proper spacing
 const categories = [
     { id: 'all', name: 'All' },
@@ -20,9 +21,8 @@ const categories = [
 ];
 
 export default function Home() {
-    const { data: account } = useAbstraxionAccount();
+    const router = useRouter();
     const [selectedCategory, setSelectedCategory] = useState('all');
-    const [showAccountCreation, setShowAccountCreation] = useState(false);
     const [featuredContent, setFeaturedContent] = useState<{
         videos: Video[];
         audio: Audio[];
@@ -33,7 +33,7 @@ export default function Home() {
         articles: [],
     });
     const [loading, setLoading] = useState(true);
-    const [userEmail, setUserEmail] = useState('');
+    const { user, error: userError } = useUserStore();
 
     const supabase = createClient();
 
@@ -45,15 +45,6 @@ export default function Home() {
     };
     
     useEffect(() => {
-        const fetchUserEmail = async () => {
-            const { data: userData } = await supabase.auth.getUser();
-            if (!userData.user) return;
-
-            const userEmail = userData.user.email;
-            setUserEmail(userEmail || '');
-        };
-
-        fetchUserEmail();
 
         const fetchFeaturedContent = async () => {
             try {
@@ -155,9 +146,9 @@ export default function Home() {
                         <span className="text-xs text-gray-400">
                             {new Date(item.created_at).toLocaleDateString()}
                         </span>
-                        {!userEmail && isPremium ? (
+                        {!user && isPremium ? (
                             <Button
-                                onClick={() => setShowAccountCreation(true)}
+                                onClick={() => router.push('/auth')}
                                 className="text-sm font-medium px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 text-white"
                             >
                                 Sign in to access
@@ -239,9 +230,9 @@ export default function Home() {
                             </nav>
                         </div>
                         <div className="flex items-center space-x-4">
-                            {!userEmail ? (
+                            {!user ? (
                                 <Button
-                                    onClick={() => setShowAccountCreation(true)}
+                                    onClick={() => router.push('/auth')}
                                     className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 shadow-lg shadow-blue-500/20 text-white"
                                 >
                                     Sign In
@@ -250,7 +241,7 @@ export default function Home() {
                                 <Menu as="div" className="relative">
                                     <MenuButton className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
-                                            {userEmail.slice(0, 2)}
+                                            {user.email?.slice(0, 2)}
                                         </div>
                                         <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                                     </MenuButton>
@@ -266,7 +257,7 @@ export default function Home() {
                                         <MenuItems className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                             <div className="px-2 py-2">
                                                 <div className="px-3 py-2 text-sm text-gray-400 border-b border-gray-700">
-                                                    {userEmail}
+                                                    {user.email}
                                                 </div>
                                                 <MenuItem>
                                                     {({ active }) => (
@@ -382,86 +373,7 @@ export default function Home() {
         </div>
       </main>
 
-            {/* Account Creation Modal */}
-            {showAccountCreation && (
-                <div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setShowAccountCreation(false);
-                        }
-                    }}
-                >
-                    <div className="bg-[#1A1D24] rounded-xl p-8 max-w-md w-full border border-gray-800 shadow-xl shadow-blue-500/10 relative">
-                        <button
-                            onClick={() => setShowAccountCreation(false)}
-                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-800/50 transition-colors duration-200"
-                            aria-label="Close modal"
-                        >
-                            <svg
-                                className="w-5 h-5 text-gray-400 hover:text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-
-                        <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
-                            <svg
-                                className="w-6 h-6 text-blue-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                />
-                            </svg>
-                        </div>
-
-                        <h2 className="text-2xl font-bold pb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                            Create Your XION Account
-                        </h2>
-
-                        <p className="text-gray-400 pb-8 text-sm leading-relaxed">
-                            Get instant access to premium content with gasless transactions. Your XION account enables secure, seamless payments across the platform.
-                        </p>
-
-                        <div className="space-y-6">
-                            {/* <AccountCreation 
-                onSuccess={() => setShowAccountCreation(false)}
-                onError={(error: Error) => {
-                  console.error('Account creation failed:', error.message);
-                  setShowAccountCreation(false);
-                }}
-              /> */}
-
-                            <div className="text-center">
-                                <p className="text-xs text-gray-500">
-                                    By creating an account, you agree to our{' '}
-                                    <a href="/terms" className="text-blue-400 hover:text-blue-300">
-                                        Terms of Service
-                                    </a>{' '}
-                                    and{' '}
-                                    <a href="/privacy" className="text-blue-400 hover:text-blue-300">
-                                        Privacy Policy
-                                    </a>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            
     </div>
   );
 }

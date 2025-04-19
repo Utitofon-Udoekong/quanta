@@ -22,6 +22,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
     thumbnail_url: '',
     duration: 0,
     published: false,
+    is_premium: false,
   };
   
   const allowedVideoTypes = {
@@ -126,6 +127,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
         thumbnail_url: thumbnailUrl || undefined,
         duration: formData.duration || undefined,
         published: formData.published,
+        is_premium: formData.is_premium,
       };
       
       if (isEditing && video) {
@@ -248,18 +250,34 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
         <p className="mt-1 text-xs text-gray-500">Only needed if not uploading a file directly</p>
       </div>
       
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="published"
-          id="published"
-          checked={formData.published}
-          onChange={handleChange}
-          className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
-        />
-        <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
-          Publish this video
-        </label>
+      <div className="flex items-center space-x-6">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="published"
+            id="published"
+            checked={formData.published}
+            onChange={handleChange}
+            className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
+            Publish this video
+          </label>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="is_premium"
+            id="is_premium"
+            checked={formData.is_premium}
+            onChange={handleChange}
+            className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
+          />
+          <label htmlFor="is_premium" className="ml-2 block text-sm text-gray-200">
+            Premium content
+          </label>
+        </div>
       </div>
       
       {loading && uploadProgress > 0 && (
