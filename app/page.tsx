@@ -102,7 +102,6 @@ export default function Home() {
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
-                console.log(articlesData);
                 setFeaturedContent({
                     videos: videosData || [],
                     audio: audioData || [],
