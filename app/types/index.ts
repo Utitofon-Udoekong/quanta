@@ -216,8 +216,9 @@ export interface SubscriptionPayment {
   subscription_id: string;
   amount: number;
   currency: string;
-  status: 'succeeded' | 'failed' | 'pending' | 'refunded';
-  payment_method: string | null;
+  status: 'succeeded' | 'failed' | 'pending' | 'refunded' | null;
+  payment_method: string;
   payment_date: string;
   created_at: string;
+  transaction_hash?: string | null;
 }

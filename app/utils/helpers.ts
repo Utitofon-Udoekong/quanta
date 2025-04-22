@@ -1,19 +1,21 @@
 
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { createClient } from "./supabase/client";
 
 export const signOut = async (): Promise<boolean> => {
     const supabase = createClient();
-    const { logout } = useAbstraxionSigningClient();
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        console.error('Error signing out:', error);
-        return false;
-    }
-    if (logout) {
-        logout();
+    try {
+        
+        
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error signing out:', error);
+            return false;
+        }
+      
+    } catch (error) {
+        throw error;
     }
     return true;
 };

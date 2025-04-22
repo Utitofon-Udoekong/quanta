@@ -10,8 +10,11 @@ import {
   CreditCardIcon, 
   UserCircleIcon,
   ArrowLeftStartOnRectangleIcon,
-  KeyIcon
+  KeyIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
+import { useState } from 'react';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: HomeIcon },
@@ -29,6 +32,7 @@ export default function DashboardLayout({
 }) {
   const { data: account } = useAbstraxionAccount();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!account?.bech32Address) {
     return children;
@@ -36,84 +40,100 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#0A0C10]">
-      {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 right-0 bg-[#0A0C10]/90 backdrop-blur-md border-b border-gray-800/50 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo and Main Nav */}
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                  QUANTA
-                </span>
-              </Link>
-              <div className="hidden md:flex ml-10 space-x-4">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                          : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                      }`}
-                    >
-                      <item.icon className="w-5 h-5 mr-2" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors duration-200">
-                <ArrowLeftStartOnRectangleIcon className="w-5 h-5 mr-2" />
-                Back to Home
-              </Link>
-              <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
-                  {account.bech32Address.slice(0, 2)}
-                </div>
-                <span className="text-sm text-gray-300">
-                  {account.bech32Address.slice(0, 6)}...{account.bech32Address.slice(-4)}
-                </span>
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0A0C10]/95 backdrop-blur-md border-r border-gray-800/50 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800/50">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                QUANTA
+              </span>
+            </Link>
+            <button
+              className="lg:hidden text-gray-400 hover:text-white"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Section */}
+          <div className="p-4 border-t border-gray-800/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
+                {account.bech32Address.slice(0, 2)}
               </div>
+              <span className="text-sm text-gray-300 truncate">
+                {account.bech32Address.slice(0, 6)}...{account.bech32Address.slice(-4)}
+              </span>
             </div>
+            <Link 
+              href="/" 
+              className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors duration-200"
+            >
+              <ArrowLeftStartOnRectangleIcon className="w-5 h-5 mr-3" />
+              Back to Home
+            </Link>
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* Mobile Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0C10]/90 backdrop-blur-md border-t border-gray-800/50 z-40">
-        <div className="flex justify-around py-2">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex flex-col items-center px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 ${
-                  isActive
-                    ? 'text-blue-400'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <item.icon className="w-6 h-6 mb-1" />
-                {item.name}
-              </Link>
-            );
-          })}
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0C10]/95 backdrop-blur-md border-b border-gray-800/50">
+        <div className="flex items-center justify-between h-16 px-4">
+          <button
+            className="text-gray-400 hover:text-white"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <Bars3Icon className="w-6 h-6" />
+          </button>
+          <Link href="/" className="flex items-center">
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              QUANTA
+            </span>
+          </Link>
+          <div className="w-6 h-6" /> {/* Spacer for centering */}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="pt-16 pb-16 md:pb-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <div className="lg:pl-64 pt-16 lg:pt-0">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

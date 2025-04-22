@@ -11,6 +11,7 @@ import { ChevronDownIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/rea
 import { signOut } from '@/app/utils/helpers';
 import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
+import { useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import ContentSection from '@/app/components/ui/content/ContentSection';
 
 // Content types for filtering
@@ -37,12 +38,13 @@ export default function Home() {
     });
     const [loading, setLoading] = useState(true);
     const { user, error: userError } = useUserStore();
-
+    const { logout } = useAbstraxionSigningClient();
     const supabase = createClient();
 
     const handleSignOut = async () => {
         const success = await signOut();
         if (success) {
+            logout?.();
             toast('Signed out successfully');
         }
     };
