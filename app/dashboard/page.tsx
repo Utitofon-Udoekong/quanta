@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Article, Video, type Audio, Subscription } from '@/app/types';
+import { Subscription } from '@/app/types';
 import { createClient } from '../utils/supabase/client';
-import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Button } from '@burnt-labs/ui';
-import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, MusicalNoteIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { Abstraxion } from "@burnt-labs/abstraxion";
+import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
+import { useKeplr } from '@/app/providers/KeplrProvider';
 
 type UserProfile = {
   id: string;
@@ -31,10 +31,11 @@ export default function Dashboard() {
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: account } = useAbstraxionAccount();
-  const [, setShowModal] = useModal();
+  // const [, setShowModal] = useModal();
   const supabase = createClient()
   const { user, error: userError } = useUserStore();
-  
+  const { walletAddress, connectKeplr } = useKeplr();
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -246,7 +247,7 @@ export default function Dashboard() {
   }
 
   // Show wallet connection prompt if not connected
-  if (!account?.bech32Address) {
+  if (!walletAddress) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
         <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
@@ -259,12 +260,12 @@ export default function Dashboard() {
           Connect your wallet to create and manage content, track earnings, and access premium features.
         </p>
         <Button
-          onClick={() => setShowModal(true)}
+          onClick={connectKeplr}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Connect Wallet
         </Button>
-        <Abstraxion onClose={() => setShowModal(false)} />
+        {/* <Abstraxion onClose={() => setShowModal(false)} /> */}
       </div>
     );
   }
@@ -277,7 +278,7 @@ export default function Dashboard() {
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-400">Connected Wallet:</span>
             <span className="text-sm font-mono bg-gray-800/50 px-3 py-1 rounded">
-              {account.bech32Address.slice(0, 6)}...{account.bech32Address.slice(-4)}
+              {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
             </span>
           </div>
         </div>
@@ -352,13 +353,13 @@ export default function Dashboard() {
                 <NewspaperIcon className="w-4 h-4 mr-2" />
                 New Article
               </Link>
-              <Link 
+                      <Link 
                 href="/dashboard/content/videos/create" 
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-              >
+                      >
                 <VideoCameraIcon className="w-4 h-4 mr-2" />
                 New Video
-              </Link>
+                      </Link>
               <Link 
                 href="/dashboard/content/audio/create" 
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
@@ -385,8 +386,8 @@ export default function Dashboard() {
                 </svg>
                 Create Content
               </Link>
-            </div>
-          ) : (
+              </div>
+            ) : (
             <ContentTable 
               content={allContent} 
               onDelete={handleDeleteContent}

@@ -1,10 +1,11 @@
 import { toast } from '@/app/components/helpers/toast';
 
 // Xion token configuration
-export const TOKEN_DENOM = process.env.NEXT_PUBLIC_XION_TOKEN_DENOM;
-export const DENOM_DISPLAY_NAME = process.env.NEXT_PUBLIC_XION_DENOM_DISPLAY_NAME;
+export const TOKEN_DENOM = process.env.tokenDenom;
 export const DECIMALS = 6;
-
+export const DENOM_DISPLAY_NAME = 'XION'
+export const RPC_URL = process.env.rpcUrl;
+export const REST_URL = process.env.restUrl;
 // Cache for price data to avoid excessive API calls
 let priceCache: { price: number; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -49,7 +50,7 @@ export async function getXionPrice(): Promise<number> {
     return price;
   } catch (error) {
     console.error('Error fetching Xion price:', error);
-    toast('Failed to fetch Xion price. Using fallback value.', 'error');
+    toast.error('Failed to fetch Xion price. Using fallback value.');
     
     // Return a fallback price if the API call fails
     return 1.0; // Fallback to 1 USD = 1 Xion

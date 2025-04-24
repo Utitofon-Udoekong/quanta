@@ -5,12 +5,13 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
-import UserProvider from './components/providers/UserProvider';
+import UserProvider from '@/app/providers/UserProvider';
+import { KeplrProvider } from '@/app/providers/KeplrProvider';
 
 export const treasuryConfig = {
-    treasury: process.env.NEXT_TREASURY_CONTRACT_ADDRESS ?? '',
-    rpcUrl: process.env.NEXT_PUBLIC_RPC_URL,
-    restUrl: process.env.NEXT_PUBLIC_REST_URL,
+    treasury: process.env.treasuryAddress ?? '',
+    rpcUrl: process.env.rpcUrl,
+    restUrl: process.env.restUrl,
 };
 
 const inter = Inter({ subsets: ['latin'] });
@@ -29,10 +30,12 @@ export default function RootLayout({
         <html lang="en">
             <body className={inter.className}>
                 <UserProvider>
-                    <AbstraxionProvider config={treasuryConfig}>
-                        {children}
-                        <Toaster position="bottom-right" />
-                    </AbstraxionProvider>
+                    <KeplrProvider>
+                        <AbstraxionProvider config={treasuryConfig}>
+                            {children}
+                            <Toaster position="bottom-right" />
+                        </AbstraxionProvider>
+                    </KeplrProvider>
                 </UserProvider>
             </body>
         </html>

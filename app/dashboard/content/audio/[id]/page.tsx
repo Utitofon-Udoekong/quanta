@@ -22,10 +22,10 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                 setLoading(true);
                 // First, fetch the audio data
                 const { data: audioData, error: audioError } = await supabase
-                    .from('audio')
-                    .select('*')
+                .from('audio')
+                .select('*')
                     .eq('id', id)
-                    .single();
+                .single();
 
                 if (audioError) {
                     console.error(audioError);
@@ -40,7 +40,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                     console.error(userError);
                     // Continue with the audio data even if we can't get the author
                     setAudio(audioData);
-                } else {
+            } else {
                     // Combine the audio data with the author information
                     const combinedData = {
                         ...audioData,

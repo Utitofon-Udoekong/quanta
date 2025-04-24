@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 // CoinGecko API endpoint for Xion price
 const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
-const COINGEKO_API_KEY = process.env.NEXT_COINGEKO_API_KEY;
+const COINGEKO_API_KEY = process.env.coingeckoApiKey;
 
 // Cache for price data to avoid excessive API calls
 let priceCache: { price: number; timestamp: number } | null = null;
@@ -17,7 +17,7 @@ export async function GET() {
 
     // Fetch price from CoinGecko
     const response = await fetch(
-      `${COINGECKO_API_URL}?ids=xion&vs_currencies=usd`,
+      `${COINGECKO_API_URL}?ids=xion-2&vs_currencies=usd`,
       {
         method: 'GET',
         headers: {
@@ -33,10 +33,8 @@ export async function GET() {
     }
     
     const data = await response.json();
-    
     // Extract the price from the response
-    const price = data.xion?.usd;
-    
+    const price = data['xion-2'].usd;
     if (!price) {
       throw new Error('Xion price not found in response');
     }

@@ -84,7 +84,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
   const uploadFile = async (file: File, bucketName: string) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    
+
     try {
       const publicUrl = await uploadFileResumable(
         bucketName,
@@ -94,7 +94,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
           setUploadProgress(Math.round(percentage));
         }
       );
-      
+
       return publicUrl;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -232,7 +232,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
               src={formData.thumbnail_url}
               alt="Current thumbnail"
               className="h-32 w-32 object-cover rounded-lg"
-            />
+        />
           </div>
         )}
       </div>
@@ -254,18 +254,18 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
       </div>
 
       <div className="flex items-center space-x-6">
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            name="published"
-            id="published"
-            checked={formData.published}
-            onChange={handleChange}
-            className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
-          />
-          <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
-            Publish this audio
-          </label>
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          name="published"
+          id="published"
+          checked={formData.published}
+          onChange={handleChange}
+          className="h-4 w-4 bg-gray-900/50 border-gray-700/50 rounded text-indigo-600 focus:ring-indigo-500"
+        />
+        <label htmlFor="published" className="ml-2 block text-sm text-gray-200">
+          Publish this audio
+        </label>
         </div>
 
         <div className="flex items-center">

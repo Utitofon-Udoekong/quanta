@@ -19,19 +19,19 @@ export async function trackContentView(
     const { error } = await supabase
       .from('content_views')
       .upsert({
-        content_id: contentId,
-        content_type: contentType,
-        user_id: userId,
+      content_id: contentId,
+      content_type: contentType,
+      user_id: userId,
         viewed_at: new Date().toISOString(),
       }, {
         onConflict: 'content_id,user_id',
         ignoreDuplicates: true
-      });
+    });
     
     if (error) {
       // Only log errors that aren't related to duplicate entries
       if (error.code !== '23505') { // PostgreSQL unique violation code
-        console.error('Error tracking content view:', error);
+      console.error('Error tracking content view:', error);
       }
     }
   } catch (error) {

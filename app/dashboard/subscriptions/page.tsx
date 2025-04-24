@@ -17,25 +17,20 @@ import {
     XMarkIcon,
     SparklesIcon
 } from '@heroicons/react/24/outline';
-import {
-    Abstraxion,
-    useAbstraxionAccount,
-    useAbstraxionSigningClient,
-    useAbstraxionClient,
-    useModal,
-} from "@burnt-labs/abstraxion";
-import { Button } from "@burnt-labs/ui";
 import "@burnt-labs/ui/dist/index.css";
 import { treasuryConfig } from '@/app/layout';
 import { 
-    TOKEN_DENOM, 
     DENOM_DISPLAY_NAME, 
     DECIMALS, 
-    getXionPrice, 
-    usdToXion, 
     formatXionAmount, 
     formatUsdAmount 
 } from '@/app/utils/xion';
+import { Window as KeplrWindow } from "@keplr-wallet/types";
+import { useKeplr } from '@/app/providers/KeplrProvider';
+
+declare global {
+    interface Window extends KeplrWindow {}
+}
 
 // Define subscription plans as a static object
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
@@ -114,7 +109,6 @@ type ProgressStep = {
 type ProgressSteps = {
     [key: string]: ProgressStep;
 };
-
 export default function SubscriptionsPage() {
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [allPlans] = useState<SubscriptionPlan[]>(SUBSCRIPTION_PLANS);
@@ -135,11 +129,9 @@ export default function SubscriptionsPage() {
     const [processingPayment, setProcessingPayment] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
     const [isAnnual, setIsAnnual] = useState(false);
-    const [balance, setBalance] = useState("0");
     const [transactionHash, setTransactionHash] = useState<string | null>(null);
     const [blockHeight, setBlockHeight] = useState("");
     const [copied, setCopied] = useState(false);
-    const [xionPrice, setXionPrice] = useState<number>(1);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [selectedPlanForConfirmation, setSelectedPlanForConfirmation] = useState<SubscriptionPlan | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -169,11 +161,8 @@ export default function SubscriptionsPage() {
     const [showProgress, setShowProgress] = useState(false);
     const [showPlans, setShowPlans] = useState(false);
 
-    // Abstraxion hooks
-    const { data: account } = useAbstraxionAccount();
-    const { client } = useAbstraxionSigningClient();
-    const { client: queryClient } = useAbstraxionClient();
-    const [, setShowModal] = useModal();
+    // Get Keplr context
+    const { walletAddress, isConnecting, balance, xionPrice, connectKeplr, getTokenBalance, offlineSigner } = useKeplr();
 
     const router = useRouter();
     const supabase = createClient();
@@ -184,29 +173,6 @@ export default function SubscriptionsPage() {
         if (plan.id === 'free') return true; // Always show free plan
         return isAnnual ? plan.interval === 'year' : plan.interval === 'month';
     });
-
-    // Fetch the token balance and price
-    const getTokenBalance = async () => {
-        if (account?.bech32Address) {
-            if (!queryClient) {
-                return;
-            }
-            setLoading(true);
-            try {
-                const response = await queryClient.getBalance(account?.bech32Address, 'uxion');
-                const amountInXion = parseFloat(response.amount)/DECIMALS
-                setBalance(response ? amountInXion.toFixed(2) : "0");
-                
-                // Fetch Xion price
-                const price = await getXionPrice();
-                setXionPrice(price);
-            } catch (error) {
-                console.error("Error querying token balance:", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
 
     // Fetch subscription data
     useEffect(() => {
@@ -267,13 +233,6 @@ export default function SubscriptionsPage() {
         fetchSubscriptionData();
     }, [user, router, supabase]);
 
-    // Fetch token balance when account changes
-    useEffect(() => {
-        if (queryClient && account?.bech32Address) {
-            getTokenBalance();
-        }
-    }, [queryClient, account?.bech32Address]);
-
     // Create a free subscription for new users
     const createFreeSubscription = async () => {
         if (!user) return;
@@ -312,19 +271,19 @@ export default function SubscriptionsPage() {
 
         } catch (error) {
             console.error('Error creating free subscription:', error);
-            toast('Failed to create free subscription. Please try again.', 'error');
+            toast.error('Failed to create free subscription. Please try again.');
         }
     };
 
+    // Update handleSubscribe to use Keplr
     const handleSubscribe = async (planId: string) => {
         if (!user) {
             router.push('/auth');
             return;
         }
 
-        if (!account?.bech32Address) {
-            toast('Please connect your Xion wallet to subscribe', 'error');
-            setShowModal(true);
+        if (!walletAddress) {
+            toast.error('Please connect your Keplr wallet to subscribe');
             return;
         }
 
@@ -381,10 +340,10 @@ export default function SubscriptionsPage() {
                     await createFreeSubscription();
                 }
                 
-                toast('Free plan activated successfully!', 'success');
+                toast.success('Free plan activated successfully!');
             } catch (err) {
                 console.error('Error subscribing to free plan:', err);
-                toast('Failed to activate free plan. Please try again.', 'error');
+                toast.error('Failed to activate free plan. Please try again.');
             } finally {
                 setProcessingPayment(false);
                 setSelectedPlan(null);
@@ -406,7 +365,7 @@ export default function SubscriptionsPage() {
             await processPayment(selectedPlanForConfirmation);
         } catch (err) {
             console.error('Error subscribing to plan:', err);
-            toast('Failed to activate subscription. Please try again.', 'error');
+            toast.error('Failed to activate subscription. Please try again.');
         } finally {
             setProcessingPayment(false);
             setSelectedPlan(null);
@@ -416,17 +375,16 @@ export default function SubscriptionsPage() {
     };
 
     const processPayment = async (plan: SubscriptionPlan) => {
-        if (!account?.bech32Address || !client) {
-            toast('Wallet connection required for payment', 'error');
+        if (!walletAddress || !offlineSigner) {
+            toast.error('Wallet connection required for payment');
             return;
         }
 
         setShowProgress(true);
         try {
-            // Add debug logs
             console.log('Starting payment process with:', {
                 plan,
-                account: account?.bech32Address,
+                address: walletAddress,
                 treasury: treasuryConfig.treasury
             });
 
@@ -441,7 +399,7 @@ export default function SubscriptionsPage() {
             }));
 
             // Convert USD price to token amount using current exchange rate
-            const tokenAmount = await usdToXion(plan.price);
+            const tokenAmount = plan.price * xionPrice;
             const roundedTokenAmount = Math.ceil(tokenAmount * Math.pow(10, DECIMALS)).toString();
             
             // Log conversion details
@@ -460,11 +418,12 @@ export default function SubscriptionsPage() {
             }));
 
             // Ensure we have all required values
-            if (!roundedTokenAmount || !account.bech32Address || !treasuryConfig.treasury) {
+            if (!roundedTokenAmount || !walletAddress || !treasuryConfig.treasury) {
                 console.error('Missing required payment values:', {
                     amount: roundedTokenAmount,
-                    sender: account.bech32Address,
-                    recipient: treasuryConfig.treasury
+                    sender: walletAddress,
+                    recipient: treasuryConfig.treasury,
+                    offlineSigner: offlineSigner
                 });
                 throw new Error('Missing required payment values');
             }
@@ -472,8 +431,9 @@ export default function SubscriptionsPage() {
             // Call the backend payment service
             const paymentBody = {
                 amount: roundedTokenAmount,
-                sender: account.bech32Address,
-                recipient: treasuryConfig.treasury
+                sender: walletAddress,
+                recipient: treasuryConfig.treasury,
+                offlineSigner
             };
 
             console.log('Sending payment request with:', paymentBody);
@@ -562,7 +522,7 @@ export default function SubscriptionsPage() {
                 }
             }));
 
-            toast('Payment successful! Subscription activated.', 'success');
+            toast.success('Payment successful! Subscription activated.');
         } catch (error) {
             console.error('Error processing payment:', error);
             setSubscriptionProgress(prev => ({
@@ -573,7 +533,7 @@ export default function SubscriptionsPage() {
                     message: error instanceof Error ? error.message : 'Payment failed'
                 }
             }));
-            toast('Payment failed. Please try again.', 'error');
+            toast.error('Payment failed. Please try again.');
             throw error;
         }
     };
@@ -660,7 +620,7 @@ export default function SubscriptionsPage() {
 
         } catch (error) {
             console.error('Error creating subscription:', error);
-            toast('Failed to create subscription. Please try again.', 'error');
+            toast.error('Failed to create subscription. Please try again.');
             throw error;
         }
     };
@@ -689,10 +649,10 @@ export default function SubscriptionsPage() {
                 canceled_at: new Date().toISOString()
             });
 
-            toast('Subscription will be canceled at the end of the billing period.', 'success');
+            toast.success('Subscription will be canceled at the end of the billing period.');
         } catch (err) {
             console.error('Error canceling subscription:', err);
-            toast('Failed to cancel subscription. Please try again.', 'error');
+            toast.error('Failed to cancel subscription. Please try again.');
         } finally {
             setProcessingPayment(false);
         }
@@ -744,12 +704,12 @@ export default function SubscriptionsPage() {
         navigator.clipboard.writeText(text)
             .then(() => {
                 setCopied(true);
-                toast('Address copied to clipboard', 'success');
+                toast.success('Address copied to clipboard');
                 setTimeout(() => setCopied(false), 2000);
             })
             .catch(err => {
                 console.error('Failed to copy text: ', err);
-                toast('Failed to copy address', 'error');
+                toast.error('Failed to copy address');
             });
     };
 
@@ -819,15 +779,6 @@ export default function SubscriptionsPage() {
             <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-2xl font-bold">Subscription Management</h1>
-                    {account?.bech32Address && (
-                        <Button
-                            onClick={() => setShowModal(true)}
-                            structure="base"
-                            className="px-4 py-2"
-                        >
-                            Change Wallet
-                        </Button>
-                    )}
                 </div>
 
                 {/* Current Subscription Status */}
@@ -935,8 +886,19 @@ export default function SubscriptionsPage() {
                     </div>
 
                     <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700/30">
-                        <h2 className="text-lg font-semibold mb-4">Wallet Details</h2>
-                        {account?.bech32Address ? (
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold">Wallet Details</h2>
+                            {walletAddress && (
+                                <button
+                                    onClick={() => getTokenBalance()}
+                                    className="text-gray-400 hover:text-white transition-colors"
+                                    title="Refresh balance"
+                                >
+                                    <ArrowPathIcon className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                        {walletAddress ? (
                             <>
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center">
@@ -944,7 +906,7 @@ export default function SubscriptionsPage() {
                                         <p className="text-sm">Connected</p>
                                     </div>
                                     <button 
-                                        onClick={() => copyToClipboard(account.bech32Address)}
+                                        onClick={() => copyToClipboard(walletAddress)}
                                         className="text-gray-400 hover:text-white transition-colors"
                                     >
                                         {copied ? (
@@ -955,7 +917,7 @@ export default function SubscriptionsPage() {
                                     </button>
                                 </div>
                                 <p className="text-sm font-mono mb-4 text-gray-400">
-                                    {account.bech32Address.substring(0, 8)}...{account.bech32Address.substring(account.bech32Address.length - 8)}
+                                    {walletAddress.substring(0, 8)}...{walletAddress.substring(walletAddress.length - 8)}
                                 </p>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
@@ -971,13 +933,13 @@ export default function SubscriptionsPage() {
                         ) : (
                             <div className="text-center">
                                 <p className="text-sm text-gray-400 mb-4">Connect your wallet to manage subscriptions</p>
-                                <Button
-                                    onClick={() => setShowModal(true)}
-                                    structure="base"
-                                    className="w-full"
+                                <button
+                                    onClick={connectKeplr}
+                                    disabled={isConnecting}
+                                    className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors disabled:opacity-50"
                                 >
-                                    Connect Wallet
-                                </Button>
+                                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                                </button>
                             </div>
                         )}
                     </div>
@@ -1322,9 +1284,6 @@ export default function SubscriptionsPage() {
                         </div>
                     </div>
                 )}
-
-                {/* Abstraxion Modal */}
-                <Abstraxion onClose={() => setShowModal(false)} />
             </div>
         </div>
     );

@@ -48,7 +48,7 @@ export default function Home() {
             toast('Signed out successfully');
         }
     };
-
+    
     useEffect(() => {
         const fetchFeaturedContent = async () => {
             try {
@@ -122,9 +122,9 @@ export default function Home() {
     // Filter content based on search term and selected type
     const getFilteredContent = () => {
         let filteredContent = {
-            videos: featuredContent.videos,
-            audio: featuredContent.audio,
-            articles: featuredContent.articles,
+                videos: featuredContent.videos,
+                audio: featuredContent.audio,
+                articles: featuredContent.articles,
         };
 
         // Apply search filter
@@ -149,7 +149,7 @@ export default function Home() {
 
         // Apply type filter
         if (selectedType !== 'all') {
-            return {
+        return {
                 videos: selectedType === 'video' ? filteredContent.videos : [],
                 audio: selectedType === 'audio' ? filteredContent.audio : [],
                 articles: selectedType === 'article' ? filteredContent.articles : [],
@@ -159,17 +159,17 @@ export default function Home() {
         return filteredContent;
     };
 
-    return (
+  return (
         <div className="min-h-screen bg-[#0A0C10] text-white">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 bg-[#0A0C10]/90 backdrop-blur-md border-b border-gray-800/50 z-50">
                 <div className="mx-auto px-6">
                     <div className="flex items-center justify-between h-16">
                         <Link href="/" className="flex flex-1/4 items-center space-x-2">
-                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                QUANTA
-                            </span>
-                        </Link>
+                                <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                                    QUANTA
+                                </span>
+                            </Link>
                         <div className="hidden md:flex md:flex-2/4 justify-center items-center space-x-4">
                             <div className="relative w-full">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -183,14 +183,14 @@ export default function Home() {
                                     className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-md leading-5 bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
-                            <button
+                                        <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`flex items-center space-x-1 px-3 py-2 rounded-md ${showFilters ? 'bg-blue-600 text-white' : 'bg-gray-800/50 text-gray-300 hover:text-white'
                                     }`}
                             >
                                 <FunnelIcon className="h-4 w-4" />
                                 <span>Filters</span>
-                            </button>
+                                        </button>
                         </div>
                         <div className="flex flex-1/4 justify-end items-center space-x-4">
                             {!user ? (
@@ -227,7 +227,7 @@ export default function Home() {
                                                         <Link
                                                             href="/dashboard"
                                                             className={`${active ? 'bg-gray-700' : ''
-                                                                } block px-3 py-2 rounded-md text-sm text-white`}
+                                                            } block px-3 py-2 rounded-md text-sm text-white`}
                                                         >
                                                             Dashboard
                                                         </Link>
@@ -238,7 +238,7 @@ export default function Home() {
                                                         <button
                                                             onClick={handleSignOut}
                                                             className={`${active ? 'bg-gray-700' : ''
-                                                                } block w-full text-left px-3 py-2 rounded-md text-sm text-red-400`}
+                                                            } block w-full text-left px-3 py-2 rounded-md text-sm text-red-400`}
                                                         >
                                                             Sign Out
                                                         </button>
@@ -279,19 +279,19 @@ export default function Home() {
                             <h3 className="text-lg font-medium text-white mb-3">Filter Content</h3>
                             <div className="flex flex-wrap gap-2">
                                 {contentTypes.map((type) => (
-                                    <button
+                                <button
                                         key={type.id}
                                         onClick={() => setSelectedType(type.id)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedType === type.id
                                             ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
                                             : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                                            }`}
-                                    >
+                                    }`}
+                                >
                                         {type.name}
-                                    </button>
-                                ))}
-                            </div>
+                                </button>
+                            ))}
                         </div>
+                    </div>
                     )}
 
                     {loading ? (
@@ -303,9 +303,9 @@ export default function Home() {
                         </div>
                     ) : (
                         <>
-                            {getFilteredContent().videos.length === 0 &&
-                                getFilteredContent().audio.length === 0 &&
-                                getFilteredContent().articles.length === 0 ? (
+                            {getFilteredContent().videos.length === 0 && 
+                             getFilteredContent().audio.length === 0 && 
+                             getFilteredContent().articles.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
                                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,7 +330,7 @@ export default function Home() {
                                             userLoggedIn={!!user}
                                         />
                                     )}
-
+                                    
                                     {getFilteredContent().audio.length > 0 && (
                                         <ContentSection
                                             title="Popular Audio"
@@ -340,7 +340,7 @@ export default function Home() {
                                             userLoggedIn={!!user}
                                         />
                                     )}
-
+                                    
                                     {getFilteredContent().articles.length > 0 && (
                                         <ContentSection
                                             title="Latest Articles"
@@ -354,8 +354,8 @@ export default function Home() {
                             )}
                         </>
                     )}
-                </div>
-            </main>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

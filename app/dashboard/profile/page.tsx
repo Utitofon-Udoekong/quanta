@@ -1,6 +1,5 @@
 "use client";
 
-import { useAbstraxionAccount, useModal, Abstraxion } from "@burnt-labs/abstraxion";
 import { useEffect, useState } from 'react';
 import { Button } from "@burnt-labs/ui";
 import { 
@@ -14,15 +13,14 @@ import { createClient } from "@/app/utils/supabase/client";
 import { UserData } from "@/app/types";
 import { toast } from "@/app/components/helpers/toast";
 import { useUserStore } from "@/app/stores/user";
-
+import { useKeplr } from "@/app/providers/KeplrProvider";
 export default function ProfilePage() {
-  const { data: account } = useAbstraxionAccount();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const supabase = createClient();
-  const [, setShowModal] = useModal();
   const { user, error } = useUserStore()
+  const { walletAddress, connectKeplr } = useKeplr();
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -34,9 +32,9 @@ export default function ProfilePage() {
         if (error || !user) {
           throw new Error('Failed to fetch user data');
         }
-        if (account?.bech32Address && !user.wallet_address) {
+        if (walletAddress && !user.wallet_address) {
           await supabase.from('users').update({
-            wallet_address: account.bech32Address,
+            wallet_address: walletAddress,
             updated_at: new Date().toISOString()
           }).eq('id', user.id);
         }
@@ -44,7 +42,7 @@ export default function ProfilePage() {
         setUserData(user);
       } catch (error) {
         console.error('Error fetching profile data:', error);
-        toast('Failed to load profile data', 'error');
+        toast.error('Failed to load profile data');
       } finally {
         setLoading(false);
       }
@@ -55,11 +53,6 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!userData) return;
-
-    if (!account?.bech32Address) {
-      toast('Please connect your wallet to update your profile', 'error');
-      return;
-    }
     
     setSaving(true);
     try {
@@ -73,7 +66,7 @@ export default function ProfilePage() {
       });
 
       if (authError) {
-        toast('Failed to update profile', 'error');
+        toast.error('Failed to update profile');
         throw authError;
       };
 
@@ -89,14 +82,14 @@ export default function ProfilePage() {
         .eq('id', userData.id);
 
       if (extendedError) {
-        toast('Failed to update profile', 'error');
+        toast.error('Failed to update profile');
         throw extendedError;
       };
 
-      toast('Profile updated successfully', 'success');
+      toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast('Failed to update profile', 'error');
+      toast.error('Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -112,27 +105,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handleChangeWallet = () => {
-    setShowModal(true);
-  };
-
-  const handleCloseModal = async () => {
-    setShowModal(false);
-    const { error: extendedError } = await supabase
-        .from('users')
-        .update({
-          wallet_address: account?.bech32Address,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userData?.id);
-    if (extendedError) {
-      toast('Failed to update wallet address', 'error');
-      throw extendedError;
-    };
-    toast('Wallet address updated successfully', 'success');
-  };
-
-  if (!account?.bech32Address) {
+  if (!walletAddress) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0C10]">
         <div className="text-center">
@@ -143,6 +116,13 @@ export default function ProfilePage() {
           </div>
           <h2 className="text-xl font-semibold text-gray-200 mb-2">Connect Your Wallet</h2>
           <p className="text-gray-400 mb-4">Please connect your wallet to access your profile.</p>
+          <Button
+            structure="base"
+            className="w-full bg-gray-700 hover:bg-gray-600"
+            onClick={connectKeplr}
+          >
+            Connect Wallet
+          </Button>
         </div>
       </div>
     );
@@ -291,16 +271,16 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-gray-400 mb-2">Connected Wallet</label>
                     <div className="flex items-center space-x-2 bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
-                        {account.bech32Address.slice(0, 2)}
+                        {walletAddress?.slice(0, 2)}
                       </div>
                       <span className="text-sm text-gray-300">
-                        {account.bech32Address.slice(0, 6)}...{account.bech32Address.slice(-4)}
+                        {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
                       </span>
                     </div>
                   </div>
                   <Button
                     className="w-full bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg"
-                    onClick={handleChangeWallet}
+                    onClick={connectKeplr}
                   >
                     Change Wallet
                   </Button>
@@ -335,7 +315,7 @@ export default function ProfilePage() {
       </div>
       
       {/* Abstraxion Modal */}
-      <Abstraxion onClose={handleCloseModal} />
+      {/* <Abstraxion onClose={handleCloseModal} /> */}
     </div>
   );
 } 

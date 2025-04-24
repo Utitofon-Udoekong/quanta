@@ -1,6 +1,5 @@
 "use client";
 
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -15,6 +14,8 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import { useKeplr } from '@/app/providers/KeplrProvider';
+import toast from 'react-hot-toast';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: HomeIcon },
@@ -30,12 +31,26 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: account } = useAbstraxionAccount();
+  const { walletAddress, connectKeplr } = useKeplr();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!account?.bech32Address) {
-    return children;
+  if (!walletAddress) {
+    // If no wallet is connected, show connect button
+    return (
+      <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-white mb-4">Connect Your Wallet</h2>
+          <p className="text-gray-400 mb-6">Please connect your wallet to access the dashboard</p>
+          <button
+            onClick={connectKeplr}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            Connect Keplr Wallet
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -55,11 +70,11 @@ export default function DashboardLayout({
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-800/50">
-            <Link href="/" className="flex items-center">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                QUANTA
-              </span>
-            </Link>
+              <Link href="/" className="flex items-center">
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                  QUANTA
+                </span>
+              </Link>
             <button
               className="lg:hidden text-gray-400 hover:text-white"
               onClick={() => setSidebarOpen(false)}
@@ -70,34 +85,34 @@ export default function DashboardLayout({
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
-                </Link>
-              );
-            })}
+                {navigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                          : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
           </nav>
 
           {/* User Section */}
           <div className="p-4 border-t border-gray-800/50">
             <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
-                {account.bech32Address.slice(0, 2)}
-              </div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium">
+                  {walletAddress.slice(0, 2)}
+                </div>
               <span className="text-sm text-gray-300 truncate">
-                {account.bech32Address.slice(0, 6)}...{account.bech32Address.slice(-4)}
-              </span>
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
             </div>
             <Link 
               href="/" 
