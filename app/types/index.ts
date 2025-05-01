@@ -222,3 +222,9 @@ export interface SubscriptionPayment {
   created_at: string;
   transaction_hash?: string | null;
 }
+
+export interface Token {
+  base: string;
+  symbol: string;
+  icon: string;
+}

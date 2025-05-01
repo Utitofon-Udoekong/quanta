@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
 import { createClient } from '@/app/utils/supabase/client';
-import { Subscription, SubscriptionPlan, SubscriptionPayment } from '@/app/types';
+import { Subscription, SubscriptionPlan, SubscriptionPayment, Token } from '@/app/types';
 import { useUserStore } from '@/app/stores/user';
 import { toast } from '@/app/components/helpers/toast';
 import {
@@ -17,22 +19,23 @@ import {
     XMarkIcon,
     SparklesIcon
 } from '@heroicons/react/24/outline';
-import "@burnt-labs/ui/dist/index.css";
+// import "@burnt-labs/ui/dist/index.css";
 import { treasuryConfig } from '@/app/layout';
 import {
     DENOM_DISPLAY_NAME,
     DECIMALS,
     formatXionAmount,
-    formatUsdAmount
+    formatUsdAmount,
+    tokenDenoms
 } from '@/app/utils/xion';
 import { Window as KeplrWindow } from "@keplr-wallet/types";
 import { useKeplr } from '@/app/providers/KeplrProvider';
 import { SigningStargateClient } from '@cosmjs/stargate';
 import { Decimal } from "@cosmjs/math";
-import { OfflineSigner } from '@cosmjs/proto-signing';
+
 // XION Testnet Configuration
 const RPC_ENDPOINT = process.env.rpcUrl;
-const TOKEN_DENOM = process.env.tokenDenom;
+// const TOKEN_DENOM = process.env.tokenDenom;
 const TREASURY = process.env.treasuryAddress;
 
 declare global {
@@ -141,8 +144,8 @@ export default function SubscriptionsPage() {
     const [copied, setCopied] = useState(false);
     const [showConfirmationModal, setShowConfirmationModal] = useState(false);
     const [selectedPlanForConfirmation, setSelectedPlanForConfirmation] = useState<SubscriptionPlan | null>(null);
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [successPlan, setSuccessPlan] = useState<SubscriptionPlan | null>(null);
+    const [showSelectCoinModal, setShowSelectCoinModal] = useState(false);
+    const [selectedToken, setSelectedToken] = useState<Token | null>(null);
     const [subscriptionProgress, setSubscriptionProgress] = useState<ProgressSteps>({
         payment: {
             id: 'payment',
@@ -216,8 +219,27 @@ export default function SubscriptionsPage() {
                 // Payments are already included in the subscription data from the API
                 setPayments(subscriptionData.subscription_payments || []);
             } else {
-                // No subscription means free access
-                setSubscription(null);
+                // No subscription means free access - set free plan as default
+                const freePlan = allPlans.find(p => p.id === 'free');
+                if (freePlan) {
+                    setSubscription({
+                        id: freePlan.id,
+                        user_id: user.id,
+                        plan_id: freePlan.id,
+                        plan: freePlan,
+                        status: 'active',
+                        current_period_start: new Date().toISOString(),
+                        current_period_end: new Date(new Date().setFullYear(new Date().getFullYear() + 10)).toISOString(), // Set far future date
+                        payment_method: 'none',
+                        payment_status: null,
+                        last_payment_date: new Date().toISOString(),
+                        next_payment_date: new Date(new Date().setFullYear(new Date().getFullYear() + 10)).toISOString(),
+                        cancel_at_period_end: false,
+                        canceled_at: null,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
+                }
                 setPayments([]);
             }
         } catch (err) {
@@ -292,7 +314,7 @@ export default function SubscriptionsPage() {
                         cancel_at_period_end: false,
                         canceled_at: null
                     });
-                } 
+                }
                 toast.success('Free plan activated successfully!');
             } catch (err) {
                 console.error('Error subscribing to free plan:', err);
@@ -313,17 +335,34 @@ export default function SubscriptionsPage() {
         if (!selectedPlanForConfirmation) return;
 
         try {
-            setProcessingPayment(true);
+            // setProcessingPayment(true);
             setSelectedPlan(selectedPlanForConfirmation.id);
-            await processPayment(selectedPlanForConfirmation);
+            setShowSelectCoinModal(true);
+            // await processPayment(selectedPlanForConfirmation);
         } catch (err) {
             console.error('Error subscribing to plan:', err);
             toast.error('Failed to activate subscription. Please try again.');
         } finally {
-            setProcessingPayment(false);
-            setSelectedPlan(null);
             setShowConfirmationModal(false);
+        }
+    };
+
+    const handlePayment = async () => {
+        if (!selectedPlanForConfirmation) return;
+
+        setShowSelectCoinModal(false);
+        // Now process the payment with the selected token
+        try {
+            setProcessingPayment(true);
+            await processPayment(selectedPlanForConfirmation);
+        } catch (error) {
+            console.error('Error processing payment:', error);
+            toast.error('Payment failed. Please try again.');
+            throw error;
+        } finally {
+            setSelectedPlan(null);
             setSelectedPlanForConfirmation(null);
+            setProcessingPayment(false);
         }
     };
 
@@ -394,7 +433,7 @@ export default function SubscriptionsPage() {
             const fee = {
                 amount: [
                     {
-                        denom: TOKEN_DENOM || "",
+                        denom: selectedToken?.base || "",
                         amount: "100", // minimal fee
                     }
                 ],
@@ -418,7 +457,7 @@ export default function SubscriptionsPage() {
                     {
                         gasPrice: {
                             amount: Decimal.fromUserInput('0.025', 6),
-                            denom: TOKEN_DENOM || "",
+                            denom: selectedToken?.base || "",
                         },
                     }
                 );
@@ -427,13 +466,13 @@ export default function SubscriptionsPage() {
                     from: walletAddress,
                     to: TREASURY,
                     amount: roundedTokenAmount,
-                    denom: TOKEN_DENOM
+                    denom: selectedToken?.base
                 });
 
                 const result = await signingClient.sendTokens(
                     walletAddress,
                     TREASURY || "",
-                    [{ denom: TOKEN_DENOM || "", amount: '200000' }],
+                    [{ denom: selectedToken?.base || "", amount: '200000' }],
                     fee,
                     "Subscription payment"
                 );
@@ -610,46 +649,6 @@ export default function SubscriptionsPage() {
         }
     };
 
-    const handleCancelSubscription = async () => {
-        if (!subscription) return;
-
-        try {
-            setProcessingPayment(true);
-
-            // Use the API route to cancel subscription
-            const response = await fetch(`/api/subscriptions/${subscription.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    user_id: user?.id,
-                    cancel_at_period_end: true,
-                    canceled_at: new Date().toISOString()
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to cancel subscription');
-            }
-
-            // Update the subscription state
-            setSubscription({
-                ...data,
-                plan: subscription.plan
-            });
-
-            toast.success('Subscription will be canceled at the end of the billing period.');
-        } catch (err) {
-            console.error('Error canceling subscription:', err);
-            toast.error('Failed to cancel subscription. Please try again.');
-        } finally {
-            setProcessingPayment(false);
-        }
-    };
-
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -795,15 +794,6 @@ export default function SubscriptionsPage() {
                                     </div>
                                 )}
                             </div>
-                            {subscription && subscription.status === 'active' && !subscription.cancel_at_period_end && subscription.plan && subscription.plan.price > 0 && (
-                                <button
-                                    onClick={handleCancelSubscription}
-                                    disabled={processingPayment}
-                                    className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                                >
-                                    Cancel Subscription
-                                </button>
-                            )}
                         </div>
 
                         {subscription && subscription.plan && (
@@ -1206,6 +1196,59 @@ export default function SubscriptionsPage() {
                     </div>
                 )}
 
+                {/* Coin Selection Modal */}
+                {showSelectCoinModal && (
+                    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                        <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-gray-700/30">
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-xl font-semibold">Select Payment Token</h3>
+                                <button
+                                    onClick={() => setShowSelectCoinModal(false)}
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    <XMarkIcon className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                {tokenDenoms.map((token) => (
+                                    <button
+                                        key={token.base}
+                                        onClick={() => setSelectedToken(token)}
+                                        className={'w-full flex items-center p-3 rounded-lg border border-gray-700 hover:border-gray-600'}
+                                    >
+                                        <Image 
+                                            src={token.icon} 
+                                            alt={token.symbol} 
+                                            width={20} 
+                                            height={20} 
+                                            className="mr-2"
+                                        />
+                                        <span className="text-white">{token.symbol}</span>
+                                        {selectedToken?.base === token.base && (
+                                            <CheckCircleIcon className="size-5 text-green-500 ml-auto" />
+                                        )}
+                                    </button>
+                                ))}
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        onClick={() => setShowSelectCoinModal(false)}
+                                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handlePayment}
+                                        disabled={processingPayment}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white transition-colors"
+                                    >
+                                        {processingPayment ? 'Processing...' : 'Confirm & Subscribe'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Confirmation Modal */}
                 {showConfirmationModal && selectedPlanForConfirmation && (
                     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -1263,10 +1306,9 @@ export default function SubscriptionsPage() {
                                 </button>
                                 <button
                                     onClick={confirmSubscription}
-                                    disabled={processingPayment}
                                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white transition-colors"
                                 >
-                                    {processingPayment ? 'Processing...' : 'Confirm & Subscribe'}
+                                    Confirm & Subscribe
                                 </button>
                             </div>
                         </div>
