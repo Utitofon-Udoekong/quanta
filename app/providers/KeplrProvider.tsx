@@ -17,6 +17,7 @@ interface KeplrContextType {
     connectKeplr: () => Promise<void>;
     getTokenBalance: () => Promise<void>;
     offlineSigner: any | null;
+    balances: Coin[];
 }
 
 const KeplrContext = createContext<KeplrContextType>({
@@ -27,6 +28,7 @@ const KeplrContext = createContext<KeplrContextType>({
     connectKeplr: async () => {},
     getTokenBalance: async () => {},
     offlineSigner: null,
+    balances: [],
 });
 
 export const useKeplr = () => {
@@ -58,6 +60,7 @@ export function KeplrProvider({ children }: KeplrProviderProps) {
             const amountInXion = parseFloat(response.find(coin => coin.denom === 'uxion')?.amount || "0")/(Math.pow(10, DECIMALS));
             setBalance(amountInXion.toFixed(2));
             setBalances([...response]);
+            console.log(response);
             const price = await getXionPrice();
             setXionPrice(price);
         } catch (error) {
@@ -139,7 +142,8 @@ export function KeplrProvider({ children }: KeplrProviderProps) {
             xionPrice,
             connectKeplr,
             getTokenBalance,
-            offlineSigner
+            offlineSigner,
+            balances
         }}>
             {children}
         </KeplrContext.Provider>

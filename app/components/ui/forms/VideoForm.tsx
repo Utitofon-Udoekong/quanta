@@ -145,7 +145,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
             revalidate: 0, // Don't cache PUT requests
           },
         });
-        
+          
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to update video');
@@ -166,8 +166,8 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
           next: {
             revalidate: 0, // Don't cache POST requests
           },
-        });
-        
+          });
+          
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to create video');

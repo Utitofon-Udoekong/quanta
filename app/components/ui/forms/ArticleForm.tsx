@@ -104,12 +104,12 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
       }
 
       const articleData = {
-        title: formData.title,
-        content: formData.content,
-        excerpt: formData.excerpt || null,
-        published: formData.published,
-        is_premium: formData.is_premium,
-        thumbnail_url: thumbnailUrl || null,
+            title: formData.title,
+            content: formData.content,
+            excerpt: formData.excerpt || null,
+            published: formData.published,
+            is_premium: formData.is_premium,
+            thumbnail_url: thumbnailUrl || null,
       };
 
       if (isEditing && article) {
@@ -146,7 +146,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
           next: {
             revalidate: 0, // Don't cache POST requests
           },
-        });
+          });
 
         if (!response.ok) {
           const errorData = await response.json();

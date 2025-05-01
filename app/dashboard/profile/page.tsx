@@ -2,32 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from "@burnt-labs/ui";
-import { 
+import {
   UserCircleIcon,
   KeyIcon,
   ShieldCheckIcon,
   WalletIcon,
-  PhotoIcon
+  PhotoIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { createClient } from "@/app/utils/supabase/client";
 import { UserData } from "@/app/types";
 import { toast } from "@/app/components/helpers/toast";
 import { useUserStore } from "@/app/stores/user";
 import { useKeplr } from "@/app/providers/KeplrProvider";
+import Image from 'next/image';
+import { tokenDenoms, DECIMALS } from '@/app/utils/xion';
+
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const supabase = createClient();
   const { user, error } = useUserStore()
-  const { walletAddress, connectKeplr } = useKeplr();
+  const { walletAddress, connectKeplr, balances } = useKeplr();
+  const [showTokenBalances, setShowTokenBalances] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      
+
       try {
         setLoading(true);
-        
+
         // Get current user from Supabase auth
         if (error || !user) {
           throw new Error('Failed to fetch user data');
@@ -53,7 +58,7 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!userData) return;
-    
+
     setSaving(true);
     try {
       // Update user metadata in auth
@@ -171,9 +176,9 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 rounded-full bg-gray-800/50 border border-gray-700/50 flex items-center justify-center overflow-hidden">
                       {userData.avatar_url ? (
-                        <img 
-                          src={userData.avatar_url} 
-                          alt="Profile" 
+                        <img
+                          src={userData.avatar_url}
+                          alt="Profile"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -231,11 +236,10 @@ export default function ProfilePage() {
                     <h3 className="text-sm font-medium text-gray-200">Creator Status</h3>
                     <p className="text-sm text-gray-400">Ability to create and publish content</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    userData.wallet_address 
-                      ? 'bg-green-500/10 text-green-400' 
-                      : 'bg-gray-700/50 text-gray-400'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${userData.wallet_address
+                    ? 'bg-green-500/10 text-green-400'
+                    : 'bg-gray-700/50 text-gray-400'
+                    }`}>
                     {userData.wallet_address ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -244,11 +248,10 @@ export default function ProfilePage() {
                     <h3 className="text-sm font-medium text-gray-200">Admin Status</h3>
                     <p className="text-sm text-gray-400">Platform administration privileges</p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    userData.is_admin 
-                      ? 'bg-blue-500/10 text-blue-400' 
-                      : 'bg-gray-700/50 text-gray-400'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${userData.is_admin
+                    ? 'bg-blue-500/10 text-blue-400'
+                    : 'bg-gray-700/50 text-gray-400'
+                    }`}>
                     {userData.is_admin ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -297,12 +300,13 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                {/* <Button
-                  structure="base"
-                  className="w-full bg-gray-700 hover:bg-gray-600"
+
+                <button
+                  onClick={() => setShowTokenBalances(true)}
+                  className="w-full px-6 py-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400"
                 >
-                  Change Password
-                </Button> */}
+                  View Token Balances
+                </button>
                 <button
                   className="w-full px-6 py-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400"
                 >
@@ -312,8 +316,48 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+
+        {/* Token Balances Modal */}
+        {showTokenBalances && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-gray-700/30">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-semibold">Token Balances</h3>
+                <button
+                  onClick={() => setShowTokenBalances(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {tokenDenoms.map((token) => (
+                  <div
+                    key={token.base}
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-700"
+                  >
+                    <div className="flex items-center">
+                      <Image
+                        src={token.icon}
+                        alt={token.symbol}
+                        width={16}
+                        height={16}
+                        className="mr-2"
+                      />
+                      <span className="text-white">{token.symbol}</span>
+                    </div>
+                    <span className="text-white">
+                      {(parseFloat(balances.find(b => b.denom === token.base)?.amount || '0') / Math.pow(10, DECIMALS)).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      
+
       {/* Abstraxion Modal */}
       {/* <Abstraxion onClose={handleCloseModal} /> */}
     </div>

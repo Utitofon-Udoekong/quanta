@@ -16,15 +16,15 @@ export default function ArticlesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useUserStore();
   const router = useRouter();
-
+  
   useEffect(() => {
-    const fetchArticles = async () => {
+  const fetchArticles = async () => {
       if (!user) {
         setError('Please sign in to view your articles');
         setLoading(false);
         return;
       }
-
+      
       try {
         setLoading(true);
         const response = await fetch(`/api/content/articles?page=${page}&limit=10&user_id=${user.id}`);
@@ -37,17 +37,17 @@ export default function ArticlesPage() {
         const data = await response.json();
         setArticles(data.articles);
         setTotalPages(data.totalPages);
-      } catch (err: any) {
+    } catch (err: any) {
         setError(err.message || 'Failed to fetch articles');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
     fetchArticles();
   }, [page, user]);
-
+  
   const handleDelete = async (id: string) => {
     if (!user) {
       toast('Please sign in to delete articles', { className: 'bg-red-500' });
@@ -75,7 +75,7 @@ export default function ArticlesPage() {
       console.error(err);
     }
   };
-
+  
   if (!user) {
     return (
       <div className="bg-yellow-500/10 border border-yellow-500/50 p-6 rounded-lg text-center">
@@ -84,7 +84,7 @@ export default function ArticlesPage() {
       </div>
     );
   }
-
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -92,7 +92,7 @@ export default function ArticlesPage() {
       </div>
     );
   }
-
+  
   if (error) {
     return (
       <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
@@ -101,7 +101,7 @@ export default function ArticlesPage() {
       </div>
     );
   }
-
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -114,7 +114,7 @@ export default function ArticlesPage() {
           New Article
         </Link>
       </div>
-
+      
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-700">
@@ -135,7 +135,7 @@ export default function ArticlesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {articles.map((article) => (
+            {articles.map((article) => (
                 <tr key={article.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-white">{article.title}</div>
@@ -185,7 +185,7 @@ export default function ArticlesPage() {
             >
               {pageNum}
             </button>
-          ))}
+            ))}
         </div>
       )}
     </div>

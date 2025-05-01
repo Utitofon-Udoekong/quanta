@@ -19,7 +19,6 @@ import {
     XMarkIcon,
     SparklesIcon
 } from '@heroicons/react/24/outline';
-// import "@burnt-labs/ui/dist/index.css";
 import { treasuryConfig } from '@/app/layout';
 import {
     DECIMALS,
@@ -469,7 +468,7 @@ export default function SubscriptionsPage() {
                 const result = await signingClient.sendTokens(
                     walletAddress,
                     TREASURY || "",
-                    [{ denom: selectedToken?.base || "", amount: '200000' }],
+                    [{ denom: selectedToken?.base || "", amount: '50000' }],
                     fee,
                     "Subscription payment"
                 );
@@ -578,6 +577,37 @@ export default function SubscriptionsPage() {
         }
     };
 
+    const closePayment = async () => {
+        setSubscriptionProgress({
+            payment: {
+                id: 'payment',
+                label: 'Processing Payment',
+                status: 'pending'
+            },
+            transaction: {
+                id: 'transaction',
+                label: 'Confirming Transaction',
+                status: 'pending'
+            },
+            subscription: {
+                id: 'subscription',
+                label: 'Creating Subscription',
+                status: 'pending'
+            },
+            completion: {
+                id: 'completion',
+                label: 'Finalizing Setup',
+                status: 'pending'
+            }
+        });
+        setShowSelectCoinModal(false);
+        setSelectedPlan(null);
+        setSelectedPlanForConfirmation(null);
+        setProcessingPayment(false);
+        setShowProgress(false);
+        setShowConfirmationModal(false);
+    }
+
     const createSubscription = async (plan: SubscriptionPlan, transactionHash?: string) => {
         if (!user) return;
 
@@ -602,7 +632,7 @@ export default function SubscriptionsPage() {
                     status: 'active',
                     current_period_start: now.toISOString(),
                     current_period_end: periodEnd.toISOString(),
-                    payment_method: selectedToken?.symbol,
+                    payment_method: selectedToken?.symbol || 'xion',
                     payment_status: 'succeeded',
                     last_payment_date: now.toISOString(),
                     next_payment_date: periodEnd.toISOString(),
@@ -1106,32 +1136,7 @@ export default function SubscriptionsPage() {
                                     step.status === 'error'
                                 )) && (
                                         <button
-                                            onClick={() => {
-                                                setShowProgress(false);
-                                                // Reset progress state when closing
-                                                setSubscriptionProgress({
-                                                    payment: {
-                                                        id: 'payment',
-                                                        label: 'Processing Payment',
-                                                        status: 'pending'
-                                                    },
-                                                    transaction: {
-                                                        id: 'transaction',
-                                                        label: 'Confirming Transaction',
-                                                        status: 'pending'
-                                                    },
-                                                    subscription: {
-                                                        id: 'subscription',
-                                                        label: 'Creating Subscription',
-                                                        status: 'pending'
-                                                    },
-                                                    completion: {
-                                                        id: 'completion',
-                                                        label: 'Finalizing Setup',
-                                                        status: 'pending'
-                                                    }
-                                                });
-                                            }}
+                                            onClick={closePayment}
                                             className="text-gray-400 hover:text-white"
                                         >
                                             <XMarkIcon className="h-5 w-5" />
@@ -1159,7 +1164,7 @@ export default function SubscriptionsPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => setShowProgress(false)}
+                                        onClick={closePayment}
                                         className="mt-4 w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition-colors"
                                     >
                                         Close
