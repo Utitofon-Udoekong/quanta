@@ -68,7 +68,6 @@ export default function Home() {
                             avatar_url
                         )
                     `)
-                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
@@ -84,7 +83,6 @@ export default function Home() {
                             avatar_url
                         )
                     `)
-                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);
@@ -100,7 +98,6 @@ export default function Home() {
                             avatar_url
                         )
                     `)
-                    .eq('user_id', user.id)
                     .eq('published', true)
                     .order('created_at', { ascending: false })
                     .limit(8);

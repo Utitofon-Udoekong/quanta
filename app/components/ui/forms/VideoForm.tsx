@@ -131,28 +131,49 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
       };
       
       if (isEditing && video) {
-        // Update existing video
-        const { error } = await supabase
-          .from('videos')
-          .update({
-            ...videoData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', video.id);
-          
-        if (error) throw error;
-        toast('Video updated successfully', 'success');
-      } else {
-        // Create new video
-        const { error } = await supabase
-          .from('videos')
-          .insert({
+        // Update existing video using API endpoint
+        const response = await fetch(`/api/content/videos/${video.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             ...videoData,
             user_id: userData.user.id,
-          });
-          
-        if (error) throw error;
-        toast('Video created successfully', 'success');
+          }),
+          next: {
+            revalidate: 0, // Don't cache PUT requests
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update video');
+        }
+        
+        toast.success('Video updated successfully');
+      } else {
+        // Create new video using API endpoint
+        const response = await fetch('/api/content/videos', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...videoData,
+            user_id: userData.user.id,
+          }),
+          next: {
+            revalidate: 0, // Don't cache POST requests
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create video');
+        }
+        
+        toast.success('Video created successfully');
       }
       
       router.push('/dashboard/content/videos');

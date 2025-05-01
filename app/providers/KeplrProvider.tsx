@@ -79,6 +79,7 @@ export function KeplrProvider({ children }: KeplrProviderProps) {
             }
             await window.keplr.enable(chainId || "");
             const signer = await window.getOfflineSignerAuto(chainId || "");
+            console.log('Signer:', signer);
             const accounts = await signer.getAccounts();
             const address = accounts[0].address;
             setOfflineSigner(signer as OfflineSigner);

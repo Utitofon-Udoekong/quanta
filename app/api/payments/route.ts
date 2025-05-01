@@ -11,7 +11,7 @@ const TREASURY = process.env.treasuryAddress;
 export async function POST(request: Request) {
     try {
         const { amount, sender, offlineSigner }: { amount: string, sender: string, offlineSigner: OfflineSigner } = (await request.json());
-
+        console.log('Received payment request:', { amount, sender, offlineSigner });
         // Validate required fields
         if (!amount || !sender || !offlineSigner) {
             console.error('Missing required fields:', { amount, sender, offlineSigner });

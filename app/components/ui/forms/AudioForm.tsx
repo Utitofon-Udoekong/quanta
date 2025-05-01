@@ -135,23 +135,46 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
       };
 
       if (audio) {
-        // Update existing audio
-        const { error } = await supabase
-          .from('audio')
-          .update(audioData)
-          .eq('id', audio.id);
+        // Update existing audio using API endpoint
+        const response = await fetch(`/api/content/audio/${audio.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...audioData,
+            user_id: user.id,
+          }),
+          next: {
+            revalidate: 0, // Don't cache PUT requests
+          },
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update audio');
+        }
       } else {
-        // Create new audio
-        const { error } = await supabase
-          .from('audio')
-          .insert([audioData]);
+        // Create new audio using API endpoint
+        const response = await fetch('/api/content/audio', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(audioData),
+          next: {
+            revalidate: 0, // Don't cache POST requests
+          },
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create audio');
+        }
       }
 
       router.push('/dashboard/content/audio');
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

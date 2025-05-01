@@ -103,39 +103,58 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
         thumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
       }
 
+      const articleData = {
+        title: formData.title,
+        content: formData.content,
+        excerpt: formData.excerpt || null,
+        published: formData.published,
+        is_premium: formData.is_premium,
+        thumbnail_url: thumbnailUrl || null,
+      };
+
       if (isEditing && article) {
-        // Update existing article
-        const { error } = await supabase
-          .from('articles')
-          .update({
-            title: formData.title,
-            content: formData.content,
-            excerpt: formData.excerpt || null,
-            published: formData.published,
-            is_premium: formData.is_premium,
-            thumbnail_url: thumbnailUrl || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', article.id);
-
-        if (error) throw error;
-      } else {
-        // Create new article
-        const { error } = await supabase
-          .from('articles')
-          .insert({
-            title: formData.title,
-            content: formData.content,
-            excerpt: formData.excerpt || null,
-            published: formData.published,
-            is_premium: formData.is_premium,
-            thumbnail_url: thumbnailUrl || null,
+        // Update existing article using API endpoint
+        const response = await fetch(`/api/content/articles/${article.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...articleData,
             user_id: userData.user.id,
-          });
+          }),
+          next: {
+            revalidate: 0, // Don't cache PUT requests
+          },
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update article');
+        }
+      } else {
+        // Create new article using API endpoint
+        const response = await fetch('/api/content/articles', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...articleData,
+            user_id: userData.user.id,
+          }),
+          next: {
+            revalidate: 0, // Don't cache POST requests
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create article');
+        }
       }
-      toast('Article saved successfully', 'success');
+
+      toast.success('Article saved successfully');
       router.push('/dashboard/content/articles');
       router.refresh();
     } catch (err: any) {

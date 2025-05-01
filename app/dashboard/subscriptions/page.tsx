@@ -19,17 +19,24 @@ import {
 } from '@heroicons/react/24/outline';
 import "@burnt-labs/ui/dist/index.css";
 import { treasuryConfig } from '@/app/layout';
-import { 
-    DENOM_DISPLAY_NAME, 
-    DECIMALS, 
-    formatXionAmount, 
-    formatUsdAmount 
+import {
+    DENOM_DISPLAY_NAME,
+    DECIMALS,
+    formatXionAmount,
+    formatUsdAmount
 } from '@/app/utils/xion';
 import { Window as KeplrWindow } from "@keplr-wallet/types";
 import { useKeplr } from '@/app/providers/KeplrProvider';
+import { SigningStargateClient } from '@cosmjs/stargate';
+import { Decimal } from "@cosmjs/math";
+import { OfflineSigner } from '@cosmjs/proto-signing';
+// XION Testnet Configuration
+const RPC_ENDPOINT = process.env.rpcUrl;
+const TOKEN_DENOM = process.env.tokenDenom;
+const TREASURY = process.env.treasuryAddress;
 
 declare global {
-    interface Window extends KeplrWindow {}
+    interface Window extends KeplrWindow { }
 }
 
 // Define subscription plans as a static object
@@ -175,105 +182,55 @@ export default function SubscriptionsPage() {
     });
 
     // Fetch subscription data
-    useEffect(() => {
-        const fetchSubscriptionData = async () => {
-            if (!user) return;
-
-            try {
-                setLoading(true);
-
-                // Fetch user's subscription
-                const { data: subscriptionData, error: subscriptionError } = await supabase
-                    .from('subscriptions')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
-
-                if (subscriptionError && subscriptionError.code !== 'PGRST116') {
-                    // PGRST116 is "no rows returned" which is fine if user has no subscription
-                    throw subscriptionError;
-                }
-
-                // If we have a subscription, find the corresponding plan from our static plans
-                if (subscriptionData) {
-                    const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscriptionData.plan_id);
-                    setSubscription({
-                        ...subscriptionData,
-                        plan
-                    });
-
-                    // Set the interval toggle based on the current subscription
-                    if (plan) {
-                        setIsAnnual(plan.interval === 'year');
-                    }
-
-                    // Fetch subscription payments
-                    const { data: paymentsData, error: paymentsError } = await supabase
-                        .from('subscription_payments')
-                        .select('*')
-                        .eq('subscription_id', subscriptionData.id)
-                        .order('payment_date', { ascending: false });
-
-                    if (paymentsError) throw paymentsError;
-                    setPayments(paymentsData || []);
-                } else {
-                    // If no subscription exists, create a free subscription
-                    await createFreeSubscription();
-                }
-            } catch (err) {
-                console.error('Error fetching subscription data:', err);
-                setError('Failed to load subscription data. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSubscriptionData();
-    }, [user, router, supabase]);
-
-    // Create a free subscription for new users
-    const createFreeSubscription = async () => {
+    const fetchSubscriptionData = async () => {
         if (!user) return;
 
         try {
-            const freePlan = SUBSCRIPTION_PLANS.find(p => p.id === 'free');
-            if (!freePlan) return;
+            setLoading(true);
+            // Fetch subscription using the API route
+            const response = await fetch(`/api/subscriptions?user_id=${user.id}`);
+            const data = await response.json();
 
-            const now = new Date();
-            const periodEnd = new Date(now);
-            periodEnd.setFullYear(periodEnd.getFullYear() + 10); // Set a far future date for free plan
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch subscription');
+            }
 
-            const { data: subscriptionData, error: subscriptionError } = await supabase
-                .from('subscriptions')
-                .insert({
-                    user_id: user.id,
-                    plan_id: freePlan.id,
-                    status: 'active',
-                    current_period_start: now.toISOString(),
-                    current_period_end: periodEnd.toISOString(),
-                    payment_method: 'none',
-                    payment_status: null as 'succeeded' | 'failed' | 'pending' | null,
-                    last_payment_date: now.toISOString(),
-                    next_payment_date: periodEnd.toISOString()
-                })
-                .select()
-                .single();
+            if (data.subscriptions && data.subscriptions.length > 0) {
+                const subscriptionData = data.subscriptions[0];
+                const plan = SUBSCRIPTION_PLANS.find(p => p.id === subscriptionData.plan_id);
+                setSubscription({
+                    ...subscriptionData,
+                    plan,
+                    status: subscriptionData.status || 'active',
+                    last_payment_date: subscriptionData.last_payment_date,
+                    next_payment_date: subscriptionData.next_payment_date,
+                    cancel_at_period_end: subscriptionData.cancel_at_period_end,
+                    canceled_at: subscriptionData.canceled_at
+                });
 
-            if (subscriptionError) throw subscriptionError;
+                // Set the interval toggle based on the current subscription
+                if (plan) {
+                    setIsAnnual(plan.interval === 'year');
+                }
 
-            // Update the subscription state
-            setSubscription({
-                ...subscriptionData,
-                plan: freePlan
-            });
-
-        } catch (error) {
-            console.error('Error creating free subscription:', error);
-            toast.error('Failed to create free subscription. Please try again.');
+                // Payments are already included in the subscription data from the API
+                setPayments(subscriptionData.subscription_payments || []);
+            } else {
+                // No subscription means free access
+                setSubscription(null);
+                setPayments([]);
+            }
+        } catch (err) {
+            console.error('Error fetching subscription data:', err);
+            setError('Failed to load subscription data. Please try again later.');
+        } finally {
+            setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchSubscriptionData();
+    }, [user, router, supabase]);
 
     // Update handleSubscribe to use Keplr
     const handleSubscribe = async (planId: string) => {
@@ -296,13 +253,13 @@ export default function SubscriptionsPage() {
             try {
                 setProcessingPayment(true);
                 setSelectedPlan(planId);
-                
+
                 // Update the existing subscription to free plan
                 if (subscription) {
                     const now = new Date();
                     const periodEnd = new Date(now);
                     periodEnd.setFullYear(periodEnd.getFullYear() + 10); // Set a far future date for free plan
-                    
+
                     const { error: updateError } = await supabase
                         .from('subscriptions')
                         .update({
@@ -318,9 +275,9 @@ export default function SubscriptionsPage() {
                             canceled_at: null
                         })
                         .eq('id', subscription.id);
-                    
+
                     if (updateError) throw updateError;
-                    
+
                     // Update the subscription state
                     setSubscription({
                         ...subscription,
@@ -335,11 +292,7 @@ export default function SubscriptionsPage() {
                         cancel_at_period_end: false,
                         canceled_at: null
                     });
-                } else {
-                    // Create a new free subscription if none exists
-                    await createFreeSubscription();
-                }
-                
+                } 
                 toast.success('Free plan activated successfully!');
             } catch (err) {
                 console.error('Error subscribing to free plan:', err);
@@ -401,7 +354,7 @@ export default function SubscriptionsPage() {
             // Convert USD price to token amount using current exchange rate
             const tokenAmount = plan.price * xionPrice;
             const roundedTokenAmount = Math.ceil(tokenAmount * Math.pow(10, DECIMALS)).toString();
-            
+
             // Log conversion details
             console.log('Payment amount details:', {
                 originalPrice: plan.price,
@@ -438,91 +391,142 @@ export default function SubscriptionsPage() {
 
             console.log('Sending payment request with:', paymentBody);
 
-            const response = await fetch('/api/payments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(paymentBody),
-            });
+            const fee = {
+                amount: [
+                    {
+                        denom: TOKEN_DENOM || "",
+                        amount: "100", // minimal fee
+                    }
+                ],
+                gas: "100000",
+            };
 
-            const result = await response.json();
-            console.log('Payment response:', result);
+            try {
+                // Get the accounts from the signer
+                const accounts = await offlineSigner.getAccounts()
+                const senderAccount = accounts[0].address;
 
-            if (!response.ok) {
+                // Verify sender matches connected wallet
+                if (senderAccount !== walletAddress) {
+                    throw new Error('Connected wallet does not match sender address');
+                }
+
+                // Connect to the blockchain with signer
+                const signingClient = await SigningStargateClient.connectWithSigner(
+                    RPC_ENDPOINT || "",
+                    offlineSigner,
+                    {
+                        gasPrice: {
+                            amount: Decimal.fromUserInput('0.025', 6),
+                            denom: TOKEN_DENOM || "",
+                        },
+                    }
+                );
+
+                console.log('Sending transaction:', {
+                    from: walletAddress,
+                    to: TREASURY,
+                    amount: roundedTokenAmount,
+                    denom: TOKEN_DENOM
+                });
+
+                const result = await signingClient.sendTokens(
+                    walletAddress,
+                    TREASURY || "",
+                    [{ denom: TOKEN_DENOM || "", amount: '200000' }],
+                    fee,
+                    "Subscription payment"
+                );
+
+
+                console.log('Transaction result:', result);
+
+                if (result.code !== 0) {
+                    console.log('Transaction failed:', result.events);
+                    setSubscriptionProgress(prev => ({
+                        ...prev,
+                        payment: {
+                            ...prev.payment,
+                            status: 'error',
+                            message: result.events[0].attributes[0].value || 'Payment failed'
+                        }
+                    }));
+                    throw new Error(result.events[0].attributes[0].value || 'Payment failed');
+                }
+
+                setSubscriptionProgress(prev => ({
+                    ...prev,
+                    payment: {
+                        ...prev.payment,
+                        status: 'completed',
+                        message: 'Payment processed successfully'
+                    },
+                    transaction: {
+                        ...prev.transaction,
+                        status: 'processing',
+                        message: 'Waiting for transaction confirmation...'
+                    }
+                }));
+
+                // Store transaction details
+                setTransactionHash(result.transactionHash);
+                setBlockHeight(result.height?.toString() || '');
+
+                setSubscriptionProgress(prev => ({
+                    ...prev,
+                    transaction: {
+                        ...prev.transaction,
+                        status: 'completed',
+                        message: 'Transaction confirmed'
+                    },
+                    subscription: {
+                        ...prev.subscription,
+                        status: 'processing',
+                        message: 'Creating subscription...'
+                    }
+                }));
+
+                // Create subscription after successful payment
+                await createSubscription(plan, result.transactionHash);
+
+                setSubscriptionProgress(prev => ({
+                    ...prev,
+                    subscription: {
+                        ...prev.subscription,
+                        status: 'completed',
+                        message: 'Subscription created successfully'
+                    },
+                    completion: {
+                        ...prev.completion,
+                        status: 'processing',
+                        message: 'Refreshing wallet balance...'
+                    }
+                }));
+
+                // Refresh token balance
+                await getTokenBalance();
+
+                setSubscriptionProgress(prev => ({
+                    ...prev,
+                    completion: {
+                        ...prev.completion,
+                        status: 'completed',
+                        message: 'Setup completed successfully'
+                    }
+                }));
+
+                toast.success('Payment successful! Subscription activated.');
+            } catch (error) {
+                console.error('Failed to send tokens:', error);
                 setSubscriptionProgress(prev => ({
                     ...prev,
                     payment: {
                         ...prev.payment,
                         status: 'error',
-                        message: result.error || 'Payment failed'
+                        message: error instanceof Error ? error.message : 'Payment failed'
                     }
                 }));
-                throw new Error(result.error || 'Payment failed');
             }
-
-            setSubscriptionProgress(prev => ({
-                ...prev,
-                payment: {
-                    ...prev.payment,
-                    status: 'completed',
-                    message: 'Payment processed successfully'
-                },
-                transaction: {
-                    ...prev.transaction,
-                    status: 'processing',
-                    message: 'Waiting for transaction confirmation...'
-                }
-            }));
-
-            // Store transaction details
-            setTransactionHash(result.transactionHash);
-            setBlockHeight(result.height?.toString() || '');
-
-            setSubscriptionProgress(prev => ({
-                ...prev,
-                transaction: {
-                    ...prev.transaction,
-                    status: 'completed',
-                    message: 'Transaction confirmed'
-                },
-                subscription: {
-                    ...prev.subscription,
-                    status: 'processing',
-                    message: 'Creating subscription...'
-                }
-            }));
-
-            // Create subscription after successful payment
-            await createSubscription(plan, result.transactionHash);
-
-            setSubscriptionProgress(prev => ({
-                ...prev,
-                subscription: {
-                    ...prev.subscription,
-                    status: 'completed',
-                    message: 'Subscription created successfully'
-                },
-                completion: {
-                    ...prev.completion,
-                    status: 'processing',
-                    message: 'Refreshing wallet balance...'
-                }
-            }));
-
-            // Refresh token balance
-            await getTokenBalance();
-
-            setSubscriptionProgress(prev => ({
-                ...prev,
-                completion: {
-                    ...prev.completion,
-                    status: 'completed',
-                    message: 'Setup completed successfully'
-                }
-            }));
-
-            toast.success('Payment successful! Subscription activated.');
         } catch (error) {
             console.error('Error processing payment:', error);
             setSubscriptionProgress(prev => ({
@@ -542,7 +546,6 @@ export default function SubscriptionsPage() {
         if (!user) return;
 
         try {
-            // Create a new subscription
             const now = new Date();
             const periodEnd = new Date(now);
             if (plan.interval === 'month') {
@@ -551,72 +554,54 @@ export default function SubscriptionsPage() {
                 periodEnd.setFullYear(periodEnd.getFullYear() + 1);
             }
 
-            const { data: subscriptionData, error: subscriptionError } = await supabase
-                .from('subscriptions')
-                .insert({
+            // Use the API route to create subscription
+            const response = await fetch('/api/subscriptions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     user_id: user.id,
                     plan_id: plan.id,
                     status: 'active',
                     current_period_start: now.toISOString(),
                     current_period_end: periodEnd.toISOString(),
-                    payment_method: 'xion_wallet',
+                    payment_method: 'keplr_wallet',
                     payment_status: 'succeeded',
                     last_payment_date: now.toISOString(),
-                    next_payment_date: periodEnd.toISOString()
-                })
-                .select()
-                .single();
-
-            if (subscriptionError) throw subscriptionError;
-
-            // Create a payment record if this was a paid plan
-            if (plan.price > 0) {
-                // Prepare payment data without transaction_hash first
-                const paymentData: Partial<SubscriptionPayment> = {
-                    subscription_id: subscriptionData.id,
+                    next_payment_date: periodEnd.toISOString(),
+                    cancel_at_period_end: false,
+                    canceled_at: null,
                     amount: plan.price,
                     currency: plan.currency,
-                    status: 'succeeded',
-                    payment_method: 'xion_wallet',
-                    payment_date: now.toISOString()
-                };
-                
-                // Only add transaction_hash if it exists
-                if (transactionHash) {
-                    paymentData.transaction_hash = transactionHash;
-                }
-                
-                const { error: paymentError } = await supabase
-                    .from('subscription_payments')
-                    .insert(paymentData);
+                    transaction_hash: transactionHash
+                })
+            });
 
-                if (paymentError) {
-                    console.error("Error creating payment record:", paymentError);
-                    // Continue with subscription creation even if payment record fails
-                    // We can retry adding the payment record later if needed
-                } else {
-                    // Add the new payment to the payments list
-                    const newPayment: SubscriptionPayment = {
-                        id: crypto.randomUUID(), // This would be the actual ID from the database
-                        subscription_id: subscriptionData.id,
-                        amount: plan.price,
-                        currency: plan.currency,
-                        status: 'succeeded',
-                        payment_method: 'xion_wallet',
-                        payment_date: now.toISOString(),
-                        created_at: now.toISOString(),
-                        transaction_hash: transactionHash || null
-                    };
-                    
-                    setPayments([newPayment, ...payments]);
-                }
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create subscription');
             }
 
             // Update the subscription state
             setSubscription({
-                ...subscriptionData,
-                plan
+                ...data,
+                plan,
+                status: 'active',
+                last_payment_date: now.toISOString(),
+                next_payment_date: periodEnd.toISOString(),
+                cancel_at_period_end: false,
+                canceled_at: null
             });
+
+            // Add the new payment to the payments list if it was a paid plan
+            if (plan.price > 0) {
+                const newPayment = data.subscription_payments?.[0];
+                if (newPayment) {
+                    setPayments([newPayment, ...payments]);
+                }
+            }
 
         } catch (error) {
             console.error('Error creating subscription:', error);
@@ -631,22 +616,29 @@ export default function SubscriptionsPage() {
         try {
             setProcessingPayment(true);
 
-            // Update the subscription to cancel at the end of the current period
-            const { error } = await supabase
-                .from('subscriptions')
-                .update({
+            // Use the API route to cancel subscription
+            const response = await fetch(`/api/subscriptions/${subscription.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: user?.id,
                     cancel_at_period_end: true,
                     canceled_at: new Date().toISOString()
                 })
-                .eq('id', subscription.id);
+            });
 
-            if (error) throw error;
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to cancel subscription');
+            }
 
             // Update the subscription state
             setSubscription({
-                ...subscription,
-                cancel_at_period_end: true,
-                canceled_at: new Date().toISOString()
+                ...data,
+                plan: subscription.plan
             });
 
             toast.success('Subscription will be canceled at the end of the billing period.');
@@ -733,12 +725,11 @@ export default function SubscriptionsPage() {
                 )}
             </div>
             <div className="flex-grow">
-                <p className={`text-sm font-medium ${
-                    step.status === 'completed' ? 'text-green-500' :
+                <p className={`text-sm font-medium ${step.status === 'completed' ? 'text-green-500' :
                     step.status === 'error' ? 'text-red-500' :
-                    step.status === 'processing' ? 'text-blue-500' :
-                    'text-gray-400'
-                }`}>
+                        step.status === 'processing' ? 'text-blue-500' :
+                            'text-gray-400'
+                    }`}>
                     {step.label}
                 </p>
                 {step.message && (
@@ -789,11 +780,10 @@ export default function SubscriptionsPage() {
                                 <h2 className="text-lg font-semibold mb-2">Current Subscription</h2>
                                 {subscription && subscription.plan && (
                                     <div className="flex items-center space-x-2">
-                                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                            subscription.plan.price > 0 
-                                                ? 'bg-blue-500/20 text-blue-400' 
-                                                : 'bg-gray-500/20 text-gray-400'
-                                        }`}>
+                                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${subscription.plan.price > 0
+                                            ? 'bg-blue-500/20 text-blue-400'
+                                            : 'bg-gray-500/20 text-gray-400'
+                                            }`}>
                                             {subscription.plan.name}
                                         </div>
                                         <div className="flex items-center">
@@ -905,7 +895,7 @@ export default function SubscriptionsPage() {
                                         <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                                         <p className="text-sm">Connected</p>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => copyToClipboard(walletAddress)}
                                         className="text-gray-400 hover:text-white transition-colors"
                                     >
@@ -978,11 +968,10 @@ export default function SubscriptionsPage() {
                             {plans.map((plan) => (
                                 <div
                                     key={plan.id}
-                                    className={`bg-gray-800/30 backdrop-blur-sm rounded-xl border ${
-                                        subscription?.plan_id === plan.id
-                                            ? 'border-blue-500/50'
-                                            : 'border-gray-700/30'
-                                    }`}
+                                    className={`bg-gray-800/30 backdrop-blur-sm rounded-xl border ${subscription?.plan_id === plan.id
+                                        ? 'border-blue-500/50'
+                                        : 'border-gray-700/30'
+                                        }`}
                                 >
                                     <div className="p-6">
                                         <div className="flex justify-between items-start mb-4">
@@ -1026,11 +1015,10 @@ export default function SubscriptionsPage() {
                                             <button
                                                 onClick={() => handleSubscribe(plan.id)}
                                                 disabled={processingPayment || subscription?.plan_id === plan.id}
-                                                className={`w-full py-2 px-4 rounded-lg transition-colors ${
-                                                    subscription?.plan_id === plan.id
-                                                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                }`}
+                                                className={`w-full py-2 px-4 rounded-lg transition-colors ${subscription?.plan_id === plan.id
+                                                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                    }`}
                                             >
                                                 {processingPayment && selectedPlan === plan.id
                                                     ? 'Processing...'
@@ -1125,45 +1113,45 @@ export default function SubscriptionsPage() {
                         <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-gray-700/30">
                             <div className="flex justify-between items-start mb-6">
                                 <h3 className="text-xl font-semibold">Subscription Progress</h3>
-                                {(Object.values(subscriptionProgress).every(step => 
+                                {(Object.values(subscriptionProgress).every(step =>
                                     step.status === 'completed' || step.status === 'error'
-                                ) || Object.values(subscriptionProgress).some(step => 
+                                ) || Object.values(subscriptionProgress).some(step =>
                                     step.status === 'error'
                                 )) && (
-                                    <button 
-                                        onClick={() => {
-                                            setShowProgress(false);
-                                            // Reset progress state when closing
-                                            setSubscriptionProgress({
-                                                payment: {
-                                                    id: 'payment',
-                                                    label: 'Processing Payment',
-                                                    status: 'pending'
-                                                },
-                                                transaction: {
-                                                    id: 'transaction',
-                                                    label: 'Confirming Transaction',
-                                                    status: 'pending'
-                                                },
-                                                subscription: {
-                                                    id: 'subscription',
-                                                    label: 'Creating Subscription',
-                                                    status: 'pending'
-                                                },
-                                                completion: {
-                                                    id: 'completion',
-                                                    label: 'Finalizing Setup',
-                                                    status: 'pending'
-                                                }
-                                            });
-                                        }}
-                                        className="text-gray-400 hover:text-white"
-                                    >
-                                        <XMarkIcon className="h-5 w-5" />
-                                    </button>
-                                )}
+                                        <button
+                                            onClick={() => {
+                                                setShowProgress(false);
+                                                // Reset progress state when closing
+                                                setSubscriptionProgress({
+                                                    payment: {
+                                                        id: 'payment',
+                                                        label: 'Processing Payment',
+                                                        status: 'pending'
+                                                    },
+                                                    transaction: {
+                                                        id: 'transaction',
+                                                        label: 'Confirming Transaction',
+                                                        status: 'pending'
+                                                    },
+                                                    subscription: {
+                                                        id: 'subscription',
+                                                        label: 'Creating Subscription',
+                                                        status: 'pending'
+                                                    },
+                                                    completion: {
+                                                        id: 'completion',
+                                                        label: 'Finalizing Setup',
+                                                        status: 'pending'
+                                                    }
+                                                });
+                                            }}
+                                            className="text-gray-400 hover:text-white"
+                                        >
+                                            <XMarkIcon className="h-5 w-5" />
+                                        </button>
+                                    )}
                             </div>
-                            
+
                             <div className="space-y-4">
                                 {Object.values(subscriptionProgress).map((step) => (
                                     <ProgressIndicator key={step.id} step={step} />
@@ -1178,8 +1166,8 @@ export default function SubscriptionsPage() {
                                         <div>
                                             <p className="text-sm text-red-400 font-medium">Payment Failed</p>
                                             <p className="text-xs text-red-400/80 mt-1">
-                                                {Object.values(subscriptionProgress).find(step => step.status === 'error')?.message || 
-                                                'An error occurred during the payment process. Please try again.'}
+                                                {Object.values(subscriptionProgress).find(step => step.status === 'error')?.message ||
+                                                    'An error occurred during the payment process. Please try again.'}
                                             </p>
                                         </div>
                                     </div>
@@ -1224,19 +1212,19 @@ export default function SubscriptionsPage() {
                         <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg p-6 max-w-md w-full border border-gray-700/30">
                             <div className="flex justify-between items-start mb-4">
                                 <h3 className="text-xl font-semibold">Confirm Subscription</h3>
-                                <button 
+                                <button
                                     onClick={() => setShowConfirmationModal(false)}
                                     className="text-gray-400 hover:text-white"
                                 >
                                     <XMarkIcon className="h-5 w-5" />
                                 </button>
                             </div>
-                            
+
                             <div className="mb-6">
                                 <p className="text-gray-300 mb-4">
                                     You are about to subscribe to the <span className="font-semibold">{selectedPlanForConfirmation.name}</span> plan.
                                 </p>
-                                
+
                                 <div className="bg-gray-700/30 p-4 rounded-md mb-4">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-gray-300">Plan</span>
@@ -1256,16 +1244,16 @@ export default function SubscriptionsPage() {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 <div className="flex items-start text-yellow-400 text-sm">
                                     <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
                                     <p>
-                                        By confirming, you authorize us to charge your Xion wallet for the subscription amount. 
+                                        By confirming, you authorize us to charge your Xion wallet for the subscription amount.
                                         The subscription will automatically renew at the end of each billing period unless canceled.
                                     </p>
                                 </div>
                             </div>
-                            
+
                             <div className="flex justify-end space-x-3">
                                 <button
                                     onClick={() => setShowConfirmationModal(false)}
