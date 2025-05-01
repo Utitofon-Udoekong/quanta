@@ -26,8 +26,6 @@ const nextConfig: NextConfig = {
     treasuryAddress: process.env.XION_TREASURY_CONTRACT_ADDRESS,
     rpcUrl: process.env.XION_RPC_URL,
     restUrl: process.env.XION_REST_URL,
-    tokenDenom: process.env.TOKEN_DENOM,
-    denomDisplayName: process.env.DENOM_DISPLAY_NAME,
     chainId: process.env.CHAIN_ID,
     coingeckoApiKey: process.env.COINGECKO_API_KEY,
   },

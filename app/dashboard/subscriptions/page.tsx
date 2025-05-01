@@ -22,7 +22,6 @@ import {
 // import "@burnt-labs/ui/dist/index.css";
 import { treasuryConfig } from '@/app/layout';
 import {
-    DENOM_DISPLAY_NAME,
     DECIMALS,
     formatXionAmount,
     formatUsdAmount,
@@ -33,9 +32,7 @@ import { useKeplr } from '@/app/providers/KeplrProvider';
 import { SigningStargateClient } from '@cosmjs/stargate';
 import { Decimal } from "@cosmjs/math";
 
-// XION Testnet Configuration
 const RPC_ENDPOINT = process.env.rpcUrl;
-// const TOKEN_DENOM = process.env.tokenDenom;
 const TREASURY = process.env.treasuryAddress;
 
 declare global {
@@ -252,7 +249,7 @@ export default function SubscriptionsPage() {
 
     useEffect(() => {
         fetchSubscriptionData();
-    }, [user, router, supabase]);
+    }, [user]);
 
     // Update handleSubscribe to use Keplr
     const handleSubscribe = async (planId: string) => {
@@ -605,7 +602,7 @@ export default function SubscriptionsPage() {
                     status: 'active',
                     current_period_start: now.toISOString(),
                     current_period_end: periodEnd.toISOString(),
-                    payment_method: 'keplr_wallet',
+                    payment_method: selectedToken?.symbol,
                     payment_status: 'succeeded',
                     last_payment_date: now.toISOString(),
                     next_payment_date: periodEnd.toISOString(),
@@ -902,7 +899,7 @@ export default function SubscriptionsPage() {
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-400">Balance</span>
-                                        <span className="text-sm font-medium">{balance} {DENOM_DISPLAY_NAME}</span>
+                                        <span className="text-sm font-medium">{balance} XION</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-gray-400">Price</span>
@@ -985,7 +982,7 @@ export default function SubscriptionsPage() {
                                             </div>
                                             {plan.price > 0 && (
                                                 <p className="text-sm text-gray-400 mt-1">
-                                                    ≈ {formatXionAmount(plan.price / xionPrice)} {DENOM_DISPLAY_NAME}
+                                                    ≈ {formatXionAmount(plan.price / xionPrice)} XION
                                                 </p>
                                             )}
                                         </div>
@@ -1283,7 +1280,7 @@ export default function SubscriptionsPage() {
                                     </div>
                                     {selectedPlanForConfirmation.price > 0 && (
                                         <div className="mt-2 text-sm text-gray-400">
-                                            ≈ {formatXionAmount(selectedPlanForConfirmation.price / xionPrice)} {DENOM_DISPLAY_NAME}
+                                            ≈ {formatXionAmount(selectedPlanForConfirmation.price / xionPrice)} XION
                                         </div>
                                     )}
                                 </div>

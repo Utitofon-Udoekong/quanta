@@ -30,7 +30,7 @@ export default function Dashboard() {
   });
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { data: account } = useAbstraxionAccount();
+  // const { data: account } = useAbstraxionAccount();
   // const [, setShowModal] = useModal();
   const supabase = createClient()
   const { user, error: userError } = useUserStore();
@@ -56,13 +56,13 @@ export default function Dashboard() {
         });
         
         // Only fetch content if wallet is connected
-        if (account?.bech32Address) {
+        if (walletAddress) {
           // Update user's wallet address if not set
           if (!user.wallet_address) {
             await supabase.auth.updateUser({
-              data: { wallet_address: account.bech32Address, }
+              data: { wallet_address: walletAddress, }
             });
-            setProfile(prev => prev ? { ...prev, wallet_address: account.bech32Address } : null);
+            setProfile(prev => prev ? { ...prev, wallet_address: walletAddress } : null);
           }
           
           // Fetch subscription data using user ID
@@ -144,7 +144,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [supabase, account?.bech32Address, user]);
+  }, [supabase, walletAddress, user]);
   
   const handleDeleteContent = async (id: string, type: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return;

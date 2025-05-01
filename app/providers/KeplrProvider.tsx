@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Window as KeplrWindow } from "@keplr-wallet/types";
-import { OfflineSigner } from '@cosmjs/proto-signing';
+import { Coin, OfflineSigner } from '@cosmjs/proto-signing';
 import { toast } from '@/app/components/helpers/toast';
 import { StargateClient } from '@cosmjs/stargate';
-import { TOKEN_DENOM, DECIMALS, getXionPrice, RPC_URL } from '@/app/utils/xion';
+import { DECIMALS, getXionPrice, RPC_URL } from '@/app/utils/xion';
 
 declare global {
     interface Window extends KeplrWindow {}
@@ -45,6 +45,7 @@ export function KeplrProvider({ children }: KeplrProviderProps) {
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [isConnecting, setIsConnecting] = useState(false);
     const [balance, setBalance] = useState("0");
+    const [balances, setBalances] = useState<Coin[]>([]);
     const [xionPrice, setXionPrice] = useState(0);
     const [offlineSigner, setOfflineSigner] = useState<OfflineSigner | null>(null);
     const chainId = process.env.chainId;
@@ -53,10 +54,10 @@ export function KeplrProvider({ children }: KeplrProviderProps) {
         
         try {
             const client = await StargateClient.connect(RPC_URL || "");
-            const response = await client.getBalance(walletAddress, TOKEN_DENOM || "");
-            const amountInXion = parseFloat(response.amount)/(Math.pow(10, DECIMALS));
+            const response = await client.getAllBalances(walletAddress);
+            const amountInXion = parseFloat(response.find(coin => coin.denom === 'uxion')?.amount || "0")/(Math.pow(10, DECIMALS));
             setBalance(amountInXion.toFixed(2));
-            
+            setBalances([...response]);
             const price = await getXionPrice();
             setXionPrice(price);
         } catch (error) {

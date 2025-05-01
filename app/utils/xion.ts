@@ -1,9 +1,7 @@
 import { toast } from '@/app/components/helpers/toast';
 import { Token } from '@/app/types';
 // Xion token configuration
-export const TOKEN_DENOM = process.env.tokenDenom;
 export const DECIMALS = 6;
-export const DENOM_DISPLAY_NAME = 'XION'
 export const RPC_URL = process.env.rpcUrl;
 export const REST_URL = process.env.restUrl;
 // Cache for price data to avoid excessive API calls
@@ -98,11 +96,11 @@ export function formatUsdAmount(amount: number, decimals: number = 2): string {
 } 
 
 export const tokenDenoms: Token[] = [
-  {
-    base: "ibc/13B2C536BB057AC79D5616B8EA1B9540EC1F2170718CAFF6F0083C966FFFED0B",
-    symbol: "OSMO",
-    icon: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/osmosis/asset/osmo.png"
-  },
+  // {
+  //   base: "ibc/13B2C536BB057AC79D5616B8EA1B9540EC1F2170718CAFF6F0083C966FFFED0B",
+  //   symbol: "OSMO",
+  //   icon: "https://raw.githubusercontent.com/cosmostation/chainlist/master/chain/osmosis/asset/osmo.png"
+  // },
   {
     base: "ibc/6490A7EAB61059BFC1CDDEB05917DD70BDF3A611654162A1A47DB930D40D8AF4",
     symbol: "USDC",
