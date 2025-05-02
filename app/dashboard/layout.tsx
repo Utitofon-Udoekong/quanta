@@ -15,7 +15,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useKeplr } from '@/app/providers/KeplrProvider';
-import toast from 'react-hot-toast';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: HomeIcon },
