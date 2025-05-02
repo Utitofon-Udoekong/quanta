@@ -81,19 +81,39 @@ export default function Dashboard() {
             setSubscription(subscriptionData);
           }
           
-          // Get content counts and stats using user ID
-          const [articlesRes, videosRes, audioRes, viewsRes] = await Promise.all([
-            supabase.from('articles').select('id', { count: 'exact' }).eq('user_id', user.id),
-            supabase.from('videos').select('id', { count: 'exact' }).eq('user_id', user.id),
-            supabase.from('audio').select('id', { count: 'exact' }).eq('user_id', user.id),
-            supabase.from('content_views').select('id', { count: 'exact' }).eq('user_id', user.id),
+          // First get all content IDs
+          const [articlesRes, videosRes, audioRes] = await Promise.all([
+            supabase.from('articles').select('id').eq('user_id', user.id),
+            supabase.from('videos').select('id').eq('user_id', user.id),
+            supabase.from('audio').select('id').eq('user_id', user.id),
           ]);
-          
+
+          // Get content counts
+          const contentCounts = {
+            articles: articlesRes.data?.length || 0,
+            videos: videosRes.data?.length || 0,
+            audio: audioRes.data?.length || 0,
+          };
+
+          // Get all content IDs
+          const contentIds = [
+            ...(articlesRes.data?.map(article => article.id) || []),
+            ...(videosRes.data?.map(video => video.id) || []),
+            ...(audioRes.data?.map(audio => audio.id) || [])
+          ];
+
+          // Get total views from other users
+          const { count: totalViews } = await supabase
+            .from('content_views')
+            .select('id', { count: 'exact' })
+            .in('content_id', contentIds)
+            .neq('viewer_id', user.id);
+
           setContentStats({
-            articles: articlesRes.count || 0,
-            videos: videosRes.count || 0,
-            audio: audioRes.count || 0,
-            totalViews: viewsRes.count || 0,
+            articles: contentCounts.articles,
+            videos: contentCounts.videos,
+            audio: contentCounts.audio,
+            totalViews: totalViews || 0,
             totalEarnings: 0
           });
           
