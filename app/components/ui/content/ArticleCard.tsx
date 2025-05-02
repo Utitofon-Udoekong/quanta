@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Article } from '@/app/types';
 import { DocumentTextIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { hasActivePremiumSubscription } from '@/app/utils/subscription';
+import { useUserStore } from '@/app/stores/user';
+import { useEffect, useState } from 'react';
 
 interface ArticleCardProps {
   article: Article;
@@ -9,6 +12,28 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ article, isPremium = false, userLoggedIn = false }: ArticleCardProps) {
+  const { user } = useUserStore();
+  const [hasPremium, setHasPremium] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (user?.id) {
+        const hasPremium = await hasActivePremiumSubscription(user.id);
+        setHasPremium(hasPremium);
+      }
+      setLoading(false);
+    };
+
+    checkSubscription();
+  }, [user?.id]);
+
+  const getContentLink = () => {
+    if (!user) return '/auth';
+    if (isPremium && !hasPremium) return '/dashboard/subscriptions';
+    return `/content/article/${article.id}`;
+  };
+
   // Calculate reading time (rough estimate: 200 words per minute)
   const wordCount = article.content?.split(/\s+/).length || 0;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -42,7 +67,7 @@ export default function ArticleCard({ article, isPremium = false, userLoggedIn =
         <div className="p-4 md:p-5 flex flex-col justify-between w-full">
           <div>
             <h3 className="font-semibold text-lg text-white hover:text-blue-400 transition-colors">
-              <Link href={userLoggedIn ? `/content/article/${article.id}` : '/auth'}>
+              <Link href={getContentLink()}>
                 {article.title}
               </Link>
             </h3>
@@ -59,25 +84,16 @@ export default function ArticleCard({ article, isPremium = false, userLoggedIn =
               <span>{new Date(article.created_at).toLocaleDateString()}</span>
             </div>
             
-            {!userLoggedIn && isPremium ? (
-              <Link
-                href="/auth"
-                className="text-xs font-medium px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 text-white"
-              >
-                Sign in
-              </Link>
-            ) : (
-              <Link
-                href={`/content/article/${article.id}`}
-                className={`text-xs font-medium px-3 py-1 rounded ${
-                  isPremium
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-700 text-white hover:bg-gray-600'
-                }`}
-              >
-                {isPremium ? 'Unlock' : 'Read'}
-              </Link>
-            )}
+            <Link
+              href={getContentLink()}
+              className={`text-xs font-medium px-3 py-1 rounded ${
+                isPremium && !hasPremium
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              {!user ? 'Sign in' : isPremium && !hasPremium ? 'Unlock' : 'Read'}
+            </Link>
           </div>
         </div>
       </div>

@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Audio } from '@/app/types';
-import { LockClosedIcon, PlayIcon, UserIcon } from '@heroicons/react/24/outline';
+import { PlayIcon, UserIcon } from '@heroicons/react/24/outline';
+import { hasActivePremiumSubscription } from '@/app/utils/subscription';
+import { useUserStore } from '@/app/stores/user';
+import { useEffect, useState } from 'react';
 
 interface AudioCardProps {
   audio: Audio;
@@ -9,6 +12,28 @@ interface AudioCardProps {
 }
 
 export default function AudioCard({ audio, isPremium = false, userLoggedIn = false }: AudioCardProps) {
+  const { user } = useUserStore();
+  const [hasPremium, setHasPremium] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (user?.id) {
+        const hasPremium = await hasActivePremiumSubscription(user.id);
+        setHasPremium(hasPremium);
+      }
+      setLoading(false);
+    };
+
+    checkSubscription();
+  }, [user?.id]);
+
+  const getContentLink = () => {
+    if (!user) return '/auth';
+    if (isPremium && !hasPremium) return '/dashboard/subscriptions';
+    return `/content/audio/${audio.id}`;
+  };
+
   return (
     <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/30 hover:border-blue-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/5 group">
       <div className="flex items-center p-3">
@@ -30,7 +55,7 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
         {/* Content info */}
         <div className="ml-4 flex-grow">
           <h3 className="font-semibold text-base text-white group-hover:text-blue-400 transition-colors truncate">
-            <Link href={userLoggedIn ? `/content/audio/${audio.id}` : '/auth'}>
+            <Link href={getContentLink()}>
               {audio.title}
             </Link>
           </h3>
@@ -54,17 +79,10 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
         <div className="ml-4 flex items-center space-x-2">
           {/* Play button */}
           <Link 
-            href={userLoggedIn ? isPremium ? '' : `/content/audio/${audio.id}` : '/auth'}
+            href={getContentLink()}
             className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center hover:bg-blue-500/30 transition-colors"
           >
-            {
-              isPremium && !userLoggedIn ? (
-                <LockClosedIcon className="h-4 w-4 text-blue-400" />
-              ) : (
-                <LockClosedIcon className="h-4 w-4 text-orange-400" />
-              )
-            }
-            
+            <PlayIcon className="h-4 w-4 text-blue-400" />
           </Link>
 
           {/* Premium badge or action button */}
@@ -74,7 +92,7 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
             </div>
           ) : (
             <Link
-              href={`/content/audio/${audio.id}`}
+              href={getContentLink()}
               className="flex-shrink-0 text-xs font-medium px-2 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
             >
               Listen

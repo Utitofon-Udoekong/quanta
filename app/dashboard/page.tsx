@@ -66,16 +66,20 @@ export default function Dashboard() {
           }
           
           // Fetch subscription data using user ID
-          // const { data: subscriptionData } = await supabase
-          //   .from('subscriptions')
-          //   .select('*')
-          //   .eq('user_id', user.id)
-          //   .eq('status', 'active')
-          //   .order('created_at', { ascending: false })
-          //   .limit(1)
-          //   .single();
+          const { data: subscriptionData, error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
             
-          // setSubscription(subscriptionData || null);
+          if (subscriptionError) {
+            console.error('Error fetching subscription:', subscriptionError);
+          } else {
+            setSubscription(subscriptionData);
+          }
           
           // Get content counts and stats using user ID
           const [articlesRes, videosRes, audioRes, viewsRes] = await Promise.all([
@@ -83,10 +87,7 @@ export default function Dashboard() {
             supabase.from('videos').select('id', { count: 'exact' }).eq('user_id', user.id),
             supabase.from('audio').select('id', { count: 'exact' }).eq('user_id', user.id),
             supabase.from('content_views').select('id', { count: 'exact' }).eq('user_id', user.id),
-            // supabase.from('payments').select('amount').eq('to_user_id', user.id).eq('status', 'COMPLETED')
           ]);
-          
-          // const totalEarnings = earningsRes.data?.reduce((sum: number, payment: any) => sum + payment.amount, 0) || 0;
           
           setContentStats({
             articles: articlesRes.count || 0,
@@ -330,7 +331,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Subscription</p>
-                <h3 className="text-2xl font-bold">{subscription ? subscription.plan?.name : 'None'}</h3>
+                <h3 className="text-2xl font-bold">
+                  {subscription ? (
+                    <span className="text-green-400">Active</span>
+                  ) : (
+                    <span className="text-gray-400">None</span>
+                  )}
+                </h3>
               </div>
               <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
