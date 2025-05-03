@@ -47,7 +47,7 @@ export default function ProfilePage() {
         setUserData(user);
       } catch (error) {
         console.error('Error fetching profile data:', error);
-        toast.error('Failed to load profile data');
+        toast.error(error instanceof Error ? error.message : 'Failed to load profile data');
       } finally {
         setLoading(false);
       }
