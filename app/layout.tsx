@@ -8,7 +8,7 @@ import { AbstraxionProvider } from '@burnt-labs/abstraxion';
 import UserProvider from '@/app/providers/UserProvider';
 import { KeplrProvider } from '@/app/providers/KeplrProvider';
 
-export const treasuryConfig = {
+const treasuryConfig = {
     treasury: process.env.treasuryAddress ?? '',
     rpcUrl: process.env.rpcUrl,
     restUrl: process.env.restUrl,
