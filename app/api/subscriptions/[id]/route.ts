@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const supabase = await createClient();
 
     // Get subscription with payment history
@@ -44,10 +44,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { user_id, ...renewalData } = await request.json();
 
     if (!user_id) {
@@ -126,6 +126,75 @@ export async function PUT(
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Failed to renew subscription' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { user_id, ...updateData } = await request.json();
+
+    if (!user_id) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    // First verify if the subscription belongs to the user
+    const { data: subscription, error: fetchError } = await supabase
+      .from('subscriptions')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      return NextResponse.json(
+        { error: fetchError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
+
+    if (subscription.user_id !== user_id) {
+      return NextResponse.json(
+        { error: 'Unauthorized to update this subscription' },
+        { status: 403 }
+      );
+    }
+
+    // Update the subscription
+    const { data: updatedSubscription, error: updateError } = await supabase
+      .from('subscriptions')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(updatedSubscription);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Failed to update subscription' },
       { status: 500 }
     );
   }
