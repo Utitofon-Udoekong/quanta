@@ -19,7 +19,6 @@ import {
     XMarkIcon,
     SparklesIcon
 } from '@heroicons/react/24/outline';
-import { treasuryConfig } from '@/app/layout';
 import {
     DECIMALS,
     formatXionAmount,
@@ -373,7 +372,7 @@ export default function SubscriptionsPage() {
             console.log('Starting payment process with:', {
                 plan,
                 address: walletAddress,
-                treasury: treasuryConfig.treasury
+                treasury: TREASURY
             });
 
             // Update payment step status
@@ -406,11 +405,11 @@ export default function SubscriptionsPage() {
             }));
 
             // Ensure we have all required values
-            if (!roundedTokenAmount || !walletAddress || !treasuryConfig.treasury) {
+            if (!roundedTokenAmount || !walletAddress || !TREASURY) {
                 console.error('Missing required payment values:', {
                     amount: roundedTokenAmount,
                     sender: walletAddress,
-                    recipient: treasuryConfig.treasury,
+                    recipient: TREASURY,
                     offlineSigner: offlineSigner
                 });
                 throw new Error('Missing required payment values');
@@ -420,7 +419,7 @@ export default function SubscriptionsPage() {
             const paymentBody = {
                 amount: roundedTokenAmount,
                 sender: walletAddress,
-                recipient: treasuryConfig.treasury,
+                recipient: TREASURY,
                 offlineSigner
             };
 
