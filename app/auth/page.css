@@ -1,0 +1,7 @@
+.gr-bi{
+    background-image: url('/images/gr1.png'), url('/images/gr2.png'), url('/images/gr3.png');
+    background-blend-mode: color-dodge, color-dodge, luminosity;
+    background-size: 100% 70%, 0% 70%, 100% 60%;
+    background-position: left top, right top, right top;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+}

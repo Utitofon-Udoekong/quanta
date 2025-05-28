@@ -2,70 +2,101 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../utils/supabase/client';
+import {
+  Abstraxion,
+  useAbstraxionAccount,
+  useAbstraxionSigningClient,
+  useModal,
+} from "@burnt-labs/abstraxion";
+// import { Button } from "@burnt-labs/ui";
+// import "@burnt-labs/ui/dist/index.css";
+import { handleWalletAuth } from '../utils/wallet-auth';
+import './page.css';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
-  const supabase = createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  const handleSignInWithGoogle = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${appUrl}/api/auth/callback`,
-      },
-    })
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      router.push(data.url);
-    }
-  }
+  const { data: account } = useAbstraxionAccount();
+  const { client, signArb, logout } = useAbstraxionSigningClient();
+  const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();  
   
+  const handleCloseModal = async () => {
+    if (account?.bech32Address) {
+      setLoading(true);
+      try {
+        // Call backend to get wallet JWT
+        const res = await fetch('/api/wallet-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wallet_address: account.bech32Address })
+        });
+        const { token } = await res.json();
+
+        if (token) {
+          // Set the JWT as the session for Supabase
+          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+          await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: token,
+          });
+        }
+
+        // Existing wallet auth logic
+        const { user, error: authError } = await handleWalletAuth({
+          bech32Address: account.bech32Address,
+          wallet_chain: 'xion',
+          wallet_metadata: {
+            provider: 'abstraxion',
+            connected_at: new Date().toISOString()
+          }
+        });
+
+        if (authError) {
+          setError(authError.message);
+          return;
+        }
+
+        if (user) {
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred during authentication');
+      } finally {
+        setLoading(false);
+      }
+    }
+    setShowModal(false);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0A0C10]">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center relative z-20 overflow-hidden bg-[#181A20] gr-bi">
+
+      {/* Main content */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-2">Welcome to Quanta</h1>
+        <h1 className="text-4xl font-bold text-white mb-2">Let's get you started</h1>
         <p className="text-gray-400">Sign in to access your content</p>
       </div>
-      
-      {error && (
-        <div className="mb-6 bg-red-500/10 border border-red-500/50 p-4 rounded-md max-w-md w-full">
-          <p className="text-sm text-red-400">{error}</p>
-        </div>
-      )}
-      
-      <button 
-        onClick={handleSignInWithGoogle}
-        disabled={loading}
-        className="flex items-center justify-center space-x-2 bg-white text-gray-900 px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg className="w-5 h-5" viewBox="0 0 24 24">
-          <path
-            fill="currentColor"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-          />
-          <path
-            fill="currentColor"
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-          />
-          <path
-            fill="currentColor"
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-          />
-        </svg>
-        <span>{loading ? 'Signing in...' : 'Sign in with Google'}</span>
-      </button>
+      <div className="w-full max-w-md mx-auto flex flex-col items-center">
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/50 p-4 rounded-md w-full">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+        <button
+          className="cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 py-2 rounded-4xl w-full"
+          onClick={() => setShowModal(true)}
+          disabled={loading}
+        >
+          {loading ? 'CONNECTING...' : account?.bech32Address ? 'VIEW ACCOUNT' : 'CONNECT'}
+        </button>
+      </div>
+      <Abstraxion onClose={handleCloseModal} />
     </div>
   );
 }
