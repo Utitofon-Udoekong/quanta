@@ -83,15 +83,15 @@ export default function AuthPage() {
         <p className="text-gray-400">Sign in to access your content</p>
       </div>
       <div className="w-full max-w-md mx-auto flex flex-col items-center">
-        {error && (
+      {error && (
           <div className="mb-6 bg-red-500/10 border border-red-500/50 p-4 rounded-md w-full">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
+      )}
         <button
           className="cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 py-2 rounded-4xl w-full"
           onClick={() => setShowModal(true)}
-          disabled={loading}
+        disabled={loading}
         >
           {loading ? 'CONNECTING...' : account?.bech32Address ? 'VIEW ACCOUNT' : 'CONNECT'}
         </button>

@@ -1,5 +1,10 @@
-import { createClient } from './supabase/client';
-import { User } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import jwt from 'jsonwebtoken';
+import { useState, useEffect } from 'react';
+
+const supabaseUrl = process.env.supabaseUrl!;
+const supabaseAnonKey = process.env.supabaseAnonKey!;
+const jwtSecret = process.env.supabaseJWTSecret!;
 
 export interface WalletUser {
   bech32Address: string;
@@ -18,6 +23,55 @@ export interface UserProfile {
   last_login_at?: string;
 }
 
+// Create a custom JWT token with wallet address
+function createWalletJWT(walletAddress: string): string {
+  const payload = {
+    aud: 'authenticated',
+    exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
+    sub: walletAddress,
+    email: `${walletAddress}@wallet.local`,
+    app_metadata: {
+      provider: 'wallet',
+      providers: ['wallet']
+    },
+    user_metadata: {
+      wallet_address: walletAddress
+    },
+    role: 'authenticated',
+    wallet_address: walletAddress
+  }
+
+  return jwt.sign(payload, jwtSecret, { algorithm: 'HS256' });
+}
+
+// Create Supabase client with wallet authentication
+export function createWalletSupabaseClient(walletAddress?: string) {
+  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+
+  if (walletAddress) {
+    const token = createWalletJWT(walletAddress);
+    supabase.auth.setSession({
+      access_token: token,
+      refresh_token: token,
+    });
+  }
+
+  return supabase;
+}
+
+// React hook for wallet-based Supabase client
+export function useWalletSupabase(walletAddress?: string) {
+  const [supabase, setSupabase] = useState(() => 
+    createWalletSupabaseClient(walletAddress)
+  );
+
+  useEffect(() => {
+    setSupabase(createWalletSupabaseClient(walletAddress));
+  }, [walletAddress]);
+
+  return supabase;
+}
+
 /**
  * Creates or updates a user profile based on wallet authentication
  */
@@ -25,7 +79,7 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
   user: UserProfile | null;
   error: Error | null;
 }> {
-  const supabase = createClient();
+  const supabase = createWalletSupabaseClient(walletUser.bech32Address);
   
   try {
     // First check if user exists
@@ -39,19 +93,21 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
       throw fetchError;
     }
 
+    const userData = {
+      wallet_chain: walletUser.wallet_chain || 'xion',
+      wallet_metadata: {
+        ...(existingUser?.wallet_metadata || {}),
+        ...walletUser.wallet_metadata,
+        last_login: new Date().toISOString()
+      },
+      last_login_at: new Date().toISOString()
+    };
+
     if (existingUser) {
       // Update existing user
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
-        .update({
-          wallet_chain: walletUser.wallet_chain || 'xion',
-          wallet_metadata: {
-            ...existingUser.wallet_metadata,
-            ...walletUser.wallet_metadata,
-            last_login: new Date().toISOString()
-          },
-          last_login_at: new Date().toISOString()
-        })
+        .update(userData)
         .eq('wallet_address', walletUser.bech32Address)
         .select()
         .single();
@@ -64,13 +120,11 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
         .from('users')
         .insert({
           wallet_address: walletUser.bech32Address,
-          wallet_chain: walletUser.wallet_chain || 'xion',
+          ...userData,
           wallet_metadata: {
-            ...walletUser.wallet_metadata,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
-          },
-          last_login_at: new Date().toISOString()
+            ...userData.wallet_metadata,
+            created_at: new Date().toISOString()
+          }
         })
         .select()
         .single();
@@ -91,7 +145,7 @@ export async function getUserByWallet(walletAddress: string): Promise<{
   user: UserProfile | null;
   error: Error | null;
 }> {
-  const supabase = createClient();
+  const supabase = createWalletSupabaseClient(walletAddress);
   
   try {
     const { data, error } = await supabase
@@ -118,7 +172,7 @@ export async function updateUserProfile(
   user: UserProfile | null;
   error: Error | null;
 }> {
-  const supabase = createClient();
+  const supabase = createWalletSupabaseClient(walletAddress);
   
   try {
     const { data, error } = await supabase
