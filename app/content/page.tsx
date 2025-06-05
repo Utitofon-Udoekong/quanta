@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/app/utils/supabase/client';
-import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
+import { useUserStore } from '@/app/stores/user';
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { 
   DocumentTextIcon, 
   VideoCameraIcon, 
@@ -12,10 +12,9 @@ import {
   EyeIcon,
   CurrencyDollarIcon,
   PlusIcon,
-  PencilIcon,
 } from '@heroicons/react/24/outline';
-import { useUserStore } from '@/app/stores/user';
 import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
+import { getSupabase } from '@/app/utils/supabase';
 
 type ContentStats = {
   articles: number;
@@ -49,8 +48,7 @@ export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
-  const [, setShowModal] = useModal();
-  const supabase = createClient();
+  const supabase = getSupabase(account?.bech32Address);
   const { user, error: userError } = useUserStore();
 
     const fetchContentStats = async () => {

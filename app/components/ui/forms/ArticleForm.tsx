@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import { Article } from '@/app/types';
 import { toast } from '@/app/components/helpers/toast';
 import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
@@ -40,7 +40,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabase();
 
   const allowedImageTypes = {
     'image/jpeg': ['.jpg', '.jpeg'],

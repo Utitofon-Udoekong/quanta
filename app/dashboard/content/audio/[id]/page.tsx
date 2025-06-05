@@ -1,35 +1,47 @@
 'use client';
 
-import { createClient } from "@/app/utils/supabase/client";
 import { useState, useEffect, use } from "react";
-import { type Audio } from "@/app/types";
+import { type Audio, UserData } from "@/app/types";
 import Link from 'next/link';
 import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import { useUserStore } from '@/app/stores/user';
+import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { getSupabase } from '@/app/utils/supabase';
+
 export default function AudioPage({ params }: { params: Promise<{ id: string }> }) {
     const [audio, setAudio] = useState<Audio | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const {id} = use(params);
-    const supabase = createClient();
+    const { data: account } = useAbstraxionAccount();
+    const supabase = getSupabase(account.bech32Address);
     const {user, error: userError} = useUserStore();
+
     useEffect(() => {
         const fetchAudio = async () => {
             try {
                 setLoading(true);
                 // First, fetch the audio data
-                const { data: audioData, error: audioError } = await supabase
+                const { data, error } = await supabase
                 .from('audio')
-                .select('*')
-                    .eq('id', id)
+                .select(`
+                    *,
+                    author:users (
+                        id,
+                        username,
+                        avatar_url,
+                        wallet_address
+                    )
+                `)
+                .eq('id', id)
                 .single();
 
-                if (audioError) {
-                    console.error(audioError);
-                    setError(audioError.message);
+                if (error) {
+                    console.error('Error fetching audio:', error);
+                    setError(error.message);
                     return;
                 }
 
@@ -39,23 +51,24 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                 if (userError || !user) {
                     console.error(userError);
                     // Continue with the audio data even if we can't get the author
-                    setAudio(audioData);
-            } else {
+                    setAudio(data);
+                } else {
                     // Combine the audio data with the author information
                     const combinedData = {
-                        ...audioData,
+                        ...data,
                         author: {
                             id: user.id,
-                            full_name: user.full_name,
+                            username: user.username,
                             avatar_url: user.avatar_url,
+                            wallet_address: user.wallet_address,
                         }
                     };
                     setAudio(combinedData);
                 }
                 
                 // Track view if audio exists
-                if (audioData && user) {
-                    trackContentView(audioData.id, 'audio', user.id);
+                if (data && user) {
+                    trackContentView(data.id, 'audio', user.id);
                 }
             } catch (err: any) {
                 setError(err.message || 'Failed to fetch audio');
@@ -66,7 +79,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
         };
 
         fetchAudio();
-    }, [id]);
+    }, [id, supabase]);
 
     if (loading) {
         return (
@@ -122,7 +135,9 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                 <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
                     <div className="p-8">
                         <div className="mb-6">
-                            <AuthorInfo author={audio.author} createdAt={audio.created_at} />
+                            {audio.author && audio.author.wallet_address && (
+                                <AuthorInfo author={audio.author as UserData} />
+                            )}
                         </div>
                         
                         <h1 className="text-3xl font-bold mb-4">{audio.title}</h1>

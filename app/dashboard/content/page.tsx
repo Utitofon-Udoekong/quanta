@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { 
   DocumentTextIcon, 
@@ -50,7 +50,7 @@ export default function ContentManagement() {
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal] = useModal();
-  const supabase = createClient();
+  const supabase = getSupabase();
   const { user, error: userError } = useUserStore();
 
     const fetchContentStats = async () => {

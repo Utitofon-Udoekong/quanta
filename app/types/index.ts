@@ -1,12 +1,20 @@
+export interface WalletUser {
+  bech32Address: string;
+  wallet_chain?: string;
+  wallet_metadata?: Record<string, any>;
+}
+
 export interface UserData {
   id: string;
-  email?: string;
+  wallet_address: string;
+  wallet_chain?: string;
+  wallet_metadata?: Record<string, any>;
+  username?: string;
+  avatar_url?: string;
+  bio?: string;
+  last_login_at?: string;
   created_at?: string;
   updated_at?: string;
-  full_name?: string;
-  avatar_url?: string;
-  wallet_address?: string;
-  bio?: string;
   is_admin?: boolean;
 }
 
@@ -24,7 +32,7 @@ export type Article = {
   thumbnail_url?: string;
   author?: {
     id: string;
-    full_name?: string;
+    username?: string;
     avatar_url?: string;
     wallet_address?: string;
   };
@@ -45,7 +53,7 @@ export type Video = {
   user_id: string;
   author?: {
     id: string;
-    full_name?: string;
+    username?: string;
     avatar_url?: string;
     wallet_address?: string;
   };
@@ -66,7 +74,7 @@ export type Audio = {
   thumbnail_url?: string;
   author?: {
     id: string;
-    full_name?: string;
+    username?: string;
     avatar_url?: string;
     wallet_address?: string;
   };

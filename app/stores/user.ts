@@ -1,13 +1,13 @@
 import { create } from 'zustand'
-import { createClient } from '@/app/utils/supabase/client'
+import { getSupabase } from '@/app/utils/supabase'
 import type { UserData } from '@/app/types'
 
 interface UserStore {
   user: UserData | null
   loading: boolean
   error: string | null
-  fetchUser: () => Promise<void>
-  updateUser: (data: Partial<UserData>) => Promise<void>
+  fetchUser: (walletAddress: string) => Promise<void>
+  updateUser: (walletAddress: string, data: Partial<UserData>) => Promise<void>
   clearUser: () => void
 }
 
@@ -16,24 +16,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchUser: async () => {
-    const supabase = createClient()
+  fetchUser: async (walletAddress: string) => {
+    const supabase = getSupabase(walletAddress)
     set({ loading: true, error: null })
 
     try {
-      // First get the authenticated user's ID
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      if (authError) throw authError
-      if (!authUser) {
-        set({ user: null, loading: false })
-        return
-      }
-
-      // Then fetch the user's profile from our users table
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('wallet_address', walletAddress)
         .single()
 
       if (userError) throw userError
@@ -47,8 +38,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
     }
   },
 
-  updateUser: async (data: Partial<UserData>) => {
-    const supabase = createClient()
+  updateUser: async (walletAddress: string, data: Partial<UserData>) => {
+    const supabase = getSupabase(walletAddress)
     const { user } = get()
     if (!user) return
 
@@ -58,7 +49,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       const { data: updatedUser, error } = await supabase
         .from('users')
         .update(data)
-        .eq('id', user.id)
+        .eq('wallet_address', walletAddress)
         .select()
         .single()
 

@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-
-import { createClient } from '@/app/utils/supabase/client';
-import { Subscription, SubscriptionPlan, SubscriptionPayment, Token } from '@/app/types';
-import { useUserStore } from '@/app/stores/user';
+import { Button } from "@burnt-labs/ui";
+import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
+import { getSupabase } from '@/app/utils/supabase';
 import { toast } from '@/app/components/helpers/toast';
+import { useUserStore } from '@/app/stores/user';
+import { useKeplr } from '@/app/providers/KeplrProvider';
+import { tokenDenoms, DECIMALS } from '@/app/utils/xion';
+import { Subscription, SubscriptionPlan, SubscriptionPayment, Token } from '@/app/types/index';
 import {
     CheckCircleIcon,
     XCircleIcon,
@@ -20,13 +23,10 @@ import {
     SparklesIcon
 } from '@heroicons/react/24/outline';
 import {
-    DECIMALS,
     formatXionAmount,
     formatUsdAmount,
-    tokenDenoms
 } from '@/app/utils/xion';
 import { Window as KeplrWindow } from "@keplr-wallet/types";
-import { useKeplr } from '@/app/providers/KeplrProvider';
 import { SigningStargateClient } from '@cosmjs/stargate';
 import { Decimal } from "@cosmjs/math";
 
@@ -37,8 +37,13 @@ declare global {
     interface Window extends KeplrWindow { }
 }
 
-// Define subscription plans as a static object
-const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+// Add type for features
+interface PlanFeatures {
+    features: string[];
+}
+
+// Update the SUBSCRIPTION_PLANS type
+const SUBSCRIPTION_PLANS: (SubscriptionPlan & { features: PlanFeatures })[] = [
     {
         id: 'free',
         name: 'Free',
@@ -170,7 +175,7 @@ export default function SubscriptionsPage() {
     const { walletAddress, isConnecting, balance, xionPrice, connectKeplr, getTokenBalance, offlineSigner } = useKeplr();
 
     const router = useRouter();
-    const supabase = createClient();
+    const supabase = getSupabase();
     const { user } = useUserStore();
 
     // Filter plans based on the selected interval (monthly or annual)
@@ -879,7 +884,7 @@ export default function SubscriptionsPage() {
                                 <div>
                                     <p className="text-sm text-gray-400 mb-3">Plan Features</p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {subscription.plan.features.features.map((feature, index) => (
+                                        {subscription.plan.features.features.map((feature: string, index: number) => (
                                             <div key={index} className="flex items-center space-x-2">
                                                 <CheckCircleIcon className="h-4 w-4 text-green-500" />
                                                 <span className="text-sm text-gray-300">{feature}</span>
@@ -1017,7 +1022,7 @@ export default function SubscriptionsPage() {
                                         </div>
 
                                         <div className="space-y-3 mb-6">
-                                            {plan.features.features.map((feature, index) => (
+                                            {plan.features.features.map((feature: string, index: number) => (
                                                 <div key={index} className="flex items-start">
                                                     <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
                                                     <span className="text-sm">{feature}</span>

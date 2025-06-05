@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import { Video } from '@/app/types';
 import FileDropzone from './FileDropzone';
 import { getDuration } from '@/app/utils/helpers';
@@ -47,7 +47,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
   const [thumbnailError, setThumbnailError] = useState<string | undefined>();
   
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabase();
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

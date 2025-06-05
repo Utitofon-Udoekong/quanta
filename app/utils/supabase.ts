@@ -1,27 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr';
 import jwt from 'jsonwebtoken';
 import { useState, useEffect } from 'react';
+import { UserData, WalletUser } from '@/app/types';
 
 const supabaseUrl = process.env.supabaseUrl!;
 const supabaseAnonKey = process.env.supabaseAnonKey!;
 const jwtSecret = process.env.supabaseJWTSecret!;
-
-export interface WalletUser {
-  bech32Address: string;
-  wallet_chain?: string;
-  wallet_metadata?: Record<string, any>;
-}
-
-export interface UserProfile {
-  id: string;
-  wallet_address: string;
-  wallet_chain: string;
-  wallet_metadata: Record<string, any>;
-  full_name?: string;
-  avatar_url?: string;
-  bio?: string;
-  last_login_at?: string;
-}
 
 // Create a custom JWT token with wallet address
 function createWalletJWT(walletAddress: string): string {
@@ -44,8 +28,15 @@ function createWalletJWT(walletAddress: string): string {
   return jwt.sign(payload, jwtSecret, { algorithm: 'HS256' });
 }
 
+// Generate a Robohash avatar URL for a wallet address
+export function generateRobohashAvatar(walletAddress: string): string {
+  // Use the first 8 characters of the wallet address as the seed
+  const seed = walletAddress.slice(0, 8);
+  return `https://robohash.org/${seed}?set=set4&size=200x200`;
+}
+
 // Create Supabase client with wallet authentication
-export function createWalletSupabaseClient(walletAddress?: string) {
+export function getSupabase(walletAddress?: string) {
   const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
   if (walletAddress) {
@@ -62,11 +53,11 @@ export function createWalletSupabaseClient(walletAddress?: string) {
 // React hook for wallet-based Supabase client
 export function useWalletSupabase(walletAddress?: string) {
   const [supabase, setSupabase] = useState(() => 
-    createWalletSupabaseClient(walletAddress)
+    getSupabase(walletAddress)
   );
 
   useEffect(() => {
-    setSupabase(createWalletSupabaseClient(walletAddress));
+    setSupabase(getSupabase(walletAddress));
   }, [walletAddress]);
 
   return supabase;
@@ -76,10 +67,10 @@ export function useWalletSupabase(walletAddress?: string) {
  * Creates or updates a user profile based on wallet authentication
  */
 export async function handleWalletAuth(walletUser: WalletUser): Promise<{
-  user: UserProfile | null;
+  user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = createWalletSupabaseClient(walletUser.bech32Address);
+  const supabase = getSupabase(walletUser.bech32Address);
   
   try {
     // First check if user exists
@@ -115,12 +106,13 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
       if (updateError) throw updateError;
       return { user: updatedUser, error: null };
     } else {
-      // Create new user
+      // Create new user with Robohash avatar
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({
           wallet_address: walletUser.bech32Address,
           ...userData,
+          avatar_url: generateRobohashAvatar(walletUser.bech32Address),
           wallet_metadata: {
             ...userData.wallet_metadata,
             created_at: new Date().toISOString()
@@ -142,10 +134,10 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
  * Gets a user profile by wallet address
  */
 export async function getUserByWallet(walletAddress: string): Promise<{
-  user: UserProfile | null;
+  user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = createWalletSupabaseClient(walletAddress);
+  const supabase = getSupabase(walletAddress);
   
   try {
     const { data, error } = await supabase
@@ -167,12 +159,12 @@ export async function getUserByWallet(walletAddress: string): Promise<{
  */
 export async function updateUserProfile(
   walletAddress: string,
-  updates: Partial<UserProfile>
+  updates: Partial<UserData>
 ): Promise<{
-  user: UserProfile | null;
+  user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = createWalletSupabaseClient(walletAddress);
+  const supabase = getSupabase(walletAddress);
   
   try {
     const { data, error } = await supabase

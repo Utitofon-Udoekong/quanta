@@ -1,25 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Subscription } from '@/app/types';
-import { createClient } from '../utils/supabase/client';
+import { Subscription, UserData } from '@/app/types';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Button } from '@burnt-labs/ui';
 import { ChartBarIcon, VideoCameraIcon, NewspaperIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
 import { useKeplr } from '@/app/providers/KeplrProvider';
-
-type UserProfile = {
-  id: string;
-  email: string;
-  display_name?: string;
-  avatar_url?: string;
-  wallet_address?: string;
-};
+import { getSupabase } from '../utils/supabase';
 
 export default function Dashboard() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserData | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [contentStats, setContentStats] = useState({
     articles: 0,
@@ -30,9 +22,8 @@ export default function Dashboard() {
   });
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  // const { data: account } = useAbstraxionAccount();
-  // const [, setShowModal] = useModal();
-  const supabase = createClient()
+  const { data: account } = useAbstraxionAccount();
+  const supabase = getSupabase(account.bech32Address)
   const { user, error: userError } = useUserStore();
   const { walletAddress, connectKeplr } = useKeplr();
 
@@ -49,8 +40,7 @@ export default function Dashboard() {
         // Set profile from auth user data
         setProfile({
           id: user.id,
-          email: user.email || '',
-          display_name: user.full_name,
+          username: user.username,
           avatar_url: user.avatar_url,
           wallet_address: user.wallet_address
         });
@@ -240,6 +230,28 @@ export default function Dashboard() {
     } catch (error) {
       console.error(`Error deleting ${type}:`, error);
       alert(`Failed to delete ${type}. Please try again.`);
+    }
+  };
+  
+  const handleUpdateProfile = async (updates: Partial<UserData>) => {
+    if (!user) return;
+    
+    try {
+      const { data: updatedUser, error } = await supabase
+        .from('users')
+        .update({
+          ...updates,
+          display_name: user.username,
+          updated_at: new Date().toISOString()
+        })
+        .eq('wallet_address', user.wallet_address)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setProfile(updatedUser);
+    } catch (error) {
+      console.error('Error updating profile:', error);
     }
   };
   

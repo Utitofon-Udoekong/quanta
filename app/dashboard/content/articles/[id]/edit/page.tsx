@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import ArticleForm from '@/app/components/ui/forms/ArticleForm';
 import { Article } from '@/app/types';
-import { useRouter } from 'next/navigation';
 
 export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);
-  const supabase = createClient();
-  const router = useRouter();
+  const supabase = getSupabase();
   
   useEffect(() => {
     const fetchArticle = async () => {

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useUserStore } from '@/app/stores/user'
-import { createClient } from '@/app/utils/supabase/client'
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion"
 
 export default function UserProvider({
   children
@@ -10,29 +10,15 @@ export default function UserProvider({
   children: React.ReactNode
 }) {
   const { fetchUser, clearUser } = useUserStore()
+  const { data: account } = useAbstraxionAccount()
 
   useEffect(() => {
-    const supabase = createClient()
-
-    // Fetch user data on mount
-    fetchUser()
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        fetchUser()
-      } else if (event === 'SIGNED_OUT') {
-        clearUser()
-      }
-    })
-
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe()
+    if (account?.bech32Address) {
+      fetchUser(account.bech32Address)
+    } else {
+      clearUser()
     }
-  }, [fetchUser, clearUser])
+  }, [account?.bech32Address, fetchUser, clearUser])
 
   return children
 } 

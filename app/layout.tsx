@@ -29,14 +29,12 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={inter.className}>
-                <UserProvider>
-                    <KeplrProvider>
-                        <AbstraxionProvider config={treasuryConfig}>
-                            {children}
-                            <Toaster position="bottom-right" />
-                        </AbstraxionProvider>
-                    </KeplrProvider>
-                </UserProvider>
+                <AbstraxionProvider config={treasuryConfig}>
+                    <UserProvider>
+                        {children}
+                        <Toaster position="bottom-right" />
+                    </UserProvider>
+                </AbstraxionProvider>
             </body>
         </html>
     );

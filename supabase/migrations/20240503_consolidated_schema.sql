@@ -5,19 +5,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create users table (core table)
-CREATE TABLE users (
-  id TEXT PRIMARY KEY, -- Changed to TEXT to store wallet address
-  wallet_address TEXT NOT NULL UNIQUE,
-  wallet_chain TEXT DEFAULT 'xion-testnet-2',
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  wallet_address TEXT UNIQUE NOT NULL,
+  wallet_chain TEXT DEFAULT 'xion',
   wallet_metadata JSONB DEFAULT '{}'::jsonb,
-  last_login_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  full_name TEXT,
+  username TEXT UNIQUE,
   avatar_url TEXT,
   bio TEXT,
-  is_admin BOOLEAN DEFAULT FALSE,
-  CONSTRAINT valid_wallet_chain CHECK (wallet_chain = 'xion-testnet-2')
+  last_login_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create content tables

@@ -1,21 +1,23 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
-import { type Article } from '@/app/types';
+import { type Article, UserData } from '@/app/types';
 import Link from 'next/link';
 import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import MarkdownViewer from '@/app/components/ui/MarkdownViewer';
 import { trackContentView } from '@/app/utils/content';
-import ArticleAuthor from '@/app/components/ui/ArticleAuthor';
+import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import { useUserStore } from '@/app/stores/user';
+import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { getSupabase } from '@/app/utils/supabase';
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);
-  const supabase = createClient();
+  const { data: account } = useAbstraxionAccount();
+  const supabase = getSupabase(account.bech32Address);
   const {user, error: userError} = useUserStore();
   
   useEffect(() => {
@@ -23,34 +25,43 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
       try {
         setLoading(true);
         // First, fetch the article data
-        const { data: articleData, error: articleError } = await supabase
+        const { data, error } = await supabase
           .from('articles')
-          .select('*')
+          .select(`
+            *,
+            author:users (
+              id,
+              username,
+              avatar_url,
+              wallet_address
+            )
+          `)
           .eq('id', id)
           .single();
           
-        if (articleError) throw articleError;
+        if (error) throw error;
         
         if (userError || !user) {
           console.error(userError);
           // Continue with the article data even if we can't get the author
-          setArticle(articleData);
+          setArticle(data);
         } else {
           // Combine the article data with the author information
           const combinedData = {
-            ...articleData,
+            ...data,
             author: {
               id: user.id,
-              full_name: user.full_name,
-              avatar_url: user.avatar_url
+              username: user.username,
+              avatar_url: user.avatar_url,
+              wallet_address: user.wallet_address
             }
           };
           setArticle(combinedData);
         }
         
         // Track view if article exists
-        if (articleData && user) {
-          trackContentView(articleData.id, 'article', user.id);
+        if (data && user) {
+          trackContentView(data.id, 'article', user.id);
         }
       } catch (err: any) {
         setError(err.message || 'Failed to fetch article');
@@ -61,7 +72,7 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
     };
     
     fetchArticle();
-  }, [id]);
+  }, [id, supabase]);
   
   if (loading) {
     return (
@@ -117,7 +128,9 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
         <article className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
           <div className="p-8">
             <div className="mb-6">
-              <ArticleAuthor article={article} />
+              {article.author && article.author.wallet_address && (
+                <AuthorInfo author={article.author as UserData} />
+              )}
             </div>
             
             <h1 className="text-3xl font-bold mb-4">{article.title}</h1>

@@ -1,4 +1,4 @@
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 
 /**
  * Track a content view
@@ -11,7 +11,7 @@ export async function trackContentView(
   contentType: 'article' | 'video' | 'audio',
   userId: string
 ) {
-  const supabase = createClient();
+  const supabase = getSupabase();
   
   try {
     // Use upsert with a unique constraint on (content_id, user_id)
@@ -19,9 +19,9 @@ export async function trackContentView(
     const { error } = await supabase
       .from('content_views')
       .upsert({
-      content_id: contentId,
-      content_type: contentType,
-      user_id: userId,
+        content_id: contentId,
+        content_type: contentType,
+        user_id: userId,
         viewed_at: new Date().toISOString(),
       }, {
         onConflict: 'content_id,user_id',
@@ -31,7 +31,7 @@ export async function trackContentView(
     if (error) {
       // Only log errors that aren't related to duplicate entries
       if (error.code !== '23505') { // PostgreSQL unique violation code
-      console.error('Error tracking content view:', error);
+        console.error('Error tracking content view:', error);
       }
     }
   } catch (error) {
@@ -58,7 +58,7 @@ export async function recordEarning(
   source: string,
   transactionId?: string
 ) {
-  const supabase = createClient();
+  const supabase = getSupabase();
   
   try {
     const { error } = await supabase.from('earnings').insert({

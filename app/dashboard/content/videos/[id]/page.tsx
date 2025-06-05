@@ -1,8 +1,7 @@
 'use client';
 
-import { createClient } from "@/app/utils/supabase/client";
 import { useState, useEffect, use } from "react";
-import { type Video } from "@/app/types";
+import { type Video, UserData } from "@/app/types";
 import Link from 'next/link';
 import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { trackContentView } from '@/app/utils/content';
@@ -10,6 +9,8 @@ import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomVideoPlayer from '@/app/components/ui/CustomVideoPlayer';
 import { useUserStore } from "@/app/stores/user";
 import { useRouter } from 'next/navigation';
+import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { getSupabase } from '@/app/utils/supabase';
 
 export default function VideoPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -17,60 +18,45 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { id } = use(params);
-  const supabase = createClient();
+  const { data: account } = useAbstraxionAccount();
+  const supabase = getSupabase(account.bech32Address);
   const { user, error: userError } = useUserStore();
   
   useEffect(() => {
     const fetchVideo = async () => {
       try {
         setLoading(true);
-        // First, fetch the video data
-        const { data: videoData, error: videoError } = await supabase
+        const { data, error } = await supabase
           .from('videos')
-          .select('*')
+          .select(`
+            *,
+            author:users (
+              id,
+              username,
+              avatar_url,
+              wallet_address
+            )
+          `)
           .eq('id', id)
           .single();
 
-        if (videoError) {
-          console.error(videoError);
-          setError(videoError.message);
-          return;
-        }
-
-        // Then, fetch the author details from auth
-
-
-        if (userError || !user) {
-          console.error(userError);
-          // Continue with the video data even if we can't get the author
-          setVideo(videoData);
-        } else {
-          // Combine the video data with the author information
-          const combinedData = {
-            ...videoData,
-            author: {
-              id: user.id,
-              full_name: user.full_name,
-              avatar_url: user.avatar_url,
-            }
-          };
-          setVideo(combinedData);
-        }
+        if (error) throw error;
+        setVideo(data);
 
         // Track view if video exists
-        if (videoData && user) {
-          trackContentView(videoData.id, 'video', user.id);
+        if (data && user) {
+          trackContentView(data.id, 'video', user.id);
         }
       } catch (err: any) {
         setError(err.message || 'Failed to fetch video');
-        console.error(err);
+        console.error('Error fetching video:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchVideo();
-  }, [id]);
+  }, [id, supabase]);
 
   if (loading) {
     return (
@@ -126,7 +112,9 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
           <div className="p-8">
             <div className="mb-6">
-              <AuthorInfo author={video.author} createdAt={video.created_at} />
+              {video.author && video.author.wallet_address && (
+                <AuthorInfo author={video.author as UserData} />
+              )}
             </div>
 
             <h1 className="text-3xl font-bold mb-4">{video.title}</h1>

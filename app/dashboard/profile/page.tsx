@@ -10,39 +10,34 @@ import {
   PhotoIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { createClient } from "@/app/utils/supabase/client";
 import { UserData } from "@/app/types";
 import { toast } from "@/app/components/helpers/toast";
 import { useUserStore } from "@/app/stores/user";
 import { useKeplr } from "@/app/providers/KeplrProvider";
 import Image from 'next/image';
 import { tokenDenoms, DECIMALS } from '@/app/utils/xion';
+import { getSupabase } from '@/app/utils/supabase';
+import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
-  const supabase = createClient();
+  const {data: account} = useAbstraxionAccount()
+  const supabase = getSupabase(account.bech32Address)
   const { user, error } = useUserStore()
   const { walletAddress, connectKeplr, balances } = useKeplr();
   const [showTokenBalances, setShowTokenBalances] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
-
       try {
         setLoading(true);
 
-        // Get current user from Supabase auth
         if (error || !user) {
           throw new Error('Failed to fetch user data');
         }
-        if (walletAddress && !user.wallet_address) {
-          await supabase.from('users').update({
-            wallet_address: walletAddress,
-            updated_at: new Date().toISOString()
-          }).eq('id', user.id);
-        }
+
         // Combine auth user data with extended data
         setUserData(user);
       } catch (error) {
@@ -61,25 +56,11 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      // Update user metadata in auth
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          full_name: userData.full_name,
-          avatar_url: userData.avatar_url,
-          bio: userData.bio
-        }
-      });
-
-      if (authError) {
-        toast.error('Failed to update profile');
-        throw authError;
-      };
-
       // Update extended user data
       const { error: extendedError } = await supabase
         .from('users')
         .update({
-          full_name: userData.full_name,
+          username: userData.username,
           avatar_url: userData.avatar_url,
           bio: userData.bio,
           updated_at: new Date().toISOString()
@@ -100,14 +81,24 @@ export default function ProfilePage() {
     }
   };
 
-  const handleUpdateUser = (updates: Partial<UserData>) => {
-    setUserData(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        ...updates
-      };
-    });
+  const handleUpdateUser = async (updates: Partial<UserData>) => {
+    if (!userData) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('wallet_address', userData.wallet_address);
+
+      if (error) throw error;
+      setUserData({ ...userData, ...updates });
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!walletAddress) {
@@ -193,19 +184,19 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Name</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Username</label>
                   <input
                     type="text"
-                    value={userData.full_name || ''}
-                    onChange={(e) => handleUpdateUser({ full_name: e.target.value })}
+                    value={userData.username || ''}
+                    onChange={(e) => handleUpdateUser({ username: e.target.value })}
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Wallet Address</label>
                   <input
-                    type="email"
-                    value={userData.email}
+                    type="text"
+                    value={userData.wallet_address}
                     disabled
                     className="w-full bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-gray-400 cursor-not-allowed"
                   />

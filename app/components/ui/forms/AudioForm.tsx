@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import { Audio } from '@/app/types';
 import FileDropzone from './FileDropzone';
 import { getDuration } from '@/app/utils/helpers';
@@ -46,7 +46,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
   const [thumbnailError, setThumbnailError] = useState<string | undefined>(undefined);
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabase();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

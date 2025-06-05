@@ -1,4 +1,4 @@
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import { Upload } from 'tus-js-client';
 
 /**
@@ -15,7 +15,7 @@ export async function uploadFileResumable(
   file: File,
   onProgress?: (percentage: number) => void
 ): Promise<string> {
-  const supabase = createClient();
+  const supabase = getSupabase();
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {

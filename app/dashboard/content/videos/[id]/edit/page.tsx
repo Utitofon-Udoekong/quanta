@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 import VideoForm from '@/app/components/ui/forms/VideoForm';
 import { Video } from '@/app/types';
-import { useRouter } from 'next/navigation';
 
 export default function EditVideoPage({ params }: { params: Promise<{ id: string }> }) {
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);
-  const supabase = createClient();
-  const router = useRouter();
+  const supabase = getSupabase();
   
   useEffect(() => {
     const fetchVideo = async () => {

@@ -10,7 +10,7 @@ import {
 } from "@burnt-labs/abstraxion";
 // import { Button } from "@burnt-labs/ui";
 // import "@burnt-labs/ui/dist/index.css";
-import { handleWalletAuth } from '../utils/wallet-auth';
+import { handleWalletAuth } from '../utils/supabase';
 import './page.css';
 import { createClient } from '@supabase/supabase-js';
 
@@ -31,21 +31,21 @@ export default function AuthPage() {
       setLoading(true);
       try {
         // Call backend to get wallet JWT
-        const res = await fetch('/api/wallet-auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet_address: account.bech32Address })
-        });
-        const { token } = await res.json();
+        // const res = await fetch('/api/wallet-auth', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({ wallet_address: account.bech32Address })
+        // });
+        // const { token } = await res.json();
 
-        if (token) {
-          // Set the JWT as the session for Supabase
-          const supabase = createClient(supabaseUrl, supabaseAnonKey);
-          await supabase.auth.setSession({
-            access_token: token,
-            refresh_token: token,
-          });
-        }
+        // if (token) {
+        //   // Set the JWT as the session for Supabase
+        //   const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        //   await supabase.auth.setSession({
+        //     access_token: token,
+        //     refresh_token: token,
+        //   });
+        // }
 
         // Existing wallet auth logic
         const { user, error: authError } = await handleWalletAuth({

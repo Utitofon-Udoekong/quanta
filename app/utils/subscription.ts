@@ -1,9 +1,9 @@
-import { createClient } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase';
 
 export async function hasActivePremiumSubscription(userId: string): Promise<boolean> {
     if (!userId) return false;
 
-    const supabase = createClient();
+    const supabase = getSupabase();
     
     const { data, error } = await supabase
         .from('subscriptions')

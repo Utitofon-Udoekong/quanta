@@ -1,12 +1,24 @@
 import Link from 'next/link';
-import { Audio } from '@/app/types';
 import { PlayIcon, UserIcon } from '@heroicons/react/24/outline';
 import { hasActivePremiumSubscription } from '@/app/utils/subscription';
 import { useUserStore } from '@/app/stores/user';
 import { useEffect, useState } from 'react';
 
 interface AudioCardProps {
-  audio: Audio;
+  audio: {
+    id: string;
+    title: string;
+    description?: string;
+    audio_url: string;
+    thumbnail_url?: string;
+    duration?: number;
+    created_at: string;
+    author?: {
+      username?: string;
+      wallet_address: string;
+      avatar_url?: string;
+    };
+  };
   isPremium?: boolean;
   userLoggedIn?: boolean;
 }
@@ -15,6 +27,8 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
   const { user } = useUserStore();
   const [hasPremium, setHasPremium] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const authorName = audio.author?.username || audio.author?.wallet_address || 'Unknown Author';
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -42,12 +56,14 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
           {audio.author?.avatar_url ? (
             <img 
               src={audio.author.avatar_url} 
-              alt={audio.author.full_name || 'Author'} 
+              alt={authorName} 
               className="w-full h-full object-cover" 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500/20 to-purple-500/20">
-              <UserIcon className="h-6 w-6 text-blue-400/70" />
+              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs">
+                {authorName.charAt(0).toUpperCase()}
+              </div>
             </div>
           )}
         </div>
@@ -65,13 +81,13 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
           )}
           
           <div className="mt-1 flex items-center text-xs text-gray-400">
+            <span>{authorName}</span>
             {audio.duration && (
               <>
-                <span>{formatDuration(audio.duration)}</span>
                 <span className="mx-2">•</span>
+                <span>{formatDuration(audio.duration)}</span>
               </>
             )}
-            <span>{new Date(audio.created_at).toLocaleDateString()}</span>
           </div>
         </div>
 
