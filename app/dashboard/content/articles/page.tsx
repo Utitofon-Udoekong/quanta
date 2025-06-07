@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { type Article } from '@/app/types';
 import Link from 'next/link';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/app/components/helpers/toast';
@@ -110,7 +110,7 @@ export default function ArticlesPage() {
           href="/dashboard/content/articles/new"
           className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
         >
-          <PlusIcon className="h-5 w-5 mr-2" />
+          <Icon icon="heroicons:plus" className="h-5 w-5 mr-2" />
           New Article
         </Link>
       </div>
@@ -155,13 +155,13 @@ export default function ArticlesPage() {
                       onClick={() => router.push(`/dashboard/content/articles/${article.id}/edit`)}
                       className="text-purple-400 hover:text-purple-300 mr-4"
                     >
-                      <PencilIcon className="h-5 w-5" />
+                      <Icon icon="heroicons:pencil" className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(article.id)}
                       className="text-red-400 hover:text-red-300"
                     >
-                      <TrashIcon className="h-5 w-5" />
+                      <Icon icon="heroicons:trash" className="h-5 w-5" />
                     </button>
                   </td>
                 </tr>

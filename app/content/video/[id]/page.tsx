@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, use } from "react";
-import { type Video } from "@/app/types";
+import { UserData, type Video } from "@/app/types";
 import Link from 'next/link';
-import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomVideoPlayer from '@/app/components/ui/CustomVideoPlayer';
@@ -36,7 +36,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
             ...videoData,
             author: {
               id: user.id,
-              full_name: user.full_name,
+              username: user.username,
               avatar_url: user.avatar_url,
             }
           };
@@ -94,14 +94,14 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
         href="/"
           className="inline-flex items-center text-green-400 hover:text-green-300 mb-6"
         >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
+          <Icon icon="material-symbols:arrow-back" className="h-4 w-4 mr-1" />
         Back to Home
         </Link>
 
         <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
           <div className="p-8">
             <div className="mb-6">
-              <AuthorInfo author={video.author} createdAt={video.created_at} />
+              <AuthorInfo author={video.author as UserData} />
             </div>
 
             <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
@@ -114,12 +114,12 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
 
             <div className="flex items-center text-sm text-gray-400 mb-8">
               <div className="flex items-center mr-4">
-                <CalendarIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                 {new Date(video.created_at).toLocaleDateString()}
               </div>
               {video.duration && (
                 <div className="flex items-center">
-                  <ClockIcon className="h-4 w-4 mr-1" />
+                  <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
                   {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                 </div>
               )}

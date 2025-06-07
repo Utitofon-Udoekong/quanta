@@ -4,16 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabase } from '@/app/utils/supabase';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
-import { 
-  DocumentTextIcon, 
-  VideoCameraIcon, 
-  MusicalNoteIcon,
-  ChartBarIcon,
-  EyeIcon,
-  CurrencyDollarIcon,
-  PlusIcon,
-  PencilIcon,
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
 
@@ -202,11 +193,11 @@ export default function ContentManagement() {
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'article':
-        return <DocumentTextIcon className="w-5 h-5 text-blue-400" />;
+        return <Icon icon="material-symbols:article" className="w-5 h-5 text-blue-400" />;
       case 'video':
-        return <VideoCameraIcon className="w-5 h-5 text-green-400" />;
+        return <Icon icon="material-symbols:videocam" className="w-5 h-5 text-green-400" />;
       case 'audio':
-        return <MusicalNoteIcon className="w-5 h-5 text-purple-400" />;
+        return <Icon icon="material-symbols:music-note" className="w-5 h-5 text-purple-400" />;
       default:
         return null;
     }
@@ -262,7 +253,7 @@ export default function ContentManagement() {
                 <h3 className="text-2xl font-bold">{stats.articles + stats.videos + stats.audio}</h3>
               </div>
               <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <ChartBarIcon className="w-5 h-5 text-blue-400" />
+                <Icon icon="material-symbols:article" className="w-5 h-5 text-blue-400" />
               </div>
             </div>
           </div>
@@ -274,7 +265,7 @@ export default function ContentManagement() {
                 <h3 className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</h3>
               </div>
               <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                <EyeIcon className="w-5 h-5 text-green-400" />
+                <Icon icon="material-symbols:visibility" className="w-5 h-5 text-green-400" />
               </div>
             </div>
           </div>
@@ -286,7 +277,7 @@ export default function ContentManagement() {
                 <h3 className="text-2xl font-bold">${stats.totalEarnings.toFixed(2)}</h3>
               </div>
               <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                <CurrencyDollarIcon className="w-5 h-5 text-purple-400" />
+                <Icon icon="material-symbols:currency-exchange" className="w-5 h-5 text-purple-400" />
               </div>
             </div>
           </div>
@@ -301,21 +292,21 @@ export default function ContentManagement() {
               href="/dashboard/content/articles/create" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
                   >
-              <DocumentTextIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:article" className="w-4 h-4 mr-2" />
               New Article
                   </Link>
                           <Link 
               href="/dashboard/content/videos/create" 
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
                           >
-              <VideoCameraIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:videocam" className="w-4 h-4 mr-2" />
               New Video
                           </Link>
                   <Link 
               href="/dashboard/content/audio/create" 
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
             >
-              <MusicalNoteIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:music-note" className="w-4 h-4 mr-2" />
               New Audio
                           </Link>
                         </div>
@@ -324,7 +315,7 @@ export default function ContentManagement() {
         {allContent.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ChartBarIcon className="w-8 h-8 text-gray-400" />
+              <Icon icon="material-symbols:article" className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No Content Yet</h3>
             <p className="text-gray-400 mb-6">Create your first piece of content to get started.</p>
@@ -332,7 +323,7 @@ export default function ContentManagement() {
                   href="/dashboard/content/articles/create" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center"
                 >
-              <PlusIcon className="w-5 h-5 mr-2" />
+              <Icon icon="material-symbols:add" className="w-5 h-5 mr-2" />
               Create Content
                 </Link>
           </div>

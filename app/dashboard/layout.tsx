@@ -2,27 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  HomeIcon, 
-  RectangleStackIcon, 
-  ChartBarIcon, 
-  CreditCardIcon, 
-  UserCircleIcon,
-  ArrowLeftStartOnRectangleIcon,
-  KeyIcon,
-  Bars3Icon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import { useKeplr } from '@/app/providers/KeplrProvider';
 
 const navigation = [
-  { name: 'Overview', href: '/dashboard', icon: HomeIcon },
-  { name: 'Content', href: '/dashboard/content', icon: RectangleStackIcon },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
-  { name: 'Earnings', href: '/dashboard/earnings', icon: CreditCardIcon },
-  { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: KeyIcon },
-  { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon },
+  { name: 'Overview', href: '/dashboard', icon: 'mdi:home' },
+  { name: 'Content', href: '/dashboard/content', icon: 'mdi:stack-overflow' },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: 'mdi:chart-bar' },
+  { name: 'Earnings', href: '/dashboard/earnings', icon: 'mdi:credit-card' },
+  { name: 'Subscriptions', href: '/dashboard/subscriptions', icon: 'mdi:key' },
+  { name: 'Profile', href: '/dashboard/profile', icon: 'mdi:account-circle' },
 ];
 
 export default function DashboardLayout({
@@ -78,7 +68,7 @@ export default function DashboardLayout({
               className="lg:hidden text-gray-400 hover:text-white"
               onClick={() => setSidebarOpen(false)}
             >
-              <XMarkIcon className="w-6 h-6" />
+              <Icon icon="mdi:close" className="w-6 h-6" />
             </button>
           </div>
 
@@ -96,7 +86,7 @@ export default function DashboardLayout({
                           : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                       }`}
                     >
-                      <item.icon className="w-5 h-5 mr-3" />
+                      <Icon icon={item.icon} className="w-5 h-5 mr-3" />
                       {item.name}
                     </Link>
                   );
@@ -117,7 +107,7 @@ export default function DashboardLayout({
               href="/" 
               className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors duration-200"
             >
-              <ArrowLeftStartOnRectangleIcon className="w-5 h-5 mr-3" />
+              <Icon icon="mdi:arrow-left-circle" className="w-5 h-5 mr-3" />
               Back to Home
             </Link>
           </div>
@@ -131,7 +121,7 @@ export default function DashboardLayout({
             className="text-gray-400 hover:text-white"
             onClick={() => setSidebarOpen(true)}
           >
-            <Bars3Icon className="w-6 h-6" />
+            <Icon icon="mdi:menu" className="w-6 h-6" />
           </button>
           <Link href="/" className="flex items-center">
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { type Video, UserData } from "@/app/types";
 import Link from 'next/link';
-import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomVideoPlayer from '@/app/components/ui/CustomVideoPlayer';
@@ -105,7 +105,7 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
           href="/dashboard/content/videos"
           className="inline-flex items-center text-green-400 hover:text-green-300 mb-6"
         >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
+          <Icon icon="material-symbols:arrow-back" className="h-4 w-4 mr-1" />
           Back
         </Link>
 
@@ -127,12 +127,12 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
 
             <div className="flex items-center text-sm text-gray-400 mb-8">
               <div className="flex items-center mr-4">
-                <CalendarIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                 {new Date(video.created_at).toLocaleDateString()}
               </div>
               {video.duration && (
                 <div className="flex items-center">
-                  <ClockIcon className="h-4 w-4 mr-1" />
+                  <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
                   {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                 </div>
               )}

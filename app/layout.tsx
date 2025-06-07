@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
 import UserProvider from '@/app/providers/UserProvider';
 import { KeplrProvider } from '@/app/providers/KeplrProvider';
+import LayoutShell from '@/app/components/LayoutShell';
 
 const treasuryConfig = {
     treasury: process.env.treasuryAddress ?? '',
@@ -31,7 +32,9 @@ export default function RootLayout({
             <body className={inter.className}>
                 <AbstraxionProvider config={treasuryConfig}>
                     <UserProvider>
-                        {children}
+                        <LayoutShell>
+                            {children}
+                        </LayoutShell>
                         <Toaster position="bottom-right" />
                     </UserProvider>
                 </AbstraxionProvider>

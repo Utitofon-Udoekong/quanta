@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Audio } from '@/app/types';
-import { PencilIcon, TrashIcon, MusicalNoteIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface AudioCardProps {
   audio: Audio;
@@ -37,7 +37,7 @@ export default function AudioCard({ audio, onDelete }: AudioCardProps) {
               href={`/dashboard/content/audio/${audio.id}/edit`}
               className="text-purple-400 hover:text-purple-300 transition-colors flex items-center"
             >
-              <PencilIcon className="w-4 h-4 mr-1" />
+              <Icon icon="material-symbols:edit" className="w-4 h-4 mr-1" />
               Edit
             </Link>
             <Link 
@@ -45,7 +45,7 @@ export default function AudioCard({ audio, onDelete }: AudioCardProps) {
               className="text-gray-400 hover:text-gray-300 transition-colors flex items-center"
             //   target="_blank"
             >
-              <EyeIcon className="w-4 h-4 mr-1" />
+              <Icon icon="material-symbols:visibility" className="w-4 h-4 mr-1" />
               View
             </Link>
           </div>
@@ -53,7 +53,7 @@ export default function AudioCard({ audio, onDelete }: AudioCardProps) {
             onClick={() => onDelete(audio.id)}
             className="text-red-400 hover:text-red-300 transition-colors flex items-center"
           >
-            <TrashIcon className="w-4 h-4 mr-1" />
+            <Icon icon="material-symbols:delete" className="w-4 h-4 mr-1" />
             Delete
           </button>
         </div>

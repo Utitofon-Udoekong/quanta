@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from "@burnt-labs/ui";
-import {
-  UserCircleIcon,
-  KeyIcon,
-  ShieldCheckIcon,
-  WalletIcon,
-  PhotoIcon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { UserData } from "@/app/types";
 import { toast } from "@/app/components/helpers/toast";
 import { useUserStore } from "@/app/stores/user";
@@ -157,7 +150,7 @@ export default function ProfilePage() {
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
               <div className="p-6 border-b border-gray-700/50">
                 <div className="flex items-center space-x-3">
-                  <UserCircleIcon className="w-5 h-5 text-blue-400" />
+                  <Icon icon="heroicons:user-circle" className="w-5 h-5 text-blue-400" />
                   <h2 className="text-xl font-semibold">Basic Information</h2>
                 </div>
               </div>
@@ -173,7 +166,7 @@ export default function ProfilePage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <PhotoIcon className="w-10 h-10 text-gray-400" />
+                        <Icon icon="heroicons:photo" className="w-10 h-10 text-gray-400" />
                       )}
                     </div>
                     <button
@@ -217,7 +210,7 @@ export default function ProfilePage() {
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
               <div className="p-6 border-b border-gray-700/50">
                 <div className="flex items-center space-x-3">
-                  <ShieldCheckIcon className="w-5 h-5 text-green-400" />
+                  <Icon icon="heroicons:shield-check" className="w-5 h-5 text-green-400" />
                   <h2 className="text-xl font-semibold">Account Status</h2>
                 </div>
               </div>
@@ -255,7 +248,7 @@ export default function ProfilePage() {
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
               <div className="p-6 border-b border-gray-700/50">
                 <div className="flex items-center space-x-3">
-                  <WalletIcon className="w-5 h-5 text-purple-400" />
+                  <Icon icon="heroicons:wallet" className="w-5 h-5 text-purple-400" />
                   <h2 className="text-xl font-semibold">Wallet</h2>
                 </div>
               </div>
@@ -286,7 +279,7 @@ export default function ProfilePage() {
             <div className="bg-gray-800/30 rounded-xl border border-gray-700/50 overflow-hidden">
               <div className="p-6 border-b border-gray-700/50">
                 <div className="flex items-center space-x-3">
-                  <KeyIcon className="w-5 h-5 text-red-400" />
+                  <Icon icon="heroicons:key" className="w-5 h-5 text-red-400" />
                   <h2 className="text-xl font-semibold">Account Actions</h2>
                 </div>
               </div>
@@ -319,7 +312,7 @@ export default function ProfilePage() {
                   onClick={() => setShowTokenBalances(false)}
                   className="text-gray-400 hover:text-white"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <Icon icon="heroicons:x-mark" className="h-5 w-5" />
                 </button>
               </div>
               <div className="space-y-3">

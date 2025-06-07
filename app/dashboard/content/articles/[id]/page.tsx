@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { type Article, UserData } from '@/app/types';
 import Link from 'next/link';
-import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import MarkdownViewer from '@/app/components/ui/MarkdownViewer';
 import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
@@ -121,7 +121,7 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
           href="/dashboard/content/articles" 
           className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6"
         >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
+          <Icon icon="material-symbols:arrow-back" className="h-4 w-4 mr-1" />
           Back to Articles
         </Link>
         
@@ -143,11 +143,11 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
             
             <div className="flex items-center text-sm text-gray-400 mb-8">
               <div className="flex items-center mr-4">
-                <CalendarIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                 {new Date(article.created_at).toLocaleDateString()}
               </div>
               <div className="flex items-center">
-                <ClockIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
                 {Math.ceil(article.content.split(' ').length / 200)} min read
               </div>
             </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { PlayIcon, UserIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { hasActivePremiumSubscription } from '@/app/utils/subscription';
 import { useUserStore } from '@/app/stores/user';
 import { useEffect, useState } from 'react';
@@ -98,7 +98,7 @@ export default function AudioCard({ audio, isPremium = false, userLoggedIn = fal
             href={getContentLink()}
             className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center hover:bg-blue-500/30 transition-colors"
           >
-            <PlayIcon className="h-4 w-4 text-blue-400" />
+            <Icon icon="mdi:play" className="h-4 w-4 text-blue-400" />
           </Link>
 
           {/* Premium badge or action button */}

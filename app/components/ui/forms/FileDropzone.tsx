@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface FileDropzoneProps {
   onFileSelect: (file: File) => void;
@@ -46,7 +46,7 @@ export default function FileDropzone({
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center space-y-3 text-center">
-          <CloudArrowUpIcon className={`w-12 h-12 ${isDragActive ? 'text-indigo-500' : 'text-gray-400'}`} />
+          <Icon icon="mdi:cloud-upload" className={`w-12 h-12 ${isDragActive ? 'text-indigo-500' : 'text-gray-400'}`} />
           <div className="text-sm">
             {file ? (
               <p className="text-indigo-400">Selected: {file.name}</p>

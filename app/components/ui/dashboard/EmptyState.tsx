@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface EmptyStateProps {
   title: string;
@@ -41,7 +41,7 @@ export default function EmptyState({
         href={actionHref}
         className={`${buttonClasses[color]} text-white px-4 py-2 rounded-lg transition-colors inline-flex items-center`}
       >
-        <PlusIcon className="w-4 h-4 mr-2" />
+        <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
         {actionText}
       </Link>
     </div>

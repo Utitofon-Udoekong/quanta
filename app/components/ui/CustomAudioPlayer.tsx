@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { 
-  PlayIcon, 
-  PauseIcon, 
-  SpeakerWaveIcon, 
-  SpeakerXMarkIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface CustomAudioPlayerProps {
   src: string;
@@ -108,11 +102,11 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
           disabled={isLoading}
         >
           {isLoading ? (
-            <ArrowPathIcon className="h-5 w-5 text-gray-400 animate-spin" />
+            <Icon icon="mdi:reload" className="h-5 w-5 text-gray-400 animate-spin" />
           ) : isPlaying ? (
-            <PauseIcon className="h-5 w-5 text-purple-400" />
+            <Icon icon="mdi:pause" className="h-5 w-5 text-purple-400" />
           ) : (
-            <PlayIcon className="h-5 w-5 text-purple-400" />
+            <Icon icon="mdi:play" className="h-5 w-5 text-purple-400" />
           )}
         </button>
         
@@ -150,9 +144,9 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
             className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
           >
             {isMuted ? (
-              <SpeakerXMarkIcon className="h-5 w-5 text-gray-400" />
+              <Icon icon="mdi:volume-off" className="h-5 w-5 text-gray-400" />
             ) : (
-              <SpeakerWaveIcon className="h-5 w-5 text-gray-400" />
+              <Icon icon="mdi:volume-high" className="h-5 w-5 text-gray-400" />
             )}
           </button>
           <input

@@ -15,9 +15,9 @@ export default function UserProvider({
   useEffect(() => {
     if (account?.bech32Address) {
       fetchUser(account.bech32Address)
-    } else {
+      } else {
       clearUser()
-    }
+      }
   }, [account?.bech32Address, fetchUser, clearUser])
 
   return children

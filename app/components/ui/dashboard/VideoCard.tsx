@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Video } from '@/app/types';
-import { PencilIcon, TrashIcon, VideoCameraIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface VideoCardProps {
   video: Video;
@@ -46,7 +46,7 @@ export default function VideoCard({ video, onDelete }: VideoCardProps) {
               href={`/dashboard/content/videos/${video.id}/edit`}
               className="text-green-400 hover:text-green-300 transition-colors flex items-center"
             >
-              <PencilIcon className="w-4 h-4 mr-1" />
+              <Icon icon="material-symbols:edit" className="w-4 h-4 mr-1" />
               Edit
             </Link>
             <Link 
@@ -54,7 +54,7 @@ export default function VideoCard({ video, onDelete }: VideoCardProps) {
               className="text-gray-400 hover:text-gray-300 transition-colors flex items-center"
             //   target="_blank"
             >
-              <EyeIcon className="w-4 h-4 mr-1" />
+              <Icon icon="material-symbols:visibility" className="w-4 h-4 mr-1" />
               View
             </Link>
           </div>
@@ -62,7 +62,7 @@ export default function VideoCard({ video, onDelete }: VideoCardProps) {
             onClick={() => onDelete(video.id)}
             className="text-red-400 hover:text-red-300 transition-colors flex items-center"
           >
-            <TrashIcon className="w-4 h-4 mr-1" />
+            <Icon icon="material-symbols:delete" className="w-4 h-4 mr-1" />
             Delete
           </button>
         </div>

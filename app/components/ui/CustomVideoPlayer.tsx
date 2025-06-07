@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { 
-  PlayIcon, 
-  PauseIcon, 
-  SpeakerWaveIcon, 
-  SpeakerXMarkIcon,
-  ArrowPathIcon,
-  ArrowsPointingOutIcon,
-  ArrowsPointingInIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 interface CustomVideoPlayerProps {
   src: string;
@@ -167,11 +159,11 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
             disabled={isLoading}
           >
             {isLoading ? (
-              <ArrowPathIcon className="h-5 w-5 text-white animate-spin" />
+              <Icon icon="mdi:reload" className="h-5 w-5 text-white animate-spin" />
             ) : isPlaying ? (
-              <PauseIcon className="h-5 w-5 text-white" />
+              <Icon icon="mdi:pause" className="h-5 w-5 text-white" />
             ) : (
-              <PlayIcon className="h-5 w-5 text-white" />
+              <Icon icon="mdi:play" className="h-5 w-5 text-white" />
             )}
           </button>
           
@@ -209,9 +201,9 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
               className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
             >
               {isMuted ? (
-                <SpeakerXMarkIcon className="h-5 w-5 text-white" />
+                <Icon icon="mdi:volume-off" className="h-5 w-5 text-white" />
               ) : (
-                <SpeakerWaveIcon className="h-5 w-5 text-white" />
+                <Icon icon="mdi:volume-high" className="h-5 w-5 text-white" />
               )}
             </button>
             <input
@@ -241,9 +233,9 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
               className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
             >
               {isFullscreen ? (
-                <ArrowsPointingInIcon className="h-5 w-5 text-white" />
+                <Icon icon="mdi:fullscreen-exit" className="h-5 w-5 text-white" />
               ) : (
-                <ArrowsPointingOutIcon className="h-5 w-5 text-white" />
+                <Icon icon="mdi:fullscreen" className="h-5 w-5 text-white" />
               )}
             </button>
           </div>

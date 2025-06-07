@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Video } from '@/app/types';
-import { PlayIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { hasActivePremiumSubscription } from '@/app/utils/subscription';
 import { useUserStore } from '@/app/stores/user';
 import { useEffect, useState } from 'react';
@@ -47,14 +47,14 @@ export default function VideoCard({ video, isPremium = false, userLoggedIn = fal
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-            <PlayIcon className="h-16 w-16 text-blue-400/70" />
+            <Icon icon="mdi:play" className="h-16 w-16 text-blue-400/70" />
           </div>
         )}
         
         {/* Play button overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="bg-blue-500 rounded-full p-4 shadow-lg">
-            <PlayIcon className="h-8 w-8 text-white" />
+            <Icon icon="mdi:play" className="h-8 w-8 text-white" />
           </div>
         </div>
 

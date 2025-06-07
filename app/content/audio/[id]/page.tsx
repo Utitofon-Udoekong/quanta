@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, use } from "react";
-import { type Audio } from "@/app/types";
+import { UserData, type Audio } from "@/app/types";
 import Link from 'next/link';
-import { ArrowLeftIcon, ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
@@ -34,7 +34,7 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         ...audioData,
                         author: {
                             id: user.id,
-                            full_name: user.full_name,
+                            username: user.username,
                             avatar_url: user.avatar_url,
                         }
                     };
@@ -92,14 +92,14 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                 href="/" 
                     className="inline-flex items-center text-purple-400 hover:text-purple-300 mb-6"
                 >
-                    <ArrowLeftIcon className="h-4 w-4 mr-1" />
+                    <Icon icon="material-symbols:arrow-back" className="h-4 w-4 mr-1" />
                 Back to Home
                 </Link>
                 
                 <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg overflow-hidden">
                     <div className="p-8">
                         <div className="mb-6">
-                            <AuthorInfo author={audio.author} createdAt={audio.created_at} />
+                            <AuthorInfo author={audio.author as UserData} />
                         </div>
                         
                         <h1 className="text-3xl font-bold mb-4">{audio.title}</h1>
@@ -112,12 +112,12 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         
                         <div className="flex items-center text-sm text-gray-400 mb-8">
                             <div className="flex items-center mr-4">
-                                <CalendarIcon className="h-4 w-4 mr-1" />
+                                <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                                 {new Date(audio.created_at).toLocaleDateString()}
                             </div>
                             {audio.duration && (
                                 <div className="flex items-center">
-                                    <ClockIcon className="h-4 w-4 mr-1" />
+                                    <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
                                     {Math.floor(audio.duration / 60)}:{(audio.duration % 60).toString().padStart(2, '0')}
                                 </div>
                             )}

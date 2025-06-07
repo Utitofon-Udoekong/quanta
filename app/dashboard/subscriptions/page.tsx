@@ -11,17 +11,8 @@ import { useUserStore } from '@/app/stores/user';
 import { useKeplr } from '@/app/providers/KeplrProvider';
 import { tokenDenoms, DECIMALS } from '@/app/utils/xion';
 import { Subscription, SubscriptionPlan, SubscriptionPayment, Token } from '@/app/types/index';
-import {
-    CheckCircleIcon,
-    XCircleIcon,
-    ClockIcon,
-    ArrowPathIcon,
-    ClipboardIcon,
-    ClipboardDocumentCheckIcon,
-    ExclamationTriangleIcon,
-    XMarkIcon,
-    SparklesIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
+
 import {
     formatXionAmount,
     formatUsdAmount,
@@ -691,13 +682,13 @@ export default function SubscriptionsPage() {
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'active':
-                return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+                return <Icon icon="material-symbols:check-circle" className="h-5 w-5 text-green-500" />;
             case 'canceled':
-                return <XCircleIcon className="h-5 w-5 text-red-500" />;
+                return <Icon icon="material-symbols:cancel" className="h-5 w-5 text-red-500" />;
             case 'expired':
-                return <XCircleIcon className="h-5 w-5 text-gray-500" />;
+                return <Icon icon="material-symbols:cancel" className="h-5 w-5 text-gray-500" />;
             case 'past_due':
-                return <ClockIcon className="h-5 w-5 text-yellow-500" />;
+                return <Icon icon="material-symbols:schedule" className="h-5 w-5 text-yellow-500" />;
             default:
                 return null;
         }
@@ -706,13 +697,13 @@ export default function SubscriptionsPage() {
     const getPaymentStatusIcon = (status: string | null) => {
         switch (status) {
             case 'succeeded':
-                return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+                return <Icon icon="material-symbols:check-circle" className="h-5 w-5 text-green-500" />;
             case 'failed':
-                return <XCircleIcon className="h-5 w-5 text-red-500" />;
+                return <Icon icon="material-symbols:cancel" className="h-5 w-5 text-red-500" />;
             case 'pending':
-                return <ClockIcon className="h-5 w-5 text-yellow-500" />;
+                return <Icon icon="material-symbols:schedule" className="h-5 w-5 text-yellow-500" />;
             case 'refunded':
-                return <ArrowPathIcon className="h-5 w-5 text-blue-500" />;
+                return <Icon icon="material-symbols:refresh" className="h-5 w-5 text-blue-500" />;
             default:
                 return null;
         }
@@ -748,10 +739,10 @@ export default function SubscriptionsPage() {
                     </div>
                 )}
                 {step.status === 'completed' && (
-                    <CheckCircleIcon className="w-6 h-6 text-green-500" />
+                    <Icon icon="material-symbols:check-circle" className="w-6 h-6 text-green-500" />
                 )}
                 {step.status === 'error' && (
-                    <XCircleIcon className="w-6 h-6 text-red-500" />
+                    <Icon icon="material-symbols:cancel" className="w-6 h-6 text-red-500" />
                 )}
             </div>
             <div className="flex-grow">
@@ -852,7 +843,7 @@ export default function SubscriptionsPage() {
                                                 {subscription.cancel_at_period_end && (
                                                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                                                         <div className="flex items-start">
-                                                            <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
+                                                            <Icon icon="material-symbols:warning" className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0 mt-0.5" />
                                                             <div>
                                                                 <p className="text-sm text-yellow-500 font-medium">Subscription Ending</p>
                                                                 <p className="text-xs text-yellow-500/80 mt-1">
@@ -868,7 +859,7 @@ export default function SubscriptionsPage() {
                                         <div className="col-span-2">
                                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
                                                 <div className="flex items-start">
-                                                    <SparklesIcon className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
+                                                    <Icon icon="material-symbols:star" className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
                                                     <div>
                                                         <p className="text-sm text-blue-400 font-medium">Upgrade Available</p>
                                                         <p className="text-xs text-blue-400/80 mt-1">
@@ -886,7 +877,7 @@ export default function SubscriptionsPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {subscription.plan.features.features.map((feature: string, index: number) => (
                                             <div key={index} className="flex items-center space-x-2">
-                                                <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                                <Icon icon="material-symbols:check-circle" className="h-4 w-4 text-green-500" />
                                                 <span className="text-sm text-gray-300">{feature}</span>
                                             </div>
                                         ))}
@@ -905,7 +896,7 @@ export default function SubscriptionsPage() {
                                     className="text-gray-400 hover:text-white transition-colors"
                                     title="Refresh balance"
                                 >
-                                    <ArrowPathIcon className="h-4 w-4" />
+                                    <Icon icon="material-symbols:refresh" className="h-4 w-4" />
                                 </button>
                             )}
                         </div>
@@ -921,9 +912,9 @@ export default function SubscriptionsPage() {
                                         className="text-gray-400 hover:text-white transition-colors"
                                     >
                                         {copied ? (
-                                            <ClipboardDocumentCheckIcon className="h-4 w-4 text-green-500" />
+                                            <Icon icon="material-symbols:check-circle" className="h-4 w-4 text-green-500" />
                                         ) : (
-                                            <ClipboardIcon className="h-4 w-4" />
+                                            <Icon icon="material-symbols:content-copy" className="h-4 w-4" />
                                         )}
                                     </button>
                                 </div>
@@ -1024,7 +1015,7 @@ export default function SubscriptionsPage() {
                                         <div className="space-y-3 mb-6">
                                             {plan.features.features.map((feature: string, index: number) => (
                                                 <div key={index} className="flex items-start">
-                                                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                                                    <Icon icon="material-symbols:check-circle" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
                                                     <span className="text-sm">{feature}</span>
                                                 </div>
                                             ))}
@@ -1143,7 +1134,7 @@ export default function SubscriptionsPage() {
                                             onClick={closePayment}
                                             className="text-gray-400 hover:text-white"
                                         >
-                                            <XMarkIcon className="h-5 w-5" />
+                                            <Icon icon="material-symbols:close" className="h-5 w-5" />
                                         </button>
                                     )}
                             </div>
@@ -1158,7 +1149,7 @@ export default function SubscriptionsPage() {
                             {Object.values(subscriptionProgress).some(step => step.status === 'error') && (
                                 <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
                                     <div className="flex items-start">
-                                        <XCircleIcon className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                                        <Icon icon="material-symbols:close" className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
                                         <div>
                                             <p className="text-sm text-red-400 font-medium">Payment Failed</p>
                                             <p className="text-xs text-red-400/80 mt-1">
@@ -1212,7 +1203,7 @@ export default function SubscriptionsPage() {
                                     onClick={() => setShowSelectCoinModal(false)}
                                     className="text-gray-400 hover:text-white"
                                 >
-                                    <XMarkIcon className="h-5 w-5" />
+                                    <Icon icon="material-symbols:close" className="h-5 w-5" />
                                 </button>
                             </div>
                             <div className="space-y-4">
@@ -1231,7 +1222,7 @@ export default function SubscriptionsPage() {
                                         />
                                         <span className="text-white">{token.symbol}</span>
                                         {selectedToken?.base === token.base && (
-                                            <CheckCircleIcon className="size-5 text-green-500 ml-auto" />
+                                            <Icon icon="material-symbols:check-circle" className="size-5 text-green-500 ml-auto" />
                                         )}
                                     </button>
                                 ))}
@@ -1265,7 +1256,7 @@ export default function SubscriptionsPage() {
                                     onClick={() => setShowConfirmationModal(false)}
                                     className="text-gray-400 hover:text-white"
                                 >
-                                    <XMarkIcon className="h-5 w-5" />
+                                    <Icon icon="material-symbols:close" className="h-5 w-5" />
                                 </button>
                             </div>
 
@@ -1295,7 +1286,7 @@ export default function SubscriptionsPage() {
                                 </div>
 
                                 <div className="flex items-start text-yellow-400 text-sm">
-                                    <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                                    <Icon icon="material-symbols:warning" className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
                                     <p>
                                         By confirming, you authorize us to charge your Xion wallet for the subscription amount.
                                         The subscription will automatically renew at the end of each billing period unless canceled.

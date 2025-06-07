@@ -2,12 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  DocumentTextIcon, 
-  VideoCameraIcon, 
-  MusicalNoteIcon,
-  ChartBarIcon
-} from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 
 export default function ContentLayout({
   children,
@@ -45,7 +40,7 @@ export default function ContentLayout({
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <ChartBarIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:bar-chart" className="w-4 h-4 mr-2" />
               Overview
             </Link>
             <Link
@@ -56,7 +51,7 @@ export default function ContentLayout({
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <DocumentTextIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:article" className="w-4 h-4 mr-2" />
               Articles
             </Link>
             <Link
@@ -67,7 +62,7 @@ export default function ContentLayout({
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <VideoCameraIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:videocam" className="w-4 h-4 mr-2" />
               Videos
             </Link>
             <Link
@@ -78,7 +73,7 @@ export default function ContentLayout({
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <MusicalNoteIcon className="w-4 h-4 mr-2" />
+              <Icon icon="material-symbols:music-note" className="w-4 h-4 mr-2" />
               Audio
             </Link>
           </div>

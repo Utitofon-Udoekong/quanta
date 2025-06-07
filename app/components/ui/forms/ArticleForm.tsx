@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/app/utils/supabase';
 import { Article } from '@/app/types';
 import { toast } from '@/app/components/helpers/toast';
-import { EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from 'remark-gfm';
@@ -234,12 +234,12 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
           >
             {previewMode === 'preview' ? (
               <>
-                <PencilIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:edit" className="h-4 w-4 mr-1" />
                 Edit
               </>
             ) : (
               <>
-                <EyeIcon className="h-4 w-4 mr-1" />
+                <Icon icon="material-symbols:visibility" className="h-4 w-4 mr-1" />
                 Preview
               </>
             )}

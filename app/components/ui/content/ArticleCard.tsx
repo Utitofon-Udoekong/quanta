@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Article } from '@/app/types';
-import { DocumentTextIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { Icon } from '@iconify/react';
 import { hasActivePremiumSubscription } from '@/app/utils/subscription';
 import { useUserStore } from '@/app/stores/user';
 import { useEffect, useState } from 'react';
@@ -51,7 +51,7 @@ export default function ArticleCard({ article, isPremium = false, userLoggedIn =
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500/10 to-teal-500/10">
-              <DocumentTextIcon className="h-12 w-12 text-blue-400/70" />
+              <Icon icon="material-symbols:article" className="h-12 w-12 text-blue-400/70" />
             </div>
           )}
 
@@ -78,7 +78,7 @@ export default function ArticleCard({ article, isPremium = false, userLoggedIn =
           
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center text-xs text-gray-400">
-              <ClockIcon className="h-4 w-4 mr-1" />
+              <Icon icon="mdi:clock-outline" className="h-4 w-4 mr-1" />
               <span>{readingTime} min read</span>
               <span className="mx-2">•</span>
               <span>{new Date(article.created_at).toLocaleDateString()}</span>
