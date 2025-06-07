@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from "react";
-import { UserData, type Video } from "@/app/types";
+import { UserData, type VideoContent, type Content } from "@/app/types";
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 
 export default function VideoPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [video, setVideo] = useState<Video | null>(null);
+  const [video, setVideo] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { id } = use(params);
@@ -106,9 +106,9 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
 
             <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
 
-            {video.description && (
+            {(video as VideoContent).description && (
               <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-green-500 pl-4">
-                {video.description}
+                {(video as VideoContent).description || ''}
               </p>
             )}
 
@@ -117,16 +117,17 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
                 <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                 {new Date(video.created_at).toLocaleDateString()}
               </div>
-              {video.duration && (
+              {(video as VideoContent).duration && (
                 <div className="flex items-center">
                   <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
-                  {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
+                  {Math.floor((video as VideoContent).duration || 0 / 60)}:
+                  {((video as VideoContent).duration || 0 % 60).toString().padStart(2, '0')}
                 </div>
               )}
             </div>
 
             <CustomVideoPlayer
-              src={video.video_url}
+              src={(video as VideoContent).video_url || ''}
               poster={video.thumbnail_url}
               title={video.title}
               className="mb-6"

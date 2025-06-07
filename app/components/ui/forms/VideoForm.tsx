@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/app/utils/supabase';
-import { Video } from '@/app/types';
+import { type Content, VideoContent } from '@/app/types';
 import FileDropzone from './FileDropzone';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
 import { toast } from '@/app/components/helpers/toast';
 
 type VideoFormProps = {
-  video?: Video;
+  video?: Content;
   isEditing?: boolean;
 };
 
@@ -38,7 +38,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
     'image/webp': ['.webp']
   };
   
-  const [formData, setFormData] = useState(initialState);
+  const [formData, setFormData] = useState<VideoContent>(initialState as VideoContent);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
     const duration = getDuration(file, 'video');
     setFormData({
       ...formData,
-      duration: duration,
+      duration: duration as number,
     });
     setVideoFile(file);
     setError(undefined);
@@ -217,7 +217,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
           name="description"
           id="description"
           rows={4}
-          value={formData.description || ''}
+          value={(formData as VideoContent).description || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
@@ -234,7 +234,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
           file={videoFile}
           label="Video File"
           error={error}
-          currentFileUrl={formData.video_url}
+          currentFileUrl={(formData as VideoContent).video_url}
           isEditing={isEditing}
         />
       </div>
@@ -250,7 +250,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
           file={thumbnailFile}
           label="Thumbnail"
           error={thumbnailError}
-          currentFileUrl={formData.thumbnail_url}
+          currentFileUrl={(formData as VideoContent).thumbnail_url || ''}
           isEditing={isEditing}
         />
       </div>
@@ -264,7 +264,7 @@ export default function VideoForm({ video, isEditing = false }: VideoFormProps) 
           type="url"
           name="video_url"
           id="video_url"
-          value={formData.video_url}
+          value={(formData as VideoContent).video_url || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />

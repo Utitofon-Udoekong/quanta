@@ -3,10 +3,10 @@
 import { useEffect, useState, use } from 'react';
 import { getSupabase } from '@/app/utils/supabase';
 import ArticleForm from '@/app/components/ui/forms/ArticleForm';
-import { Article } from '@/app/types';
+import { type Content } from '@/app/types';
 
 export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
-  const [article, setArticle] = useState<Article | null>(null);
+  const [article, setArticle] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);

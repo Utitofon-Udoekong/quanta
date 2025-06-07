@@ -11,7 +11,7 @@ interface ContentCardProps {
   image: string;
   title: string;
   subtitle?: string;
-  actionLabel?: 'Watch' | 'Subscribe' | 'Reminder';
+  actionLabel?: 'Watch' | 'Subscribe' | 'Reminder' | 'Read' | 'Listen';
   onAction?: () => void;
   isPremium?: boolean;
   isComingSoon?: boolean;

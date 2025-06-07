@@ -3,27 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-
-export type ContentItem = {
-  id: string;
-  title: string;
-  type: 'article' | 'video' | 'audio';
-  created_at: string;
-  published: boolean;
-  is_premium: boolean;
-  views?: number;
-  thumbnail_url?: string;
-  duration?: number;
-};
+import { Content } from '@/app/types';
 
 interface ContentTableProps {
-  content: ContentItem[];
+  content: Content[];
   onDelete?: (id: string, type: string) => void;
 }
 
 export default function ContentTable({ content, onDelete }: ContentTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredContent, setFilteredContent] = useState<ContentItem[]>([]);
+  const [filteredContent, setFilteredContent] = useState<Content[]>([]);
   const [filters, setFilters] = useState({
     type: 'all',
     status: 'all',
@@ -44,7 +33,13 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
     
     // Apply type filter
     if (filters.type !== 'all') {
-      result = result.filter(item => item.type === filters.type);
+      result = result.filter(item => {
+        let type: 'article' | 'video' | 'audio';
+        if ('video_url' in item) type = 'video';
+        else if ('audio_url' in item) type = 'audio';
+        else type = 'article';
+        return type === filters.type;
+      });
     }
     
     // Apply status filter
@@ -90,8 +85,12 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
     }
   };
 
-  const getContentTypeLink = (item: ContentItem) => {
-    switch (item.type) {
+  const getContentTypeLink = (item: Content) => {
+    let type: 'article' | 'video' | 'audio';
+    if ('video_url' in item) type = 'video';
+    else if ('audio_url' in item) type = 'audio';
+    else type = 'article';
+    switch (type) {
       case 'article':
         return `/dashboard/content/articles/${item.id}`;
       case 'video':
@@ -103,8 +102,12 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
     }
   };
 
-  const getContentEditLink = (item: ContentItem) => {
-    switch (item.type) {
+  const getContentEditLink = (item: Content) => {
+    let type: 'article' | 'video' | 'audio';
+    if ('video_url' in item) type = 'video';
+    else if ('audio_url' in item) type = 'audio';
+    else type = 'article';
+    switch (type) {
       case 'article':
         return `/dashboard/content/articles/${item.id}/edit`;
       case 'video':
@@ -239,59 +242,65 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
                 </td>
               </tr>
             ) : (
-              filteredContent.map((item) => (
-                <tr key={`${item.type}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center">
-                      {getContentTypeIcon(item.type)}
-                      <span className="ml-2 capitalize">{item.type}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 font-medium">{item.title}</td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      item.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {item.published ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      item.is_premium ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {item.is_premium ? 'Premium' : 'Free'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-3">
-                      <Link 
-                        href={getContentEditLink(item)}
-                        className={`hover:opacity-80 transition-opacity`}
-                      >
-                        <Icon icon="material-symbols:edit" className="w-4 h-4" />
-                      </Link>
-                      <Link 
-                        href={getContentTypeLink(item)}
-                        className="text-gray-400 hover:text-gray-300 transition-colors"
-                        // target="_blank"
-                      >
-                        <Icon icon="material-symbols:visibility" className="w-4 h-4" />
-                      </Link>
-                      {onDelete && (
-                        <button
-                          onClick={() => onDelete(item.id, item.type)}
-                          className="text-red-400 hover:text-red-300 transition-colors"
+              filteredContent.map((item) => {
+                let type: 'article' | 'video' | 'audio';
+                if ('video_url' in item) type = 'video';
+                else if ('audio_url' in item) type = 'audio';
+                else type = 'article';
+                return (
+                  <tr key={`${type}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center">
+                        {getContentTypeIcon(type)}
+                        <span className="ml-2 capitalize">{type}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-medium">{item.title}</td>
+                    <td className="py-3 px-4 text-gray-400">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        item.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {item.published ? 'Published' : 'Draft'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        item.is_premium ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {item.is_premium ? 'Premium' : 'Free'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex space-x-3">
+                        <Link 
+                          href={getContentEditLink(item)}
+                          className={`hover:opacity-80 transition-opacity`}
                         >
-                          <Icon icon="material-symbols:delete" className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                          <Icon icon="material-symbols:edit" className="w-4 h-4" />
+                        </Link>
+                        <Link 
+                          href={getContentTypeLink(item)}
+                          className="text-gray-400 hover:text-gray-300 transition-colors"
+                          // target="_blank"
+                        >
+                          <Icon icon="material-symbols:visibility" className="w-4 h-4" />
+                        </Link>
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(item.id, type)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <Icon icon="material-symbols:delete" className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

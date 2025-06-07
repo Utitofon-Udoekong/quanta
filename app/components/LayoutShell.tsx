@@ -7,12 +7,14 @@ import { useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
 import { useState } from 'react';
 import SearchInput from '@/app/components/ui/SearchInput';
+import { usePathname } from 'next/navigation';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
   const { logout } = useAbstraxionSigningClient();
   const [activeTab, setActiveTab] = useState('For You');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     logout?.();
@@ -62,82 +64,62 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Right Sidebar */}
-      <aside className="fixed right-0 top-0 h-screen w-64 flex flex-col justify-between py-8 px-6  bg-[#0A0C10] border-l-[0.5px] border-[#8B25FF] z-20">
-        {/* Profile Menu */}
-        <div>
-          {user && (
-            <div className="relative mb-8">
-              <button
-                className="flex items-center space-x-3 w-full focus:outline-none"
-                onClick={() => setProfileMenuOpen((open) => !open)}
-              >
-                <img src={user.avatar_url || 'https://robohash.org/149'} alt="avatar" className="w-12 h-12 rounded-full object-cover border-2 border-purple-500" />
-                <div className="flex flex-col flex-1 text-left">
-                  <span className="font-semibold text-white text-lg">{user.username || user.wallet_address?.slice(0, 8)}</span>
-                  <span className="text-xs text-purple-400">Premium ✨</span>
-                </div>
-                <Icon icon="mdi:chevron-down" className={`w-5 h-5 text-gray-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {profileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-[#181A20] rounded-lg shadow-lg border border-gray-800 z-30">
-                  <Link href="/dashboard/profile" className="block px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 rounded-t-lg">Profile</Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-800 rounded-b-lg"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
+      {pathname !== '/settings' && (
+        <aside className="fixed right-0 top-0 h-screen w-64 flex flex-col justify-between py-8 px-6  bg-[#0A0C10] border-l-[0.5px] border-[#8B25FF] z-20">
+          {/* Profile Menu */}
+          <div>
+            {user && (
+              <div className="relative mb-8">
+                <button
+                  className="flex items-center space-x-3 w-full focus:outline-none"
+                  onClick={() => setProfileMenuOpen((open) => !open)}
+                >
+                  <img src={user.avatar_url || 'https://robohash.org/149'} alt="avatar" className="w-12 h-12 rounded-full object-cover border-2 border-purple-500" />
+                  <div className="flex flex-col flex-1 text-left">
+                    <span className="font-semibold text-white text-lg">{user.username || user.wallet_address?.slice(0, 8)}</span>
+                    <span className="text-xs text-purple-400">Premium ✨</span>
+                  </div>
+                  <Icon icon="mdi:chevron-down" className={`w-5 h-5 text-gray-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {profileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-[#181A20] rounded-lg shadow-lg border border-gray-800 z-30">
+                    <Link href="/dashboard/profile" className="block px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 rounded-t-lg">Profile</Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-800 rounded-b-lg"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Search */}
+            <SearchInput className="mb-6" placeholder="Search music" />
+            {/* Quick Filters */}
+            <div className="grid grid-cols-2 gap-2">
+              {['Movie', 'Course', 'Podcast', 'Audio', 'Music', 'Comedy'].map((filter) => (
+                <button
+                  key={filter}
+                  className="px-4 py-2 rounded-full bg-[#212121]/50 text-gray-300 hover:bg-[#8B25FF] hover:text-white transition-colors font-medium text-left"
+                >
+                  {filter}
+                </button>
+              ))}
             </div>
-          )}
-          {/* Search */}
-          <SearchInput className="mb-6" placeholder="Search music" />
-          {/* Quick Filters */}
-          <div className="grid grid-cols-2 gap-2">
-            {['Movie', 'Course', 'Podcast', 'Audio', 'Music', 'Comedy'].map((filter) => (
-              <button
-                key={filter}
-                className="px-4 py-2 rounded-full bg-[#212121]/50 text-gray-300 hover:bg-[#8B25FF] hover:text-white transition-colors font-medium text-left"
-              >
-                {filter}
-              </button>
-            ))}
           </div>
-        </div>
-        {/* Optionally, add more widgets here */}
-      </aside>
+          {/* Optionally, add more widgets here */}
+        </aside>
+      )}
 
       {/* Main Content (scrollable) */}
-      <div className="ml-64 mr-64 min-h-screen overflow-y-auto relative">
+      <div className={pathname === '/settings' ? 'ml-64 overflow-y-auto relative' : 'ml-64 mr-64 overflow-y-auto relative'}>
         {/* Left Gradient */}
         <div className="absolute left-0 top-0 h-full w-12 -z-10 pointer-events-none select-none"
           style={{ background: 'linear-gradient(to right, #350FDD33 60%, transparent 100%)' }} />
         {/* Right Gradient */}
         <div className="absolute right-0 top-0 h-full w-12 -z-10 pointer-events-none select-none"
           style={{ background: 'linear-gradient(to left, #350FDD33 60%, transparent 100%)' }} />
-        {/* Top Navigation Bar */}
-        <nav className="flex items-center justify-between bg-transparent px-8 py-4 mt-4 mb-8 shadow-lg sticky top-0 z-10">
-          <div className="flex items-center space-x-2">
-            {['For You', 'Tv Shows', 'Watched'].map((tab) => (
-              <Link
-                href={`/dashboard/${tab.toLowerCase().replace(' ', '-')}`}
-                className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === tab ? 'text-white' : 'text-gray-300 hover:text-white'}`}
-              >
-                {tab}
-              </Link>
-            ))}
-          </div>
-          <div className="flex-1 flex justify-center">
-            <SearchInput />
-          </div>
-          <div className="flex items-center space-x-4">
-            <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
-              <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
-            </button>
-            <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
-          </div>
-        </nav>
         <main className="flex-1">
           {children}
         </main>

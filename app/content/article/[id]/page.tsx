@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { UserData, type Article } from '@/app/types';
+import { UserData, type ArticleContent, type Content } from '@/app/types';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import MarkdownViewer from '@/app/components/ui/MarkdownViewer';
@@ -11,7 +11,7 @@ import { useUserStore } from '@/app/stores/user';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
-  const [article, setArticle] = useState<Article | null>(null);
+  const [article, setArticle] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);
@@ -105,9 +105,9 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
             
             <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
             
-            {article.excerpt && (
+            {(article as ArticleContent).excerpt && (
               <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-blue-500 pl-4">
-                {article.excerpt}
+                {(article as ArticleContent).excerpt || ''}
               </p>
             )}
             
@@ -118,12 +118,12 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
               </div>
               <div className="flex items-center">
                 <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
-                {Math.ceil(article.content.split(' ').length / 200)} min read
+                {Math.ceil((article as ArticleContent).content?.split(' ').length || 0 / 200)} min read
               </div>
             </div>
             
           <div className="prose prose-invert max-w-none">
-              <MarkdownViewer content={article.content} />
+              <MarkdownViewer content={(article as ArticleContent).content || ''} />
             </div>
           </div>
         </article>

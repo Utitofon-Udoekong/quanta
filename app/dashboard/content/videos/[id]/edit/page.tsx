@@ -3,10 +3,10 @@
 import { useEffect, useState, use } from 'react';
 import { getSupabase } from '@/app/utils/supabase';
 import VideoForm from '@/app/components/ui/forms/VideoForm';
-import { Video } from '@/app/types';
+import { type Content } from '@/app/types';
 
 export default function EditVideoPage({ params }: { params: Promise<{ id: string }> }) {
-  const [video, setVideo] = useState<Video | null>(null);
+  const [video, setVideo] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);

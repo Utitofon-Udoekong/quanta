@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/app/utils/supabase';
-import { Article } from '@/app/types';
+import { type Content, ArticleContent } from '@/app/types';
 import { toast } from '@/app/components/helpers/toast';
 import { Icon } from '@iconify/react';
 import MDEditor from '@uiw/react-md-editor';
@@ -17,7 +17,7 @@ import { uploadFileResumable } from '@/app/utils/upload';
 import 'katex/dist/katex.min.css';
 
 type ArticleFormProps = {
-  article?: Article;
+  article?: Content;
   isEditing?: boolean;
 };
 
@@ -105,8 +105,8 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
 
       const articleData = {
             title: formData.title,
-            content: formData.content,
-            excerpt: formData.excerpt || null,
+            content: (formData as ArticleContent).content,
+            excerpt: (formData as ArticleContent).excerpt || null,
             published: formData.published,
             is_premium: formData.is_premium,
             thumbnail_url: thumbnailUrl || null,
@@ -200,7 +200,7 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
           type="text"
           name="excerpt"
           id="excerpt"
-          value={formData.excerpt || ''}
+          value={(formData as ArticleContent).excerpt || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-800 border border-gray-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         />
@@ -248,8 +248,8 @@ export default function ArticleForm({ article, isEditing = false }: ArticleFormP
 
         <div data-color-mode="dark" className="mt-1">
           <MDEditor
-            value={formData.content}
-            onChange={(value: string | undefined) => setFormData({ ...formData, content: value || '' })}
+            value={(formData as ArticleContent).content}
+            onChange={(value: string | undefined) => setFormData({ ...formData, content: value || '' } as ArticleContent)}
             height={400}
             preview={previewMode}
             previewOptions={{

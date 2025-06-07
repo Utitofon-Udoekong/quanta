@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { type Article } from '@/app/types';
+import { type ArticleContent, type Content } from '@/app/types';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/app/components/helpers/toast';
 
 export default function ArticlesPage() {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);

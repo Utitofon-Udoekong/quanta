@@ -6,7 +6,8 @@ import { getSupabase } from '@/app/utils/supabase';
 import { useAbstraxionAccount, useModal } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
-import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
+import ContentTable from '@/app/components/ui/dashboard/ContentTable';
+import { Content } from '@/app/types';
 
 type ContentStats = {
   articles: number;
@@ -36,7 +37,7 @@ export default function ContentManagement() {
     },
     categories: []
   });
-  const [allContent, setAllContent] = useState<ContentItem[]>([]);
+  const [allContent, setAllContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
@@ -72,37 +73,43 @@ export default function ContentManagement() {
       const [articlesData, videosData, audioData] = await Promise.all([
           supabase
             .from('articles')
-          .select('id, title, created_at, published, is_premium')
+          .select('id, title, created_at, published, is_premium, updated_at, user_id')
             .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
           supabase
             .from('videos')
-          .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
+          .select('id, title, created_at, published, thumbnail_url, duration, is_premium, updated_at, user_id')
             .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
           supabase
             .from('audio')
-          .select('id, title, created_at, published, duration, is_premium')
+          .select('id, title, created_at, published, duration, is_premium, updated_at, user_id')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
       ]);
       
       // Combine all content with type information
-      const combinedContent: ContentItem[] = [
+      const combinedContent: Content[] = [
         ...(articlesData.data || []).map(article => ({
           ...article,
-          type: 'article' as const,
-          is_premium: article.is_premium || false
+          kind: 'article' as const,
+          is_premium: article.is_premium || false,
+          updated_at: article.updated_at || '',
+          user_id: article.user_id || ''
         })),
         ...(videosData.data || []).map(video => ({
           ...video,
-          type: 'video' as const,
-          is_premium: video.is_premium || false
+          kind: 'video' as const,
+          is_premium: video.is_premium || false,
+          updated_at: video.updated_at || '',
+          user_id: video.user_id || ''
         })),
         ...(audioData.data || []).map(audio => ({
           ...audio,
-          type: 'audio' as const,
-          is_premium: audio.is_premium || false
+          kind: 'audio' as const,
+          is_premium: audio.is_premium || false,
+          updated_at: audio.updated_at || '',
+          user_id: audio.user_id || ''
         }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
@@ -216,8 +223,8 @@ export default function ContentManagement() {
     }
   };
 
-  const getContentTypeLink = (item: ContentItem) => {
-    switch (item.type) {
+  const getContentTypeLink = (item: Content) => {
+    switch (item.kind) {
       case 'article':
         return `/dashboard/content/articles/${item.id}`;
       case 'video':
@@ -229,8 +236,8 @@ export default function ContentManagement() {
     }
   };
 
-  const getContentEditLink = (item: ContentItem) => {
-    switch (item.type) {
+  const getContentEditLink = (item: Content) => {
+    switch (item.kind) {
       case 'article':
         return `/dashboard/content/articles/${item.id}/edit`;
       case 'video':

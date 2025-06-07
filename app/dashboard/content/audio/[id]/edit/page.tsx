@@ -3,10 +3,10 @@
 import { useEffect, useState, use } from 'react';
 import { getSupabase } from '@/app/utils/supabase';
 import AudioForm from '@/app/components/ui/forms/AudioForm';
-import { Audio } from '@/app/types';
+import { type Content } from '@/app/types';
 
 export default function EditAudioPage({ params }: { params: Promise<{ id: string }> }) {
-  const [audio, setAudio] = useState<Audio | null>(null);
+  const [audio, setAudio] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {id} = use(params);

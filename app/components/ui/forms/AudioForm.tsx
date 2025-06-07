@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabase } from '@/app/utils/supabase';
-import { Audio } from '@/app/types';
+import { type Content, AudioContent } from '@/app/types';
 import FileDropzone from './FileDropzone';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
 
 type AudioFormProps = {
-  audio?: Audio;
+  audio?: Content;
   isEditing?: boolean;
 };
 
@@ -37,7 +37,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     'image/webp': ['.webp']
   };
 
-  const [formData, setFormData] = useState(initialState);
+  const [formData, setFormData] = useState<AudioContent>(initialState as AudioContent);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
     const duration = getDuration(file, 'audio');
     setFormData({
       ...formData,
-      duration: duration,
+      duration: duration as number,
     });
     setAudioFile(file);
     setError(undefined);
@@ -123,7 +123,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
 
       if (audioFile) {
         const audioUrl = await uploadFile(audioFile, 'audio');
-        formData.audio_url = audioUrl;
+        (formData as AudioContent).audio_url = audioUrl;
       }
 
       const audioData = {
@@ -213,7 +213,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
           name="description"
           id="description"
           rows={4}
-          value={formData.description || ''}
+          value={(formData as AudioContent).description || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
@@ -230,7 +230,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
           file={audioFile}
           label="Audio File"
           error={error}
-          currentFileUrl={formData.audio_url}
+          currentFileUrl={(formData as AudioContent).audio_url}
           isEditing={isEditing}
         />
       </div>
@@ -269,7 +269,7 @@ export default function AudioForm({ audio, isEditing = false }: AudioFormProps) 
           type="url"
           name="audio_url"
           id="audio_url"
-          value={formData.audio_url}
+          value={(formData as AudioContent).audio_url || ''}
           onChange={handleChange}
           className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />

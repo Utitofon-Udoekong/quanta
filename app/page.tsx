@@ -3,14 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Article, Video, Audio } from '@/app/types';
+import { Content } from '@/app/types';
 import { Button } from '@headlessui/react';
 import { signOut } from '@/app/utils/helpers';
 import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
+import ContentCard from '@/app/components/ui/ContentCard';
+import { Icon } from '@iconify/react';
 
 import { getSupabase } from './utils/supabase';
+import SearchInput from './components/ui/SearchInput';
 
 // Content types for filtering
 const contentTypes = [
@@ -27,9 +30,9 @@ export default function Home() {
     const [selectedType, setSelectedType] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
     const [featuredContent, setFeaturedContent] = useState<{
-        videos: Video[];
-        audio: Audio[];
-        articles: Article[];
+        videos: Content[];
+        audio: Content[];
+        articles: Content[];
     }>({
         videos: [],
         audio: [],
@@ -47,7 +50,7 @@ export default function Home() {
             toast('Signed out successfully');
         }
     };
-    
+
     useEffect(() => {
         const fetchFeaturedContent = async () => {
             try {
@@ -56,54 +59,76 @@ export default function Home() {
                     return;
                 }
 
-                // Fetch published videos
+                // Fetch published videos with views
                 const { data: videosData } = await supabase
                     .from('videos')
                     .select(`
                         *,
                         author:users(
                             id,
-                            full_name,
+                            username,
                             avatar_url
-                        )
+                        ),
+                        content_views!inner(count)
                     `)
                     .eq('published', true)
+                    .eq('content_views.content_type', 'video')
+                    .eq('content_views.content_id', 'videos.id')
                     .order('created_at', { ascending: false })
                     .limit(8);
 
-                // Fetch published audio
+                // Fetch published audio with views
                 const { data: audioData } = await supabase
                     .from('audio')
                     .select(`
                         *,
                         author:users(
                             id,
-                            full_name,
+                            username,
                             avatar_url
-                        )
+                        ),
+                        content_views!inner(count)
                     `)
                     .eq('published', true)
+                    .eq('content_views.content_type', 'audio')
+                    .eq('content_views.content_id', 'audio.id')
                     .order('created_at', { ascending: false })
                     .limit(8);
 
-                // Fetch published articles
+                // Fetch published articles with views
                 const { data: articlesData } = await supabase
                     .from('articles')
                     .select(`
                         *,
                         author:users(
                             id,
-                            full_name,
+                            username,
                             avatar_url
-                        )
+                        ),
+                        content_views!inner(count)
                     `)
                     .eq('published', true)
+                    .eq('content_views.content_type', 'article')
+                    .eq('content_views.content_id', 'articles.id')
                     .order('created_at', { ascending: false })
                     .limit(8);
+
                 setFeaturedContent({
-                    videos: videosData || [],
-                    audio: audioData || [],
-                    articles: articlesData || [],
+                    videos: (videosData || []).map(video => ({
+                        ...video,
+                        kind: 'video',
+                        views: video.content_views?.[0]?.count || 0,
+                    })),
+                    audio: (audioData || []).map(audio => ({
+                        ...audio,
+                        kind: 'audio',
+                        views: audio.content_views?.[0]?.count || 0,
+                    })),
+                    articles: (articlesData || []).map(article => ({
+                        ...article,
+                        kind: 'article',
+                        views: article.content_views?.[0]?.count || 0,
+                    })),
                 });
             } catch (error) {
                 console.error('Error fetching content:', error);
@@ -118,9 +143,9 @@ export default function Home() {
     // Filter content based on search term and selected type
     const getFilteredContent = () => {
         let filteredContent = {
-                videos: featuredContent.videos,
-                audio: featuredContent.audio,
-                articles: featuredContent.articles,
+            videos: featuredContent.videos,
+            audio: featuredContent.audio,
+            articles: featuredContent.articles,
         };
 
         // Apply search filter
@@ -128,24 +153,30 @@ export default function Home() {
             const term = searchTerm.toLowerCase();
             filteredContent = {
                 videos: filteredContent.videos.filter(video =>
-                    video.title.toLowerCase().includes(term) ||
-                    (video.description && video.description.toLowerCase().includes(term))
+                    video.kind === 'video' && (
+                        video.title.toLowerCase().includes(term) ||
+                        ((video).description && (video).description.toLowerCase().includes(term))
+                    )
                 ),
                 audio: filteredContent.audio.filter(audio =>
-                    audio.title.toLowerCase().includes(term) ||
-                    (audio.description && audio.description.toLowerCase().includes(term))
+                    audio.kind === 'audio' && (
+                        audio.title.toLowerCase().includes(term) ||
+                        ((audio).description && (audio).description.toLowerCase().includes(term))
+                    )
                 ),
                 articles: filteredContent.articles.filter(article =>
-                    article.title.toLowerCase().includes(term) ||
-                    (article.excerpt && article.excerpt.toLowerCase().includes(term)) ||
-                    article.content.toLowerCase().includes(term)
+                    article.kind === 'article' && (
+                        article.title.toLowerCase().includes(term) ||
+                        ((article).excerpt && (article).excerpt.toLowerCase().includes(term)) ||
+                        ((article).content && (article).content.toLowerCase().includes(term))
+                    )
                 ),
             };
         }
 
         // Apply type filter
         if (selectedType !== 'all') {
-        return {
+            return {
                 videos: selectedType === 'video' ? filteredContent.videos : [],
                 audio: selectedType === 'audio' ? filteredContent.audio : [],
                 articles: selectedType === 'article' ? filteredContent.articles : [],
@@ -156,9 +187,31 @@ export default function Home() {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div className="flex-1 flex flex-col relative px-8">
+            {/* Top Navigation Bar */}
+            <nav className="flex items-center gap-x-4 justify-between bg-transparent py-4 mt-4 mb-8 shadow-lg sticky top-0 z-10">
+                {/* <div className="flex items-center space-x-4">
+                    {['For You', 'Tv Shows', 'Watched'].map((tab) => (
+                        <Link
+                            href={`/dashboard/${tab.toLowerCase().replace(' ', '-')}`}
+                            className={`py-2 text-sm transition-colors ${tab === 'For You' ? 'text-white font-medium' : 'text-gray-300 hover:text-white font-light'}`}
+                        >
+                            {tab}
+                        </Link>
+                    ))}
+                </div> */}
+                <div className="flex-1 flex justify-center">
+                    <SearchInput />
+                </div>
+                <div className="flex items-center space-x-4">
+                    <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
+                        <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
+                    </button>
+                    <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                </div>
+            </nav>
             {/* Featured Banner */}
-            <div className="px-10 pb-8">
+            <div className="pb-8">
                 <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-72 mb-10">
                     {/* Example featured content, replace with dynamic */}
                     <img src="/featured-banner.jpg" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
@@ -174,50 +227,59 @@ export default function Home() {
             </div>
 
             {/* Trending Video Section */}
-            <section className="px-10 mb-10">
+            <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold">Trending Video <span className="text-yellow-400">•</span></h3>
                     <Link href="#" className="text-purple-400 hover:underline">See All</Link>
                 </div>
                 <div className="flex space-x-6 overflow-x-auto pb-2">
                     {featuredContent.videos.slice(0, 3).map((video, idx) => (
-                        <div key={video.id} className="min-w-[320px] bg-gray-900/80 rounded-xl shadow-lg overflow-hidden relative">
-                            <img src={video.thumbnail_url || '/default-thumb.jpg'} alt={video.title} className="w-full h-40 object-cover" />
-                            <div className="p-4">
-                                <h4 className="text-lg font-semibold mb-1">{video.title}</h4>
-                                <div className="flex items-center space-x-2 mb-2">
-                                    <img src={video.author?.avatar_url || '/default-avatar.png'} className="w-6 h-6 rounded-full border-2 border-purple-500" />
-                                    <span className="text-xs text-gray-400">{video.author?.username || video.author?.wallet_address?.slice(0, 8)}</span>
-                                </div>
-                                <Button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-lg text-sm">Watch</Button>
-                            </div>
-                            <span className="absolute top-4 right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">Trending</span>
-                        </div>
+                        <ContentCard
+                            key={video.id}
+                            image={video.thumbnail_url || '/default-thumb.jpg'}
+                            title={video.title}
+                            subtitle={
+                                (video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown') +
+                                (video.views ? ` - ${video.views} views` : '')
+                            }
+                            actionLabel="Watch"
+                            author={video.author ? {
+                                name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
+                                avatar: video.author.avatar_url || '/default-avatar.png',
+                            } : undefined}
+                            type="trending"
+                            contentType="video"
+                            badge="Trending"
+                        />
                     ))}
                 </div>
             </section>
 
             {/* Continue Watching Section */}
-            <section className="px-10 mb-10">
+            <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold">Continue Watching</h3>
                     <Link href="#" className="text-purple-400 hover:underline">See All</Link>
                 </div>
                 <div className="flex space-x-6 overflow-x-auto pb-2">
                     {featuredContent.videos.slice(3, 6).map((video, idx) => (
-                        <div key={video.id} className="min-w-[320px] bg-gray-900/80 rounded-xl shadow-lg overflow-hidden relative">
-                            <img src={video.thumbnail_url || '/default-thumb.jpg'} alt={video.title} className="w-full h-40 object-cover" />
-                            <div className="p-4">
-                                <h4 className="text-lg font-semibold mb-1">{video.title}</h4>
-                                <div className="flex items-center space-x-2 mb-2">
-                                    <img src={video.author?.avatar_url || '/default-avatar.png'} className="w-6 h-6 rounded-full border-2 border-purple-500" />
-                                    <span className="text-xs text-gray-400">{video.author?.username || video.author?.wallet_address?.slice(0, 8)}</span>
-                                </div>
-                                <div className="w-full h-2 bg-gray-700 rounded-full mt-2">
-                                    <div className="h-2 bg-purple-500 rounded-full" style={{ width: `${(idx + 1) * 30}%` }}></div>
-                                </div>
-                            </div>
-                        </div>
+                        <ContentCard
+                            key={video.id}
+                            image={video.thumbnail_url || '/default-thumb.jpg'}
+                            title={video.title}
+                            subtitle={
+                                (video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown') +
+                                (video.views ? ` - ${video.views} views` : '')
+                            }
+                            author={video.author ? {
+                                name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
+                                avatar: video.author.avatar_url || '/default-avatar.png',
+                            } : undefined}
+                            isContinueWatching
+                            progress={(idx + 1) * 30}
+                            showPlayIcon
+                            contentType="video"
+                        />
                     ))}
                 </div>
             </section>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from "react";
-import { UserData, type Audio } from "@/app/types";
+import { UserData, type AudioContent, type Content } from "@/app/types";
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
@@ -10,7 +10,7 @@ import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import { useUserStore } from '@/app/stores/user';
 
 export default function AudioPage({ params }: { params: Promise<{ id: string }> }) {
-    const [audio, setAudio] = useState<Audio | null>(null);
+    const [audio, setAudio] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const {id} = use(params);
@@ -104,9 +104,9 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         
                         <h1 className="text-3xl font-bold mb-4">{audio.title}</h1>
                         
-                        {audio.description && (
+                        {(audio as AudioContent).description && (
                             <p className="text-xl text-gray-300 mb-6 italic border-l-4 border-purple-500 pl-4">
-                                {audio.description}
+                                {(audio as AudioContent).description || ''}
                             </p>
                         )}
                         
@@ -115,16 +115,18 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                                 <Icon icon="material-symbols:calendar-month" className="h-4 w-4 mr-1" />
                                 {new Date(audio.created_at).toLocaleDateString()}
                             </div>
-                            {audio.duration && (
+                            {(audio as AudioContent).duration && (
                                 <div className="flex items-center">
                                     <Icon icon="material-symbols:schedule" className="h-4 w-4 mr-1" />
-                                    {Math.floor(audio.duration / 60)}:{(audio.duration % 60).toString().padStart(2, '0')}
+                                    {Math.floor((audio as AudioContent).duration || 0 / 60)}
+                                    :
+                                    {((audio as AudioContent).duration || 0 % 60).toString().padStart(2, '0')}
                                 </div>
                             )}
                         </div>
                         
                         <CustomAudioPlayer 
-                            src={audio.audio_url} 
+                            src={(audio as AudioContent).audio_url || ''} 
                             title={audio.title}
                             className="mb-6"
                         />
