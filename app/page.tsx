@@ -43,148 +43,140 @@ export default function Home() {
     const { logout } = useAbstraxionSigningClient();
     const supabase = getSupabase(account?.bech32Address);
 
-    const handleSignOut = async () => {
-        const success = await signOut();
-        if (success) {
-            logout?.();
-            toast('Signed out successfully');
-        }
-    };
+    // useEffect(() => {
+    //     const fetchFeaturedContent = async () => {
+    //         try {
+    //             if (userError || !user) {
+    //                 console.error('Error fetching user:', userError);
+    //                 return;
+    //             }
 
-    useEffect(() => {
-        const fetchFeaturedContent = async () => {
-            try {
-                if (userError || !user) {
-                    console.error('Error fetching user:', userError);
-                    return;
-                }
+    //             // Fetch published videos with views
+    //             const { data: videosData } = await supabase
+    //                 .from('videos')
+    //                 .select(`
+    //                     *,
+    //                     author:users(
+    //                         id,
+    //                         username,
+    //                         avatar_url
+    //                     ),
+    //                     content_views!inner(count)
+    //                 `)
+    //                 .eq('published', true)
+    //                 .eq('content_views.content_type', 'video')
+    //                 .eq('content_views.content_id', 'videos.id')
+    //                 .order('created_at', { ascending: false })
+    //                 .limit(8);
 
-                // Fetch published videos with views
-                const { data: videosData } = await supabase
-                    .from('videos')
-                    .select(`
-                        *,
-                        author:users(
-                            id,
-                            username,
-                            avatar_url
-                        ),
-                        content_views!inner(count)
-                    `)
-                    .eq('published', true)
-                    .eq('content_views.content_type', 'video')
-                    .eq('content_views.content_id', 'videos.id')
-                    .order('created_at', { ascending: false })
-                    .limit(8);
+    //             // Fetch published audio with views
+    //             const { data: audioData } = await supabase
+    //                 .from('audio')
+    //                 .select(`
+    //                     *,
+    //                     author:users(
+    //                         id,
+    //                         username,
+    //                         avatar_url
+    //                     ),
+    //                     content_views!inner(count)
+    //                 `)
+    //                 .eq('published', true)
+    //                 .eq('content_views.content_type', 'audio')
+    //                 .eq('content_views.content_id', 'audio.id')
+    //                 .order('created_at', { ascending: false })
+    //                 .limit(8);
 
-                // Fetch published audio with views
-                const { data: audioData } = await supabase
-                    .from('audio')
-                    .select(`
-                        *,
-                        author:users(
-                            id,
-                            username,
-                            avatar_url
-                        ),
-                        content_views!inner(count)
-                    `)
-                    .eq('published', true)
-                    .eq('content_views.content_type', 'audio')
-                    .eq('content_views.content_id', 'audio.id')
-                    .order('created_at', { ascending: false })
-                    .limit(8);
+    //             // Fetch published articles with views
+    //             const { data: articlesData } = await supabase
+    //                 .from('articles')
+    //                 .select(`
+    //                     *,
+    //                     author:users(
+    //                         id,
+    //                         username,
+    //                         avatar_url
+    //                     ),
+    //                     content_views!inner(count)
+    //                 `)
+    //                 .eq('published', true)
+    //                 .eq('content_views.content_type', 'article')
+    //                 .eq('content_views.content_id', 'articles.id')
+    //                 .order('created_at', { ascending: false })
+    //                 .limit(8);
 
-                // Fetch published articles with views
-                const { data: articlesData } = await supabase
-                    .from('articles')
-                    .select(`
-                        *,
-                        author:users(
-                            id,
-                            username,
-                            avatar_url
-                        ),
-                        content_views!inner(count)
-                    `)
-                    .eq('published', true)
-                    .eq('content_views.content_type', 'article')
-                    .eq('content_views.content_id', 'articles.id')
-                    .order('created_at', { ascending: false })
-                    .limit(8);
+    //             setFeaturedContent({
+    //                 videos: (videosData || []).map(video => ({
+    //                     ...video,
+    //                     kind: 'video',
+    //                     views: video.content_views?.[0]?.count || 0,
+    //                 })),
+    //                 audio: (audioData || []).map(audio => ({
+    //                     ...audio,
+    //                     kind: 'audio',
+    //                     views: audio.content_views?.[0]?.count || 0,
+    //                 })),
+    //                 articles: (articlesData || []).map(article => ({
+    //                     ...article,
+    //                     kind: 'article',
+    //                     views: article.content_views?.[0]?.count || 0,
+    //                 })),
+    //             });
+    //         } catch (error) {
+    //             console.error('Error fetching content:', error);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
 
-                setFeaturedContent({
-                    videos: (videosData || []).map(video => ({
-                        ...video,
-                        kind: 'video',
-                        views: video.content_views?.[0]?.count || 0,
-                    })),
-                    audio: (audioData || []).map(audio => ({
-                        ...audio,
-                        kind: 'audio',
-                        views: audio.content_views?.[0]?.count || 0,
-                    })),
-                    articles: (articlesData || []).map(article => ({
-                        ...article,
-                        kind: 'article',
-                        views: article.content_views?.[0]?.count || 0,
-                    })),
-                });
-            } catch (error) {
-                console.error('Error fetching content:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchFeaturedContent();
-    }, [user]);
+    //     fetchFeaturedContent();
+    // }, [user]);
 
     // Filter content based on search term and selected type
-    const getFilteredContent = () => {
-        let filteredContent = {
-            videos: featuredContent.videos,
-            audio: featuredContent.audio,
-            articles: featuredContent.articles,
-        };
+    // const getFilteredContent = () => {
+    //     let filteredContent = {
+    //         videos: featuredContent.videos,
+    //         audio: featuredContent.audio,
+    //         articles: featuredContent.articles,
+    //     };
 
-        // Apply search filter
-        if (searchTerm.trim() !== '') {
-            const term = searchTerm.toLowerCase();
-            filteredContent = {
-                videos: filteredContent.videos.filter(video =>
-                    video.kind === 'video' && (
-                        video.title.toLowerCase().includes(term) ||
-                        ((video).description && (video).description.toLowerCase().includes(term))
-                    )
-                ),
-                audio: filteredContent.audio.filter(audio =>
-                    audio.kind === 'audio' && (
-                        audio.title.toLowerCase().includes(term) ||
-                        ((audio).description && (audio).description.toLowerCase().includes(term))
-                    )
-                ),
-                articles: filteredContent.articles.filter(article =>
-                    article.kind === 'article' && (
-                        article.title.toLowerCase().includes(term) ||
-                        ((article).excerpt && (article).excerpt.toLowerCase().includes(term)) ||
-                        ((article).content && (article).content.toLowerCase().includes(term))
-                    )
-                ),
-            };
-        }
+    //     // Apply search filter
+    //     if (searchTerm.trim() !== '') {
+    //         const term = searchTerm.toLowerCase();
+    //         filteredContent = {
+    //             videos: filteredContent.videos.filter(video =>
+    //                 video.kind === 'video' && (
+    //                     video.title.toLowerCase().includes(term) ||
+    //                     ((video).description && (video).description.toLowerCase().includes(term))
+    //                 )
+    //             ),
+    //             audio: filteredContent.audio.filter(audio =>
+    //                 audio.kind === 'audio' && (
+    //                     audio.title.toLowerCase().includes(term) ||
+    //                     ((audio).description && (audio).description.toLowerCase().includes(term))
+    //                 )
+    //             ),
+    //             articles: filteredContent.articles.filter(article =>
+    //                 article.kind === 'article' && (
+    //                     article.title.toLowerCase().includes(term) ||
+    //                     ((article).excerpt && (article).excerpt.toLowerCase().includes(term)) ||
+    //                     ((article).content && (article).content.toLowerCase().includes(term))
+    //                 )
+    //             ),
+    //         };
+    //     }
 
-        // Apply type filter
-        if (selectedType !== 'all') {
-            return {
-                videos: selectedType === 'video' ? filteredContent.videos : [],
-                audio: selectedType === 'audio' ? filteredContent.audio : [],
-                articles: selectedType === 'article' ? filteredContent.articles : [],
-            };
-        }
+    //     // Apply type filter
+    //     if (selectedType !== 'all') {
+    //         return {
+    //             videos: selectedType === 'video' ? filteredContent.videos : [],
+    //             audio: selectedType === 'audio' ? filteredContent.audio : [],
+    //             articles: selectedType === 'article' ? filteredContent.articles : [],
+    //         };
+    //     }
 
-        return filteredContent;
-    };
+    //     return filteredContent;
+    // };
 
     return (
         <div className="flex-1 flex flex-col relative px-8">

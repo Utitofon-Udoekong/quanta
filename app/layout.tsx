@@ -6,13 +6,12 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
 import UserProvider from '@/app/providers/UserProvider';
-import { KeplrProvider } from '@/app/providers/KeplrProvider';
 import LayoutShell from '@/app/components/LayoutShell';
 
 const treasuryConfig = {
     treasury: process.env.treasuryAddress ?? '',
-    rpcUrl: process.env.rpcUrl,
-    restUrl: process.env.restUrl,
+    // rpcUrl: process.env.rpcUrl,
+    // restUrl: process.env.restUrl,
 };
 
 const inter = Inter({ subsets: ['latin'] });

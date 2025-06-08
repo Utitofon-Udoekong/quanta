@@ -140,6 +140,9 @@ export interface ContentBase {
   kind: ContentKind;
   views?: number;
   release_date?: string;
+  likeCount?: number;
+  likedByUser?: boolean;
+  commentsCount?: number;
 }
 
 export interface ArticleContent extends ContentBase {

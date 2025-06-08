@@ -1,17 +1,21 @@
 import { createBrowserClient } from '@supabase/ssr';
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 import { useState, useEffect } from 'react';
 import { UserData, WalletUser } from '@/app/types';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.supabaseUrl!;
 const supabaseAnonKey = process.env.supabaseAnonKey!;
 const jwtSecret = process.env.supabaseJWTSecret!;
 
+if (!supabaseUrl || !supabaseAnonKey || !jwtSecret) {
+  throw new Error('Missing required environment variables for Supabase configuration');
+}
+
 // Create a custom JWT token with wallet address
-function createWalletJWT(walletAddress: string): string {
+async function createWalletJWT(walletAddress: string): Promise<string> {
   const payload = {
     aud: 'authenticated',
-    exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
     sub: walletAddress,
     email: `${walletAddress}@wallet.local`,
     app_metadata: {
@@ -22,10 +26,18 @@ function createWalletJWT(walletAddress: string): string {
       wallet_address: walletAddress
     },
     role: 'authenticated',
-    wallet_address: walletAddress
+    wallet_address: walletAddress,
+    iss: "supabase",
+    ref: "oovkudkiozzplleqzukp",
+    // role: "anon",
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (60 * 60)
   }
 
-  return jwt.sign(payload, jwtSecret, { algorithm: 'HS256' });
+  const secret = new TextEncoder().encode(jwtSecret);
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .sign(secret);
 }
 
 // Generate a Robohash avatar URL for a wallet address
@@ -36,28 +48,31 @@ export function generateRobohashAvatar(walletAddress: string): string {
 }
 
 // Create Supabase client with wallet authentication
-export function getSupabase(walletAddress?: string) {
+export async function getSupabase(walletAddress?: string) {
   const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
-  if (walletAddress) {
-    const token = createWalletJWT(walletAddress);
-    supabase.auth.setSession({
-      access_token: token,
-      refresh_token: token,
-    });
-  }
+  // if (walletAddress) {
+  //   const token = await createWalletJWT(walletAddress);
+  //   supabase.auth.setSession({
+  //     access_token: token,
+  //     refresh_token: token,
+  //   });
+  // }
 
   return supabase;
 }
 
 // React hook for wallet-based Supabase client
 export function useWalletSupabase(walletAddress?: string) {
-  const [supabase, setSupabase] = useState(() => 
-    getSupabase(walletAddress)
-  );
+  const [supabase, setSupabase] = useState<SupabaseClient<any, "public", any> | null>(null);
 
   useEffect(() => {
-    setSupabase(getSupabase(walletAddress));
+    const fetchSupabase = async () => {
+      const client = await getSupabase(walletAddress);
+      setSupabase(client);
+    };
+
+    fetchSupabase();
   }, [walletAddress]);
 
   return supabase;
@@ -70,7 +85,7 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = getSupabase(walletUser.bech32Address);
+  const supabase = await getSupabase(walletUser.bech32Address);
   
   try {
     // First check if user exists
@@ -137,7 +152,7 @@ export async function getUserByWallet(walletAddress: string): Promise<{
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = getSupabase(walletAddress);
+  const supabase = await getSupabase(walletAddress);
   
   try {
     const { data, error } = await supabase
@@ -164,7 +179,7 @@ export async function updateUserProfile(
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = getSupabase(walletAddress);
+  const supabase = await getSupabase(walletAddress);
   
   try {
     const { data, error } = await supabase

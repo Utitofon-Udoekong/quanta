@@ -13,6 +13,7 @@ import {
 } from "@burnt-labs/abstraxion";
 import { handleWalletAuth } from '@/app/utils/supabase';
 import { toast } from 'react-hot-toast';
+import { createClient } from '@supabase/supabase-js';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
@@ -21,26 +22,27 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();
-
+  const supabaseUrl = process.env.supabaseUrl!
+  const supabaseAnonKey = process.env.supabaseAnonKey!
   const handleCloseModal = async () => {
     if (account?.bech32Address) {
       try {
         // Call backend to get wallet JWT
-        // const res = await fetch('/api/wallet-auth', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ wallet_address: account.bech32Address })
-        // });
-        // const { token } = await res.json();
+        const res = await fetch('/api/wallet-auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wallet_address: account.bech32Address })
+        });
+        const { token } = await res.json();
 
-        // if (token) {
-        //   // Set the JWT as the session for Supabase
-        //   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        //   await supabase.auth.setSession({
-        //     access_token: token,
-        //     refresh_token: token,
-        //   });
-        // }
+        if (token) {
+          // Set the JWT as the session for Supabase
+          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+          await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: token,
+          });
+        }
 
         // Existing wallet auth logic
         const { user, error: authError } = await handleWalletAuth({
@@ -128,6 +130,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                   Help
                 </Link>
               </nav>
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm">{account?.bech32Address.slice(0, 8)}</p>
             </div>
             <div>
               <GeneralButton onClick={handleSignOut} className="w-full flex items-center justify-center bg-none text-gray-400 hover:bg-[#8B25FF]/5">

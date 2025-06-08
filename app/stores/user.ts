@@ -17,7 +17,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
   error: null,
 
   fetchUser: async (walletAddress: string) => {
-    const supabase = getSupabase(walletAddress)
+    const supabase = await getSupabase(walletAddress)
     set({ loading: true, error: null })
 
     try {
@@ -39,7 +39,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
   },
 
   updateUser: async (walletAddress: string, data: Partial<UserData>) => {
-    const supabase = getSupabase(walletAddress)
+    const supabase = await getSupabase(walletAddress)
     const { user } = get()
     if (!user) return
 

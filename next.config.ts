@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
     supabaseJWTSecret: process.env.SUPABASE_JWT_SECRET,
+    supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE,
     treasuryAddress: process.env.XION_TREASURY_CONTRACT_ADDRESS,
     rpcUrl: process.env.XION_RPC_URL,
     restUrl: process.env.XION_REST_URL,

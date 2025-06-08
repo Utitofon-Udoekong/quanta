@@ -9,6 +9,8 @@ import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomVideoPlayer from '@/app/components/ui/CustomVideoPlayer';
 import { useUserStore } from "@/app/stores/user";
 import { useRouter } from 'next/navigation';
+import LikeButton from '@/app/components/ui/content/LikeButton';
+import CommentSection from '@/app/components/ui/content/CommentSection';
 
 export default function VideoPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -134,6 +136,10 @@ export default function VideoPage({ params }: { params: Promise<{ id: string }> 
             />
         </div>
       </div>
+      <div className="flex items-center gap-4 mt-6">
+        <LikeButton contentId={video.id} contentType="video" />
+      </div>
+      <CommentSection contentId={video.id} contentType="video" />
     </div>
   );
 }

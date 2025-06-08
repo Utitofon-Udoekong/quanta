@@ -8,6 +8,8 @@ import { trackContentView } from '@/app/utils/content';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
 import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import { useUserStore } from '@/app/stores/user';
+import LikeButton from '@/app/components/ui/content/LikeButton';
+import CommentSection from '@/app/components/ui/content/CommentSection';
 
 export default function AudioPage({ params }: { params: Promise<{ id: string }> }) {
     const [audio, setAudio] = useState<Content | null>(null);
@@ -132,6 +134,10 @@ export default function AudioPage({ params }: { params: Promise<{ id: string }> 
                         />
                 </div>
             </div>
+            <div className="flex items-center gap-4 mt-6">
+                <LikeButton contentId={audio.id} contentType="audio" />
+            </div>
+            <CommentSection contentId={audio.id} contentType="audio" />
         </div>
     );
 }

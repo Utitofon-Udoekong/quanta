@@ -9,6 +9,8 @@ import { trackContentView } from '@/app/utils/content';
 
 import { useUserStore } from '@/app/stores/user';
 import AuthorInfo from '@/app/components/ui/AuthorInfo';
+import LikeButton from '@/app/components/ui/content/LikeButton';
+import CommentSection from '@/app/components/ui/content/CommentSection';
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const [article, setArticle] = useState<Content | null>(null);
@@ -127,6 +129,10 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
         </article>
+        <div className="flex items-center gap-4 mt-6">
+          <LikeButton contentId={article.id} contentType="article" />
+        </div>
+        <CommentSection contentId={article.id} contentType="article" />
     </div>
   );
 } 
