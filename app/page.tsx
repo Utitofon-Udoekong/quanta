@@ -207,18 +207,20 @@ export default function Home() {
                     <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
                         <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
                     </button>
-                    <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                    {user && (
+                      <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                    )}
                 </div>
             </nav>
             {/* Featured Banner */}
             <div className="pb-8">
                 <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-72 mb-10">
                     {/* Example featured content, replace with dynamic */}
-                    <img src="/featured-banner.jpg" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                    <img src="/images/default-thumbnail.png" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
                     <div className="relative z-10 p-8 flex flex-col max-w-lg">
                         <h2 className="text-3xl font-bold mb-2">Avengers Age of Ultron</h2>
                         <div className="flex items-center space-x-2 mb-4">
-                            <img src="/default-avatar.png" className="w-8 h-8 rounded-full border-2 border-purple-500" />
+                            <img src="https://robohash.org/206" className="w-8 h-8 rounded-full border-2 border-purple-500" />
                             <span className="text-sm text-gray-200">Silvertoken • 67k views • 9 hours ago</span>
                         </div>
                         <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold w-32">Watch</Button>
@@ -236,7 +238,7 @@ export default function Home() {
                     {featuredContent.videos.slice(0, 3).map((video, idx) => (
                         <ContentCard
                             key={video.id}
-                            image={video.thumbnail_url || '/default-thumb.jpg'}
+                            image={video.thumbnail_url || '/images/default-thumbnail.png'}
                             title={video.title}
                             subtitle={
                                 (video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown') +
@@ -245,7 +247,7 @@ export default function Home() {
                             actionLabel="Watch"
                             author={video.author ? {
                                 name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                avatar: video.author.avatar_url || '/default-avatar.png',
+                                avatar: video.author.avatar_url || 'https://robohash.org/206',
                             } : undefined}
                             type="trending"
                             contentType="video"
@@ -265,7 +267,7 @@ export default function Home() {
                     {featuredContent.videos.slice(3, 6).map((video, idx) => (
                         <ContentCard
                             key={video.id}
-                            image={video.thumbnail_url || '/default-thumb.jpg'}
+                            image={video.thumbnail_url || '/images/default-thumbnail.png'}
                             title={video.title}
                             subtitle={
                                 (video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown') +
@@ -273,7 +275,7 @@ export default function Home() {
                             }
                             author={video.author ? {
                                 name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                avatar: video.author.avatar_url || '/default-avatar.png',
+                                avatar: video.author.avatar_url || 'https://robohash.org/206',
                             } : undefined}
                             isContinueWatching
                             progress={(idx + 1) * 30}

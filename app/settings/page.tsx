@@ -10,7 +10,7 @@ const TABS = ['My Profile', 'Password', 'Notification'];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('My Profile');
-  const [avatar, setAvatar] = useState('/default-avatar.png');
+  const [avatar, setAvatar] = useState('https://robohash.org/206');
 
   return (
     <div className="mx-auto p-8">
@@ -24,9 +24,7 @@ export default function SettingsPage() {
             Settings
           </Link>
         </div>
-        <div className="flex-1 flex justify-center">
-          <SearchInput />
-        </div>
+       
         <div className="flex items-center space-x-4">
           <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
             <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />

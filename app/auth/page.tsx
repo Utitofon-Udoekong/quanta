@@ -5,17 +5,13 @@ import { useRouter } from 'next/navigation';
 import {
   Abstraxion,
   useAbstraxionAccount,
-  useAbstraxionSigningClient,
   useModal,
 } from "@burnt-labs/abstraxion";
 // import { Button } from "@burnt-labs/ui";
 // import "@burnt-labs/ui/dist/index.css";
 import { handleWalletAuth } from '../utils/supabase';
 import './page.css';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default function AuthPage() {
   const [loading, setLoading] = useState(false);
@@ -23,7 +19,6 @@ export default function AuthPage() {
   
   const router = useRouter();
   const { data: account } = useAbstraxionAccount();
-  const { client, signArb, logout } = useAbstraxionSigningClient();
   const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();  
   
   const handleCloseModal = async () => {

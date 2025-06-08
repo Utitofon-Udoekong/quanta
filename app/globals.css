@@ -6,10 +6,10 @@
 }
 
 ::-webkit-scrollbar {
-  width: 3px;
+  width: 0;
 }
 
-::-webkit-scrollbar-thumb {
+/* ::-webkit-scrollbar-thumb {
   background: linear-gradient(45deg, #8B25FF, #316AD7);
   border-radius: 3px;
 }
@@ -20,7 +20,7 @@
 
 ::-webkit-scrollbar-track {
   background: transparent;
-}
+} */
 
 @theme inline {
   --color-background: var(--background);

@@ -2,12 +2,15 @@ import Link from "next/link";
 import SearchInput from "@/app/components/ui/SearchInput";
 import { Icon } from "@iconify/react";
 import { Button } from "@headlessui/react";
+import { useUserStore } from '@/app/stores/user';
 
 export default function DiscoverLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const user = useUserStore((state) => state.user);
+
     return (
         <div className="flex-1 flex flex-col relative px-8">
             {/* Top Navigation Bar */}
@@ -29,7 +32,9 @@ export default function DiscoverLayout({
                     <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
                         <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
                     </button>
-                    <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                    {user && (
+                      <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                    )}
                 </div>
             </nav>
             {children}

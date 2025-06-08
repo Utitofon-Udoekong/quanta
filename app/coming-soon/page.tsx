@@ -28,6 +28,7 @@ export default function ComingSoonPage() {
   const { data: account } = useAbstraxionAccount();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [contentFilter, setContentFilter] = useState<'all' | 'free' | 'premium'>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [featuredContent, setFeaturedContent] = useState<{
     videos: Content[];
@@ -176,10 +177,20 @@ export default function ComingSoonPage() {
 
     // Apply type filter
     if (selectedType !== 'all') {
-      return {
+      filteredContent = {
         videos: selectedType === 'video' ? filteredContent.videos : [],
         audio: selectedType === 'audio' ? filteredContent.audio : [],
         articles: selectedType === 'article' ? filteredContent.articles : [],
+      };
+    }
+
+    // Apply premium/free filter
+    if (contentFilter !== 'all') {
+      const isPremium = contentFilter === 'premium';
+      filteredContent = {
+        videos: filteredContent.videos.filter(video => video.is_premium === isPremium),
+        audio: filteredContent.audio.filter(audio => audio.is_premium === isPremium),
+        articles: filteredContent.articles.filter(article => article.is_premium === isPremium),
       };
     }
 
@@ -190,16 +201,38 @@ export default function ComingSoonPage() {
     <div className="flex-1 flex flex-col relative px-8">
       {/* Top Navigation Bar */}
       <nav className="flex items-center gap-x-4 justify-between bg-transparent py-4 mt-4 mb-8 shadow-lg sticky top-0 z-10">
-        {/* <div className="flex items-center space-x-4">
-                    {['For You', 'Tv Shows', 'Watched'].map((tab) => (
-                        <Link
-                            href={`/dashboard/${tab.toLowerCase().replace(' ', '-')}`}
-                            className={`py-2 text-sm transition-colors ${tab === 'For You' ? 'text-white font-medium' : 'text-gray-300 hover:text-white font-light'}`}
-                        >
-                            {tab}
-                        </Link>
-                    ))}
-                </div> */}
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => setContentFilter('all')}
+            className={`py-2 text-sm transition-colors font-medium ${
+              contentFilter === 'all' 
+                ? 'text-purple-400 border-b-2 border-purple-400' 
+                : 'text-white hover:text-purple-300'
+            }`}
+          >
+            All
+          </button>
+          <button 
+            onClick={() => setContentFilter('free')}
+            className={`py-2 text-sm transition-colors font-medium ${
+              contentFilter === 'free' 
+                ? 'text-purple-400 border-b-2 border-purple-400' 
+                : 'text-white hover:text-purple-300'
+            }`}
+          >
+            Free
+          </button>
+          <button 
+            onClick={() => setContentFilter('premium')}
+            className={`py-2 text-sm transition-colors font-medium ${
+              contentFilter === 'premium' 
+                ? 'text-purple-400 border-b-2 border-purple-400' 
+                : 'text-white hover:text-purple-300'
+            }`}
+          >
+            Premium
+          </button>
+        </div>
         <div className="flex-1 flex justify-center">
           <SearchInput />
         </div>
@@ -207,18 +240,20 @@ export default function ComingSoonPage() {
           <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
             <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
           </button>
-          <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+          {user && (
+            <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+          )}
         </div>
       </nav>
       {/* Featured Banner */}
       <div className="pb-8">
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-72 mb-10">
           {/* Example featured content, replace with dynamic */}
-          <img src="/featured-banner.jpg" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+          <img src="/images/default-thumbnail.png" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
           <div className="relative z-10 p-8 flex flex-col max-w-lg">
             <h2 className="text-3xl font-bold mb-2">Avengers Age of Ultron</h2>
             <div className="flex items-center space-x-2 mb-4">
-              <img src="/default-avatar.png" className="w-8 h-8 rounded-full border-2 border-purple-500" />
+              <img src="https://robohash.org/206" className="w-8 h-8 rounded-full border-2 border-purple-500" />
               <span className="text-sm text-gray-200">Silvertoken • Coming March 15, 2024</span>
             </div>
             <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold w-32">Set Reminder</Button>
@@ -236,7 +271,7 @@ export default function ComingSoonPage() {
           {featuredContent.videos.slice(0, 3).map((video, idx) => (
             <ContentCard
               key={video.id}
-              image={video.thumbnail_url || '/default-thumb.jpg'}
+              image={video.thumbnail_url || '/images/default-thumbnail.png'}
               title={video.title}
               subtitle={
                 (video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown') +
@@ -245,7 +280,7 @@ export default function ComingSoonPage() {
               actionLabel="Reminder"
               author={video.author ? {
                 name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                avatar: video.author.avatar_url || '/default-avatar.png',
+                avatar: video.author.avatar_url || 'https://robohash.org/206',
               } : undefined}
               type="trending"
               contentType="video"
@@ -265,7 +300,7 @@ export default function ComingSoonPage() {
           {featuredContent.audio.slice(0, 3).map((audio, idx) => (
             <ContentCard
               key={audio.id}
-              image={audio.thumbnail_url || '/default-thumb.jpg'}
+              image={audio.thumbnail_url || '/images/default-thumbnail.png'}
               title={audio.title}
               subtitle={
                 (audio.author?.username || audio.author?.wallet_address?.slice(0, 8) || 'Unknown') +
@@ -274,7 +309,7 @@ export default function ComingSoonPage() {
               actionLabel="Reminder"
               author={audio.author ? {
                 name: audio.author.username || audio.author.wallet_address?.slice(0, 8) || 'Unknown',
-                avatar: audio.author.avatar_url || '/default-avatar.png',
+                avatar: audio.author.avatar_url || 'https://robohash.org/206',
               } : undefined}
               type="trending"
               contentType="audio"
@@ -294,7 +329,7 @@ export default function ComingSoonPage() {
           {featuredContent.articles.slice(0, 3).map((article, idx) => (
             <ContentCard
               key={article.id}
-              image={article.thumbnail_url || '/default-thumb.jpg'}
+              image={article.thumbnail_url || '/images/default-thumbnail.png'}
               title={article.title}
               subtitle={
                 (article.author?.username || article.author?.wallet_address?.slice(0, 8) || 'Unknown') +
@@ -303,7 +338,7 @@ export default function ComingSoonPage() {
               actionLabel="Reminder"
               author={article.author ? {
                 name: article.author.username || article.author.wallet_address?.slice(0, 8) || 'Unknown',
-                avatar: article.author.avatar_url || '/default-avatar.png',
+                avatar: article.author.avatar_url || 'https://robohash.org/206',
               } : undefined}
               type="trending"
               contentType="article"
