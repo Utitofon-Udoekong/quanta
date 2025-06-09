@@ -19,16 +19,39 @@ export async function POST(req: NextRequest) {
 
         const { data: user, error } = await supabase.auth.admin.createUser({
             email: `${walletAddress}@wallet.local`,
+            app_metadata: {
+                provider: "xion",
+                providers: ["xion"],
+                // store authorization info in app_metadata
+                // because it cannot be modified by users
+                walletAddress: walletAddress,
+                chain: "xion-testnet-2",
+              },
             user_metadata: { address: walletAddress }
         })
 
-        await supabase
+        // Check if user exists
+        const { data: existingUser } = await supabase
             .from('users')
-            .update({
-                last_login_at: new Date().toISOString(),
-                id: user?.user?.id, // same uuid as auth.users table
-            })
+            .select('id')
             .eq('wallet_address', walletAddress)
+            .single();
+
+        if (!existingUser) {
+            await supabase
+                .from('users')
+                .insert({
+                    id: user?.user?.id,
+                    wallet_address: walletAddress
+                });
+        } else {
+            await supabase
+                .from('users')
+                .update({
+                    last_login_at: new Date().toISOString()
+                })
+                .eq('wallet_address', walletAddress);
+        }
 
         const token = jwt.sign({
             address: walletAddress, // this will be read by RLS policy
