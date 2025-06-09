@@ -48,7 +48,7 @@ export function generateRobohashAvatar(walletAddress: string): string {
 }
 
 // Create Supabase client with wallet authentication
-export async function getSupabase(walletAddress?: string) {
+export async function getSupabase() {
   const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
   // if (walletAddress) {
@@ -68,7 +68,7 @@ export function useWalletSupabase(walletAddress?: string) {
 
   useEffect(() => {
     const fetchSupabase = async () => {
-      const client = await getSupabase(walletAddress);
+      const client = await getSupabase();
       setSupabase(client);
     };
 
@@ -85,7 +85,7 @@ export async function handleWalletAuth(walletUser: WalletUser): Promise<{
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = await getSupabase(walletUser.bech32Address);
+  const supabase = await getSupabase();
   
   try {
     // First check if user exists
@@ -152,7 +152,7 @@ export async function getUserByWallet(walletAddress: string): Promise<{
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = await getSupabase(walletAddress);
+  const supabase = await getSupabase();
   
   try {
     const { data, error } = await supabase
@@ -179,7 +179,7 @@ export async function updateUserProfile(
   user: UserData | null;
   error: Error | null;
 }> {
-  const supabase = await getSupabase(walletAddress);
+  const supabase = await getSupabase();
   
   try {
     const { data, error } = await supabase

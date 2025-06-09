@@ -1,4 +1,3 @@
-import { getSupabase } from '@/app/utils/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { createClient } from '@supabase/supabase-js'
@@ -26,11 +25,7 @@ export async function POST(req: NextRequest) {
         await supabase
             .from('users')
             .update({
-                auth: {
-                    genNonce: Math.floor(Math.random() * 1000000), // update the nonce, so it can't be reused
-                    lastAuth: new Date().toISOString(),
-                    lastAuthStatus: "success"
-                },
+                last_login_at: new Date().toISOString(),
                 id: user?.user?.id, // same uuid as auth.users table
             })
             .eq('wallet_address', walletAddress)
