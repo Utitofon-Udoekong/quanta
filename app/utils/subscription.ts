@@ -1,10 +1,13 @@
-import { getSupabase } from '@/app/utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
+import Cookies from 'js-cookie';
+import { cookieName } from '@/app/utils/supabase';
 
 export async function hasActivePremiumSubscription(userId: string): Promise<boolean> {
-    if (!userId) return false;
+    const accessToken = Cookies.get(cookieName);
+    if (!userId || !accessToken) return false;
 
-    const supabase = getSupabase();
-    
+    const supabase = await getSupabase(accessToken);
+
     const { data, error } = await supabase
         .from('subscriptions')
         .select('status, plan_id')

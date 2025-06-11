@@ -1,5 +1,7 @@
-import { createClient } from '@/app/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { getSupabase } from '@/app/utils/supabase/client';
+import { cookies } from 'next/headers';
+import { cookieName } from '@/app/utils/supabase';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -11,8 +13,16 @@ export async function GET(request: Request) {
     const userId = searchParams.get('user_id');
     const offset = (page - 1) * limit;
 
-    const supabase = await createClient();
-    
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
+
     let query = supabase
       .from('articles')
       .select('*', { count: 'exact' })

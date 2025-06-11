@@ -1,5 +1,7 @@
-import { createClient } from '@/app/utils/supabase/server';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { cookieName } from '@/app/utils/supabase';
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -9,7 +11,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken);
     
     const { data: video, error } = await supabase
       .from('videos')
@@ -48,7 +58,15 @@ export async function PUT(
       );
     }
 
-    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken);
 
     // First verify the video belongs to the user
     const { data: video, error: fetchError } = await supabase
@@ -117,7 +135,15 @@ export async function DELETE(
       );
     }
 
-    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken);
 
     // First verify the video belongs to the user
     const { data: video, error: fetchError } = await supabase

@@ -1,19 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Content } from '@/app/types';
 import { Button } from '@headlessui/react';
-import { signOut } from '@/app/utils/helpers';
-import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
-import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import ContentCard from '@/app/components/ui/ContentCard';
 import { Icon } from '@iconify/react';
 
-import { getSupabase } from './utils/supabase';
+import { getSupabase } from './utils/supabase/client';
 import SearchInput from './components/ui/SearchInput';
+import Cookies from 'js-cookie';
+import { cookieName } from './utils/supabase';
 
 // Content types for filtering
 const contentTypes = [
@@ -24,11 +22,7 @@ const contentTypes = [
 ];
 
 export default function Home() {
-    const router = useRouter();
-    const { data: account } = useAbstraxionAccount();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedType, setSelectedType] = useState('all');
-    const [showFilters, setShowFilters] = useState(false);
     const [featuredContent, setFeaturedContent] = useState<{
         videos: Content[];
         audio: Content[];
@@ -38,10 +32,9 @@ export default function Home() {
         audio: [],
         articles: [],
     });
-    const [loading, setLoading] = useState(true);
-    const { user, error: userError } = useUserStore();
-    const { logout } = useAbstraxionSigningClient();
-    const supabase = getSupabase(account?.bech32Address);
+    const { user } = useUserStore();
+    const accessToken = Cookies.get(cookieName);
+    const supabase = getSupabase(accessToken || '');
 
     // useEffect(() => {
     //     const fetchFeaturedContent = async () => {

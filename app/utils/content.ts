@@ -1,4 +1,6 @@
-import { getSupabase } from '@/app/utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
+import Cookies from 'js-cookie';
+import { cookieName } from '@/app/utils/supabase';
 
 /**
  * Track a content view
@@ -11,7 +13,9 @@ export async function trackContentView(
   contentType: 'article' | 'video' | 'audio',
   userId: string
 ) {
-  const supabase = getSupabase();
+  const accessToken = Cookies.get(cookieName);
+  if (!accessToken) throw new Error('No access token found');
+  const supabase = await getSupabase(accessToken);
   
   try {
     // Use upsert with a unique constraint on (content_id, user_id)
@@ -58,7 +62,9 @@ export async function recordEarning(
   source: string,
   transactionId?: string
 ) {
-  const supabase = getSupabase();
+  const accessToken = Cookies.get(cookieName);
+  if (!accessToken) throw new Error('No access token found');
+  const supabase = await getSupabase(accessToken);
   
   try {
     const { error } = await supabase.from('earnings').insert({

@@ -1,20 +1,5 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { getSupabase } from "./supabase";
-
-export const signOut = async (): Promise<boolean> => {
-    const supabase = getSupabase();
-    try {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Error signing out:', error);
-            return false;
-        }
-    } catch (error) {
-        throw error;
-    }
-    return true;
-};
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));

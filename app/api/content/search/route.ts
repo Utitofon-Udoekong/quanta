@@ -1,4 +1,6 @@
-import { createClient } from '@/app/utils/supabase/server';
+import { getSupabase } from '@/app/utils/supabase/client';
+import { cookies } from 'next/headers';
+import { cookieName } from '@/app/utils/supabase';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -7,7 +9,15 @@ export async function GET(request: Request) {
     const q = searchParams.get('q') || '';
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    const supabase = await createClient();
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
 
     // Search articles
     const { data: articles } = await supabase

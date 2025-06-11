@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { getSupabase } from '@/app/utils/supabase'
+import { getSupabase } from '@/app/utils/supabase/client'
 import type { UserData } from '@/app/types'
-
+import Cookies from 'js-cookie'
+import { cookieName } from '../utils/supabase'
 interface UserStore {
   user: UserData | null
   loading: boolean
@@ -17,7 +18,9 @@ export const useUserStore = create<UserStore>((set, get) => ({
   error: null,
 
   fetchUser: async (walletAddress: string) => {
-    const supabase = await getSupabase()
+    const accessToken = Cookies.get(cookieName);
+    if (!accessToken) throw new Error('Access token is required');
+    const supabase = await getSupabase(accessToken)
     set({ loading: true, error: null })
 
     try {
@@ -37,11 +40,12 @@ export const useUserStore = create<UserStore>((set, get) => ({
       })
     }
   },
-
   updateUser: async (walletAddress: string, data: Partial<UserData>) => {
-    const supabase = await getSupabase()
-    const { user } = get()
-    if (!user) return
+    const accessToken = Cookies.get(cookieName);
+    if (!accessToken) throw new Error('Access token is required');
+    const supabase = await getSupabase(accessToken);
+    const { user } = get();
+    if (!user) return;
 
     set({ loading: true, error: null })
 

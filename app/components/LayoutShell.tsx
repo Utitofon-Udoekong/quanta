@@ -11,9 +11,8 @@ import {
   useAbstraxionAccount,
   useModal,
 } from "@burnt-labs/abstraxion";
-import { handleWalletAuth } from '@/app/utils/supabase';
 import { toast } from 'react-hot-toast';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/app/utils/supabase/client';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
@@ -22,52 +21,54 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();
-  const supabaseUrl = process.env.supabaseUrl!
-  const supabaseAnonKey = process.env.supabaseAnonKey!
+  console.log('account', account)
+  
   const handleCloseModal = async () => {
     if (account?.bech32Address) {
       try {
-        // Call backend to get wallet JWT
+        // Call backend to authenticate wallet and get JWT
         const res = await fetch('/api/wallet-auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ wallet_address: account.bech32Address })
         });
-        const { token } = await res.json();
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Authentication failed');
+        }
+
+        const { token, user } = await res.json();
+        console.log('Authentication successful:', { user });
 
         if (token) {
-          // Set the JWT as the session for Supabase
-          const supabase = createClient(supabaseUrl, supabaseAnonKey);
-          await supabase.auth.setSession({
+          // Get Supabase client with the new token
+          const supabase = await getSupabase(token);
+          
+          // Set the session using the custom JWT
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: token,
-            refresh_token: token,
+            refresh_token: token, // Using same token for refresh
           });
-        }
 
-        // Existing wallet auth logic
-        const { user, error: authError } = await handleWalletAuth({
-          bech32Address: account.bech32Address,
-          wallet_chain: 'xion',
-          wallet_metadata: {
-            provider: 'abstraxion',
-            connected_at: new Date().toISOString()
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            throw new Error('Failed to set session');
           }
-        });
 
-        if (authError) {
-          toast.error(authError.message);
-          return;
-        }
-
-        if (user) {
           toast.success('Wallet connected successfully');
+          
+          // Redirect to dashboard or wherever you want
+          // router.push('/dashboard');
         }
       } catch (err) {
+        console.error('Authentication error:', err);
         toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
       }
     }
     setShowModal(false);
   };
+
   const handleSignOut = async () => {
     logout?.();
   };

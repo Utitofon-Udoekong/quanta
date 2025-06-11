@@ -1,5 +1,7 @@
-import { createClient } from '@/app/utils/supabase/server';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { cookieName } from '@/app/utils/supabase';
 
 export async function GET(request: Request) {
   try {
@@ -16,8 +18,15 @@ export async function GET(request: Request) {
       );
     }
 
-    const supabase = await createClient();
-
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken);
     // Build query
     let query = supabase
       .from('subscriptions')
@@ -81,8 +90,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
-
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken);
     // Begin transaction to create subscription and handle initial payment
     const { data: subscription, error: transactionError } = await supabase.rpc('create_subscription', {
       p_user_id: user_id,

@@ -1,4 +1,5 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/app/utils/supabase/client';
+import { cookieName } from '@/app/utils/supabase';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -7,7 +8,15 @@ export async function POST(
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -53,7 +62,15 @@ export async function GET(
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
     const { type, id } = params;
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
@@ -104,7 +121,15 @@ export async function PATCH(
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -146,7 +171,15 @@ export async function DELETE(
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

@@ -1,12 +1,11 @@
--- Consolidated database schema migration
--- This file combines all database schema and features from the initial setup and subsequent migrations
+-- Updated database schema for Web3 authentication with Supabase Auth integration
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Create users table (core table)
+-- UPDATED: Create users table with UUID id to match auth.users
 CREATE TABLE users (
-  id TEXT PRIMARY KEY, -- Changed to TEXT to store wallet address
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, -- Changed to UUID and reference auth.users
   wallet_address TEXT NOT NULL UNIQUE,
   wallet_chain TEXT DEFAULT 'xion-testnet-2',
   wallet_metadata JSONB DEFAULT '{}'::jsonb,
@@ -20,7 +19,7 @@ CREATE TABLE users (
   CONSTRAINT valid_wallet_chain CHECK (wallet_chain = 'xion-testnet-2')
 );
 
--- Create content tables
+-- Create content tables (updated to use UUID for user_id)
 CREATE TABLE articles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
@@ -31,7 +30,7 @@ CREATE TABLE articles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   published BOOLEAN DEFAULT FALSE,
   is_premium BOOLEAN DEFAULT FALSE,
-  user_id TEXT REFERENCES users(id) NOT NULL, -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL, -- Changed back to UUID
   thumbnail_url TEXT
 );
 
@@ -47,7 +46,7 @@ CREATE TABLE videos (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   published BOOLEAN DEFAULT FALSE,
   is_premium BOOLEAN DEFAULT FALSE,
-  user_id TEXT REFERENCES users(id) NOT NULL -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL -- Changed back to UUID
 );
 
 CREATE TABLE audio (
@@ -61,24 +60,24 @@ CREATE TABLE audio (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   published BOOLEAN DEFAULT FALSE,
   is_premium BOOLEAN DEFAULT FALSE,
-  user_id TEXT REFERENCES users(id) NOT NULL, -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL, -- Changed back to UUID
   thumbnail_url TEXT
 );
 
--- Create content_views table (analytics)
+-- Create content_views table (updated to use UUID for user_id)
 CREATE TABLE content_views (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   content_id UUID NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
-  user_id TEXT REFERENCES users(id) NOT NULL, -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL, -- Changed back to UUID
   viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT unique_content_view UNIQUE (content_id, user_id)
 );
 
--- Create earnings table
+-- Create earnings table (updated to use UUID for user_id)
 CREATE TABLE earnings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id TEXT REFERENCES users(id) NOT NULL, -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL, -- Changed back to UUID
   content_id UUID NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
   amount DECIMAL(10, 2) NOT NULL,
@@ -87,10 +86,10 @@ CREATE TABLE earnings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create subscriptions table
+-- Create subscriptions table (updated to use UUID for user_id)
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id TEXT REFERENCES users(id) NOT NULL, -- Changed to TEXT to match users.id
+  user_id UUID REFERENCES users(id) NOT NULL, -- Changed back to UUID
   plan_id VARCHAR(50) NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'expired', 'past_due')),
   current_period_start TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -119,6 +118,28 @@ CREATE TABLE subscription_payments (
   transaction_hash TEXT,
   wallet_address TEXT,
   wallet_chain TEXT DEFAULT 'xion-testnet-2'
+);
+
+-- Create likes table (updated to use UUID for user_id)
+CREATE TABLE content_likes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content_id UUID NOT NULL,
+    content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
+    user_id UUID NOT NULL REFERENCES users(id), -- Changed back to UUID
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(content_id, content_type, user_id)
+);
+
+-- Create comments table (updated to use UUID for user_id)
+CREATE TABLE content_comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    content_id UUID NOT NULL,
+    content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
+    user_id UUID NOT NULL REFERENCES users(id), -- Changed back to UUID
+    parent_id UUID REFERENCES content_comments(id),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes
@@ -151,6 +172,12 @@ CREATE INDEX subscription_payments_payment_date_idx ON subscription_payments (pa
 CREATE INDEX idx_subscription_payments_transaction_hash ON subscription_payments(transaction_hash);
 CREATE INDEX idx_subscription_payments_wallet_address ON subscription_payments(wallet_address);
 
+CREATE INDEX idx_content_likes_content ON content_likes(content_id, content_type);
+CREATE INDEX idx_content_likes_user ON content_likes(user_id);
+CREATE INDEX idx_content_comments_content ON content_comments(content_id, content_type);
+CREATE INDEX idx_content_comments_user ON content_comments(user_id);
+CREATE INDEX idx_content_comments_parent ON content_comments(parent_id);
+
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
@@ -160,91 +187,185 @@ ALTER TABLE content_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE earnings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscription_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE content_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE content_comments ENABLE ROW LEVEL SECURITY;
 
--- Users policies
+-- UPDATED: Users policies (using auth.uid() and sub claim)
 CREATE POLICY "Users are viewable by everyone" ON users
   FOR SELECT
   USING (true);
 
 CREATE POLICY "Users can update their own profile" ON users
-  FOR UPDATE USING (wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR UPDATE USING (auth.uid() = id);
 
 CREATE POLICY "Users can insert their own profile" ON users
-  FOR INSERT WITH CHECK (wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Content policies (articles, videos, audio)
+-- UPDATED: Content policies (using auth.uid())
 CREATE POLICY "Published content is viewable by everyone" ON articles
-  FOR SELECT USING (published = true OR user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (published = true OR user_id = auth.uid());
 
 CREATE POLICY "Users can insert their own content" ON articles
-  FOR INSERT WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR INSERT WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own content" ON articles
-  FOR UPDATE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR UPDATE USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete their own content" ON articles
-  FOR DELETE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR DELETE USING (user_id = auth.uid());
 
 -- Replicate content policies for videos and audio
 CREATE POLICY "Published content is viewable by everyone" ON videos
-  FOR SELECT USING (published = true OR user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (published = true OR user_id = auth.uid());
 
 CREATE POLICY "Users can insert their own content" ON videos
-  FOR INSERT WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR INSERT WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own content" ON videos
-  FOR UPDATE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR UPDATE USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete their own content" ON videos
-  FOR DELETE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR DELETE USING (user_id = auth.uid());
 
 CREATE POLICY "Published content is viewable by everyone" ON audio
-  FOR SELECT USING (published = true OR user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (published = true OR user_id = auth.uid());
 
 CREATE POLICY "Users can insert their own content" ON audio
-  FOR INSERT WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR INSERT WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own content" ON audio
-  FOR UPDATE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR UPDATE USING (user_id = auth.uid());
 
 CREATE POLICY "Users can delete their own content" ON audio
-  FOR DELETE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR DELETE USING (user_id = auth.uid());
 
--- Content views policies
+-- UPDATED: Content views policies
 CREATE POLICY "Users can view content view analytics" ON content_views
-  FOR SELECT USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (user_id = auth.uid());
 
 CREATE POLICY "Anyone can insert content views" ON content_views
   FOR INSERT WITH CHECK (true);
 
--- Earnings policies
+-- UPDATED: Earnings policies
 CREATE POLICY "Users can view their own earnings" ON earnings
-  FOR SELECT USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (user_id = auth.uid());
 
--- Subscriptions policies
+-- UPDATED: Subscriptions policies
 CREATE POLICY "Users can view their own subscriptions" ON subscriptions
-  FOR SELECT USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR SELECT USING (user_id = auth.uid());
 
 CREATE POLICY "Users can insert their own subscriptions" ON subscriptions
-  FOR INSERT WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR INSERT WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update their own subscriptions" ON subscriptions
-  FOR UPDATE USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
+  FOR UPDATE USING (user_id = auth.uid());
 
--- Subscription payments policies
+-- UPDATED: Subscription payments policies
 CREATE POLICY "Users can view their own subscription payments" ON subscription_payments
   FOR SELECT USING (
-    wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address'
+    EXISTS (
+      SELECT 1 FROM subscriptions 
+      WHERE subscriptions.id = subscription_payments.subscription_id 
+      AND subscriptions.user_id = auth.uid()
+    )
   );
 
 CREATE POLICY "Users can insert their own subscription payments" ON subscription_payments
   FOR INSERT WITH CHECK (
-    wallet_address = current_setting('request.jwt.claims')::json->>'wallet_address'
+    EXISTS (
+      SELECT 1 FROM subscriptions 
+      WHERE subscriptions.id = subscription_payments.subscription_id 
+      AND subscriptions.user_id = auth.uid()
+    )
   );
 
--- Create subscription management functions
+-- UPDATED: Create RLS policies for likes
+CREATE POLICY "Users can view all likes"
+    ON content_likes FOR SELECT
+    USING (true);
+
+CREATE POLICY "Users can like content"
+    ON content_likes FOR INSERT
+    WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can unlike their own likes"
+    ON content_likes FOR DELETE
+    USING (user_id = auth.uid());
+
+-- UPDATED: Create RLS policies for comments
+CREATE POLICY "Users can view all comments"
+    ON content_comments FOR SELECT
+    USING (true);
+
+CREATE POLICY "Users can create comments"
+    ON content_comments FOR INSERT
+    WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own comments"
+    ON content_comments FOR UPDATE
+    USING (user_id = auth.uid())
+    WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own comments"
+    ON content_comments FOR DELETE
+    USING (user_id = auth.uid());
+
+-- CRITICAL: Create trigger function to auto-create user profile
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  wallet_addr TEXT;
+BEGIN
+  -- Extract wallet address from app_metadata
+  wallet_addr := NEW.raw_app_meta_data->>'wallet_address';
+  
+  -- Only create profile if wallet_address exists in app_metadata
+  IF wallet_addr IS NOT NULL THEN
+    INSERT INTO public.users (
+      id,
+      wallet_address,
+      wallet_chain,
+      wallet_metadata,
+      created_at,
+      updated_at,
+      last_login_at,
+      avatar_url
+    )
+    VALUES (
+      NEW.id,
+      wallet_addr,
+      COALESCE(NEW.raw_app_meta_data->>'chain', 'xion-testnet-2'),
+      COALESCE(NEW.raw_user_meta_data, '{}'::jsonb),
+      NOW(),
+      NOW(),
+      NOW(), -- Set initial login time
+      'https://robohash.org/' || LEFT(wallet_addr, 8) || '?set=set4&size=200x200'
+    )
+    ON CONFLICT (wallet_address) DO UPDATE SET
+      last_login_at = NOW(),
+      updated_at = NOW();
+  END IF;
+  
+  RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error but don't fail the auth user creation
+    RAISE WARNING 'Failed to create user profile for %: %', NEW.id, SQLERRM;
+    RETURN NEW;
+END;
+$$;
+
+-- Create the trigger
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- UPDATED: Subscription management functions with UUID user_id
 CREATE OR REPLACE FUNCTION create_subscription(
-    p_wallet_address TEXT,
+    p_user_id UUID,
     p_plan_id VARCHAR(50),
     p_payment_method VARCHAR(50),
     p_subscription_data JSONB
@@ -261,18 +382,19 @@ DECLARE
     v_currency VARCHAR(3);
     v_status VARCHAR(20);
     v_payment_status VARCHAR(20);
+    v_wallet_address TEXT;
 BEGIN
     -- Validate required fields
-    IF p_wallet_address IS NULL THEN
-        RAISE EXCEPTION 'Wallet address is required';
+    IF p_user_id IS NULL THEN
+        RAISE EXCEPTION 'User ID is required';
     END IF;
 
-    IF p_plan_id IS NULL THEN
-        RAISE EXCEPTION 'Plan ID is required';
-    END IF;
-
-    IF p_payment_method IS NULL THEN
-        RAISE EXCEPTION 'Payment method is required';
+    -- Get wallet address from users table
+    SELECT wallet_address INTO v_wallet_address
+    FROM users WHERE id = p_user_id;
+    
+    IF v_wallet_address IS NULL THEN
+        RAISE EXCEPTION 'User not found';
     END IF;
 
     -- Extract and validate values from JSONB
@@ -305,7 +427,7 @@ BEGIN
             canceled_at
         )
         VALUES (
-            p_wallet_address,
+            p_user_id,
             p_plan_id,
             v_status,
             (p_subscription_data->>'current_period_start')::TIMESTAMP WITH TIME ZONE,
@@ -343,7 +465,7 @@ BEGIN
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP,
-            p_wallet_address,
+            v_wallet_address,
             'xion-testnet-2'
         )
         RETURNING id INTO v_payment_id;
@@ -356,9 +478,10 @@ BEGIN
 END;
 $$;
 
+-- Renew subscription function with UUID user_id
 CREATE OR REPLACE FUNCTION renew_subscription(
     p_subscription_id UUID,
-    p_wallet_address TEXT,
+    p_user_id UUID,
     p_renewal_data JSONB
 )
 RETURNS subscriptions
@@ -373,14 +496,23 @@ DECLARE
     v_currency VARCHAR(3);
     v_status VARCHAR(20);
     v_payment_status VARCHAR(20);
+    v_wallet_address TEXT;
 BEGIN
     -- Verify subscription exists and belongs to user
     SELECT * INTO v_subscription
     FROM subscriptions
-    WHERE id = p_subscription_id AND user_id = p_wallet_address;
+    WHERE id = p_subscription_id AND user_id = p_user_id;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Subscription not found or unauthorized';
+    END IF;
+
+    -- Get wallet address from users table
+    SELECT wallet_address INTO v_wallet_address
+    FROM users WHERE id = p_user_id;
+    
+    IF v_wallet_address IS NULL THEN
+        RAISE EXCEPTION 'User not found';
     END IF;
 
     -- Extract and validate values from JSONB
@@ -432,7 +564,7 @@ BEGIN
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP,
-            p_wallet_address,
+            v_wallet_address,
             'xion-testnet-2'
         )
         RETURNING id INTO v_payment_id;
@@ -444,96 +576,6 @@ BEGIN
     END;
 END;
 $$;
-
--- Setup storage
-INSERT INTO storage.buckets (id, name, public) VALUES 
-  ('videos', 'videos', true),
-  ('audio', 'audio', true),
-  ('thumbnails', 'thumbnails', true);
-
--- Storage policies
-CREATE POLICY "Content is viewable by everyone" ON storage.objects
-  FOR SELECT USING (bucket_id IN ('videos', 'audio', 'thumbnails'));
-
-CREATE POLICY "Authenticated users can upload content" ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id IN ('videos', 'audio', 'thumbnails') 
-    AND current_setting('request.jwt.claims')::json->>'wallet_address' IS NOT NULL
-  );
-
--- Add comments to explain the columns
-COMMENT ON COLUMN articles.thumbnail_url IS 'URL to the article thumbnail image';
-COMMENT ON COLUMN audio.thumbnail_url IS 'URL to the audio thumbnail image';
-COMMENT ON COLUMN subscription_payments.transaction_hash IS 'The transaction hash from the blockchain for this payment';
-COMMENT ON COLUMN subscription_payments.wallet_address IS 'The wallet address used for the payment';
-COMMENT ON COLUMN subscription_payments.wallet_chain IS 'The blockchain network used for the payment';
-COMMENT ON TABLE content_views IS 'Tracks views of content items, ensuring each user can only count once per piece of content';
-
--- Engagement Features: Likes and Comments
-
--- Create likes table
-CREATE TABLE content_likes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content_id UUID NOT NULL,
-    content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
-    user_id TEXT NOT NULL REFERENCES users(wallet_address),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(content_id, content_type, user_id)
-);
-
--- Create comments table
-CREATE TABLE content_comments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    content_id UUID NOT NULL,
-    content_type TEXT NOT NULL CHECK (content_type IN ('article', 'video', 'audio')),
-    user_id TEXT NOT NULL REFERENCES users(wallet_address),
-    parent_id UUID REFERENCES content_comments(id),
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create indexes for better query performance
-CREATE INDEX idx_content_likes_content ON content_likes(content_id, content_type);
-CREATE INDEX idx_content_likes_user ON content_likes(user_id);
-CREATE INDEX idx_content_comments_content ON content_comments(content_id, content_type);
-CREATE INDEX idx_content_comments_user ON content_comments(user_id);
-CREATE INDEX idx_content_comments_parent ON content_comments(parent_id);
-
--- Enable Row Level Security
-ALTER TABLE content_likes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE content_comments ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies for likes
-CREATE POLICY "Users can view all likes"
-    ON content_likes FOR SELECT
-    USING (true);
-
-CREATE POLICY "Users can like content"
-    ON content_likes FOR INSERT
-    WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
-
-CREATE POLICY "Users can unlike their own likes"
-    ON content_likes FOR DELETE
-    USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
-
--- Create RLS policies for comments
-CREATE POLICY "Users can view all comments"
-    ON content_comments FOR SELECT
-    USING (true);
-
-CREATE POLICY "Users can create comments"
-    ON content_comments FOR INSERT
-    WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
-
-CREATE POLICY "Users can update their own comments"
-    ON content_comments FOR UPDATE
-    USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address')
-    WITH CHECK (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
-
-CREATE POLICY "Users can delete their own comments"
-    ON content_comments FOR DELETE
-    USING (user_id = current_setting('request.jwt.claims')::json->>'wallet_address');
 
 -- Create function to update comment's updated_at timestamp
 CREATE OR REPLACE FUNCTION update_comment_timestamp()
@@ -552,4 +594,21 @@ $$;
 CREATE TRIGGER update_comment_timestamp
     BEFORE UPDATE ON content_comments
     FOR EACH ROW
-    EXECUTE FUNCTION update_comment_timestamp(); 
+    EXECUTE FUNCTION update_comment_timestamp();
+
+-- Setup storage
+INSERT INTO storage.buckets (id, name, public) VALUES 
+  ('videos', 'videos', true),
+  ('audio', 'audio', true),
+  ('thumbnails', 'thumbnails', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies
+CREATE POLICY "Content is viewable by everyone" ON storage.objects
+  FOR SELECT USING (bucket_id IN ('videos', 'audio', 'thumbnails'));
+
+CREATE POLICY "Authenticated users can upload content" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id IN ('videos', 'audio', 'thumbnails') 
+    AND auth.uid() IS NOT NULL
+  );

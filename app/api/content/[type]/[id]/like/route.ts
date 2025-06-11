@@ -1,13 +1,22 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { cookieName } from '@/app/utils/supabase';
 
 export async function POST(
   request: Request,
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: 'No access token found' },
+        { status: 401 }
+      );
+    }
+    const supabase = await getSupabase(accessToken || '');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -62,7 +71,9 @@ export async function GET(
   { params }: { params: { type: string; id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get(cookieName)?.value;
+    const supabase = await getSupabase(accessToken || '');
     const { type, id } = params;
 
     // Get like count
