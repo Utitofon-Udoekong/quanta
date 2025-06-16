@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const JWT = process.env.supabaseJWTSecret!
     const supabaseUrl = process.env.supabaseUrl!
     const serviceRoleSecret = process.env.supabaseServiceRole!
-
+    console.log('req', req)
     try {
         const { wallet_address } = await req.json()
         console.log('wallet_address', wallet_address)
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         }
 
         const token = jwt.sign(payload, JWT);
-        
+        console.log('token', token)
         return new Response(JSON.stringify({ 
             token,
             user: {

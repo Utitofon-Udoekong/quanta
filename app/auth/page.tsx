@@ -7,10 +7,10 @@ import {
   useAbstraxionAccount,
   useModal,
 } from "@burnt-labs/abstraxion";
-// import { Button } from "@burnt-labs/ui";
-// import "@burnt-labs/ui/dist/index.css";
-import { handleWalletAuth } from '../utils/supabase';
+
 import './page.css';
+import { getSupabase } from '../utils/supabase/client';
+import { toast } from '@/app/components/helpers/toast';
 
 
 export default function AuthPage() {
@@ -23,47 +23,45 @@ export default function AuthPage() {
   
   const handleCloseModal = async () => {
     if (account?.bech32Address) {
-      setLoading(true);
       try {
-        // Call backend to get wallet JWT
-        // const res = await fetch('/api/wallet-auth', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ wallet_address: account.bech32Address })
-        // });
-        // const { token } = await res.json();
-
-        // if (token) {
-        //   // Set the JWT as the session for Supabase
-        //   const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        //   await supabase.auth.setSession({
-        //     access_token: token,
-        //     refresh_token: token,
-        //   });
-        // }
-
-        // Existing wallet auth logic
-        const { user, error: authError } = await handleWalletAuth({
-          bech32Address: account.bech32Address,
-          wallet_chain: 'xion',
-          wallet_metadata: {
-            provider: 'abstraxion',
-            connected_at: new Date().toISOString()
-          }
+        // Call backend to authenticate wallet and get JWT
+        const res = await fetch('/api/wallet-auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wallet_address: account.bech32Address })
         });
 
-        if (authError) {
-          setError(authError.message);
-          return;
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Authentication failed');
         }
 
-        if (user) {
-          router.push('/dashboard');
+        const { token, user } = await res.json();
+        console.log('Authentication successful:', { user });
+
+        if (token) {
+          // Get Supabase client with the new token
+          const supabase = await getSupabase(token);
+          
+          // Set the session using the custom JWT
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: token, // Using same token for refresh
+          });
+
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            throw new Error('Failed to set session');
+          }
+
+          toast.success('Wallet connected successfully');
+          
+          // Redirect to dashboard or wherever you want
+          // router.push('/dashboard');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred during authentication');
-      } finally {
-        setLoading(false);
+        console.error('Authentication error:', err);
+        toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
       }
     }
     setShowModal(false);

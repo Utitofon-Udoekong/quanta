@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { getSupabase } from '@/app/utils/supabase/client'
 import type { UserData } from '@/app/types'
 import Cookies from 'js-cookie'
-import { cookieName } from '../utils/supabase'
+import { cookieName, getUserByWallet } from '../utils/supabase'
+
 interface UserStore {
   user: UserData | null
   loading: boolean
@@ -19,35 +20,39 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   fetchUser: async (walletAddress: string) => {
     const accessToken = Cookies.get(cookieName);
-    if (!accessToken) throw new Error('Access token is required');
-    const supabase = await getSupabase(accessToken)
-    set({ loading: true, error: null })
+    if (!accessToken) {
+      set({ loading: false, error: null });
+      return;
+    }
+
+    set({ loading: true, error: null });
 
     try {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('wallet_address', walletAddress)
-        .single()
+      const { user: userData, error: userError } = await getUserByWallet(walletAddress);
+      console.log('userData', userData)
+      if (userError) throw userError;
 
-      if (userError) throw userError
-
-      set({ user: userData, loading: false })
+      set({ user: userData, loading: false });
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to fetch user',
         loading: false 
-      })
+      });
     }
   },
+
   updateUser: async (walletAddress: string, data: Partial<UserData>) => {
     const accessToken = Cookies.get(cookieName);
-    if (!accessToken) throw new Error('Access token is required');
+    if (!accessToken) {
+      set({ loading: false, error: 'No access token found' });
+      return;
+    }
+
     const supabase = await getSupabase(accessToken);
     const { user } = get();
     if (!user) return;
 
-    set({ loading: true, error: null })
+    set({ loading: true, error: null });
 
     try {
       const { data: updatedUser, error } = await supabase
@@ -55,23 +60,23 @@ export const useUserStore = create<UserStore>((set, get) => ({
         .update(data)
         .eq('wallet_address', walletAddress)
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
+      if (error) throw error;
 
       set({ 
         user: { ...user, ...updatedUser },
         loading: false 
-      })
+      });
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Failed to update user',
         loading: false 
-      })
+      });
     }
   },
 
   clearUser: () => {
-    set({ user: null, loading: false, error: null })
+    set({ user: null, loading: false, error: null });
   }
-})) 
+})); 

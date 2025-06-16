@@ -3,6 +3,8 @@
 import { useEffect } from 'react'
 import { useUserStore } from '@/app/stores/user'
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion"
+import Cookies from 'js-cookie'
+import { cookieName } from '@/app/utils/supabase'
 
 export default function UserProvider({
   children
@@ -13,11 +15,14 @@ export default function UserProvider({
   const { data: account } = useAbstraxionAccount()
 
   useEffect(() => {
-    if (account?.bech32Address) {
+    const accessToken = Cookies.get(cookieName);
+    console.log('accessToken', accessToken)
+    
+    if (account?.bech32Address && accessToken) {
       fetchUser(account.bech32Address)
-      } else {
+    } else {
       clearUser()
-      }
+    }
   }, [account?.bech32Address, fetchUser, clearUser])
 
   return children

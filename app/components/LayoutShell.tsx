@@ -21,50 +21,52 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   const { data: account } = useAbstraxionAccount();
   const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();
-  console.log('account', account)
   
   const handleCloseModal = async () => {
     if (account?.bech32Address) {
-      try {
-        // Call backend to authenticate wallet and get JWT
-        const res = await fetch('/api/wallet-auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet_address: account.bech32Address })
-        });
+      console.log('account', account)
+      console.log('account?.bech32Address', account?.bech32Address)
+      // try {
+      //   console.log('signing in')
+      //   // Call backend to authenticate wallet and get JWT
+      //   const res = await fetch('/api/wallet-auth/login', {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({ wallet_address: account.bech32Address })
+      //   });
 
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Authentication failed');
-        }
+      //   if (!res.ok) {
+      //     const errorData = await res.json();
+      //     throw new Error(errorData.error || 'Authentication failed');
+      //   }
 
-        const { token, user } = await res.json();
-        console.log('Authentication successful:', { user });
+      //   const { token, user } = await res.json();
+      //   console.log('Authentication successful:', { user, token });
 
-        if (token) {
-          // Get Supabase client with the new token
-          const supabase = await getSupabase(token);
+      //   if (token) {
+      //     // Get Supabase client with the new token
+      //     const supabase = await getSupabase(token);
           
-          // Set the session using the custom JWT
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: token,
-            refresh_token: token, // Using same token for refresh
-          });
+      //     // Set the session using the custom JWT
+      //     const { error: sessionError } = await supabase.auth.setSession({
+      //       access_token: token,
+      //       refresh_token: token, // Using same token for refresh
+      //     });
 
-          if (sessionError) {
-            console.error('Session error:', sessionError);
-            throw new Error('Failed to set session');
-          }
+      //     if (sessionError) {
+      //       console.error('Session error:', sessionError);
+      //       throw new Error('Failed to set session');
+      //     }
 
-          toast.success('Wallet connected successfully');
+      //     toast.success('Wallet connected successfully');
           
-          // Redirect to dashboard or wherever you want
-          // router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Authentication error:', err);
-        toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
-      }
+      //     // Redirect to dashboard or wherever you want
+      //     // router.push('/dashboard');
+      //   }
+      // } catch (err) {
+      //   console.error('Authentication error:', err);
+      //   toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
+      // }
     }
     setShowModal(false);
   };
