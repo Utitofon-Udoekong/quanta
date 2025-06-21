@@ -1,5 +1,7 @@
-import { supabase } from '@/app/utils/supabase/client';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { Upload } from 'tus-js-client';
+import Cookies from 'js-cookie';
+import { cookieName } from '@/app/utils/supabase';
 
 /**
  * Uploads a file to Supabase storage using TUS for resumable uploads
@@ -15,6 +17,8 @@ export async function uploadFileResumable(
   file: File,
   onProgress?: (percentage: number) => void
 ): Promise<string> {
+  const supabase = getSupabase(Cookies.get(cookieName) || '');
+  console.log('Supabase:', supabase);
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {

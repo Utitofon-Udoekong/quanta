@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabase } from '@/app/utils/supabase/client';
+import { supabase } from '@/app/utils/supabase/client';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
 import FileDropzone from './FileDropzone';
@@ -15,8 +15,7 @@ import rehypeKatex from 'rehype-katex';
 import { toast } from '@/app/components/helpers/toast';
 import 'katex/dist/katex.min.css';
 import { Icon } from '@iconify/react';
-import { cookieName } from '@/app/utils/supabase';
-import Cookies from 'js-cookie';
+import { useUserStore } from '@/app/stores/user';
 
 const contentTypes = [
   { id: 'audio', name: 'Audio' },
@@ -81,6 +80,7 @@ export default function UnifiedContentForm() {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
 
   const router = useRouter();
+  const { user } = useUserStore();
 
   const getMissingFields = () => {
     const missing = [];
@@ -135,6 +135,7 @@ export default function UnifiedContentForm() {
 
   // Upload logic
   const uploadFile = async (file: File, bucketName: string) => {
+    console.log('Uploading file:', file, 'to bucket:', bucketName);
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
     try {
@@ -147,6 +148,8 @@ export default function UnifiedContentForm() {
       return publicUrl;
     } catch (error) {
       setError('Error uploading file');
+      toast.error('Error uploading file');
+      console.error('Error uploading file:', error);
       throw error;
     }
   };
@@ -160,11 +163,10 @@ export default function UnifiedContentForm() {
     setLoading(true);
     setUploadProgress(0);
     try {
-      const supabase = getSupabase(Cookies.get(cookieName) || '');
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('User:', user);
+      console.log('User from store:', user);
       if (!user) {
-        toast.error('You must be logged in');
+        toast.error('You must be logged in to create content.');
+        setLoading(false);
         return;
       }
 
@@ -174,10 +176,12 @@ export default function UnifiedContentForm() {
       // Upload main file if needed
       if ((selectedType === 'audio' || selectedType === 'video') && mainFile) {
         uploadedMainFileUrl = await uploadFile(mainFile, selectedType === 'audio' ? 'audio' : 'videos');
+        console.log('Uploaded main file:', uploadedMainFileUrl);
       }
       // Upload thumbnail if needed
       if (thumbnailFile) {
         uploadedThumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
+        console.log('Uploaded thumbnail:', uploadedThumbnailUrl);
       }
 
       let published: boolean;
@@ -215,6 +219,8 @@ export default function UnifiedContentForm() {
           user_id: user.id,
           release_date,
         };
+
+        console.log('Audio data:', audioData);
         const response = await fetch('/api/content/audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -242,6 +248,7 @@ export default function UnifiedContentForm() {
           user_id: user.id,
           release_date,
         };
+        console.log('Video data:', videoData);
         const response = await fetch('/api/content/videos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -268,6 +275,7 @@ export default function UnifiedContentForm() {
           user_id: user.id,
           release_date,
         };
+        console.log('Article data:', articleData);
         const response = await fetch('/api/content/articles', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
