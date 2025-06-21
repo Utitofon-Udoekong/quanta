@@ -516,10 +516,17 @@ export default function UnifiedContentForm() {
       {/* Publish Button */}
       <button 
         type="submit" 
-        disabled={isButtonDisabled} 
-        className="w-full cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-bold py-2 px-4 rounded mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={isButtonDisabled || loading} 
+        className="w-full cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-bold py-2 px-4 rounded mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
-        {publishAction === 'now' ? 'Publish Now' : publishAction === 'schedule' ? 'Schedule Post' : 'Save Draft'}
+        {loading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            {publishAction === 'now' ? 'Publishing...' : publishAction === 'schedule' ? 'Scheduling...' : 'Saving...'}
+          </>
+        ) : (
+          publishAction === 'now' ? 'Publish Now' : publishAction === 'schedule' ? 'Schedule Post' : 'Save Draft'
+        )}
       </button>
 
       {isButtonDisabled && (

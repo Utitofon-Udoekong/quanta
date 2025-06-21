@@ -10,6 +10,7 @@ import { useUserStore } from '@/app/stores/user';
 import { Content } from '@/app/types';
 import Cookies from 'js-cookie';
 import { cookieName } from '@/app/utils/supabase';
+import Image from 'next/image';
 
 const categories = [
   { id: 'all', name: 'All Content' },
@@ -163,22 +164,24 @@ export default function ContentManagement() {
           <p>No content found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredContent.map((item, idx) => (
             <div
               key={item.id}
-              className="bg-[#181A20] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow group cursor-pointer"
+              className="bg-[#181A20] w-full h-56 relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow group cursor-pointer"
             >
-              <div className="relative h-48 w-full overflow-hidden">
-                <img
+              <div className="h-full w- object-cover overflow-hidden">
+                <Image
                   src={item.thumbnail_url || '/images/default-thumbnail.png'}
                   alt={item.title}
                   className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                  width={500}
+                  height={500}
                 />
               </div>
-              <div className="p-4">
-                <h3 className="text-lg font-bold mb-1 truncate">{item.title}</h3>
-                <p className="text-gray-400 text-sm mb-2 truncate">
+              <div className="p-4 absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm">
+                <h3 className="text-md font-bold mb-1 truncate">{item.title}</h3>
+                <p className="text-gray-400 text-xs mb-2 truncate">
                   {getDescription(item)}
                 </p>
                 <div className="flex items-center text-xs text-gray-500 space-x-4">

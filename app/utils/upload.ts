@@ -1,7 +1,7 @@
-import { getSupabase } from '@/app/utils/supabase/client';
+import { supabase } from '@/app/utils/supabase/client';
 import { Upload } from 'tus-js-client';
+import { cookieName } from './supabase';
 import Cookies from 'js-cookie';
-import { cookieName } from '@/app/utils/supabase';
 
 /**
  * Uploads a file to Supabase storage using TUS for resumable uploads
@@ -17,12 +17,7 @@ export async function uploadFileResumable(
   file: File,
   onProgress?: (percentage: number) => void
 ): Promise<string> {
-  const supabase = getSupabase(Cookies.get(cookieName) || '');
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    throw new Error('No authenticated session found');
-  }
+  const accessToken = Cookies.get(cookieName);
 
   // Get the project ID from the Supabase URL
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -33,7 +28,7 @@ export async function uploadFileResumable(
       endpoint: `https://${projectId}.supabase.co/storage/v1/upload/resumable`,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
-        authorization: `Bearer ${session.access_token}`,
+        authorization: `Bearer ${accessToken}`,
         'x-upsert': 'true',
       },
       uploadDataDuringCreation: true,
