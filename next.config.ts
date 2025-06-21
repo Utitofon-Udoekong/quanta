@@ -18,11 +18,16 @@ const nextConfig: NextConfig = {
         hostname: 'raw.githubusercontent.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'robohash.org',
+        pathname: '/**',
+      },
     ],
   },
   env: {
-    supabaseUrl: process.env.SUPABASE_URL,
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     supabaseJWTSecret: process.env.SUPABASE_JWT_SECRET,
     supabaseServiceRole: process.env.SUPABASE_SERVICE_ROLE,
     treasuryAddress: process.env.XION_TREASURY_CONTRACT_ADDRESS,

@@ -22,7 +22,7 @@ export async function uploadFileResumable(
   }
 
   // Get the project ID from the Supabase URL
-  const supabaseUrl = process.env.supabaseUrl || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const projectId = supabaseUrl.split('//')[1].split('.')[0];
 
   return new Promise((resolve, reject) => {

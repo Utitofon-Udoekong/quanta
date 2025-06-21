@@ -6,12 +6,13 @@ import { Content } from '@/app/types';
 import { Button } from '@headlessui/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentCard from '@/app/components/ui/ContentCard';
+import HeroCarousel from '@/app/components/ui/HeroCarousel';
 import { Icon } from '@iconify/react';
+import { CarouselItem, getFeaturedCarouselItems } from '@/app/utils/carousel';
 
-import { getSupabase } from './utils/supabase/client';
+import { supabase } from './utils/supabase/client';
 import SearchInput from './components/ui/SearchInput';
-import Cookies from 'js-cookie';
-import { cookieName } from './utils/supabase';
+import { useRouter } from 'next/navigation';
 
 // Content types for filtering
 const contentTypes = [
@@ -32,144 +33,37 @@ export default function Home() {
         audio: [],
         articles: [],
     });
+    const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
+    const [loading, setLoading] = useState(true);
     const { user } = useUserStore();
-    const accessToken = Cookies.get(cookieName);
-    const supabase = getSupabase(accessToken || '');
+    const router = useRouter();
+    // Fetch featured content for carousel
+    useEffect(() => {
+        const fetchFeaturedContent = async () => {
+            try {
+                setLoading(true);
+                const items = await getFeaturedCarouselItems(supabase);
+                setCarouselItems(items);
+            } catch (error) {
+                console.error('Error fetching featured content:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    // useEffect(() => {
-    //     const fetchFeaturedContent = async () => {
-    //         try {
-    //             if (userError || !user) {
-    //                 console.error('Error fetching user:', userError);
-    //                 return;
-    //             }
+        fetchFeaturedContent();
+    }, []);
 
-    //             // Fetch published videos with views
-    //             const { data: videosData } = await supabase
-    //                 .from('videos')
-    //                 .select(`
-    //                     *,
-    //                     author:users(
-    //                         id,
-    //                         username,
-    //                         avatar_url
-    //                     ),
-    //                     content_views!inner(count)
-    //                 `)
-    //                 .eq('published', true)
-    //                 .eq('content_views.content_type', 'video')
-    //                 .eq('content_views.content_id', 'videos.id')
-    //                 .order('created_at', { ascending: false })
-    //                 .limit(8);
-
-    //             // Fetch published audio with views
-    //             const { data: audioData } = await supabase
-    //                 .from('audio')
-    //                 .select(`
-    //                     *,
-    //                     author:users(
-    //                         id,
-    //                         username,
-    //                         avatar_url
-    //                     ),
-    //                     content_views!inner(count)
-    //                 `)
-    //                 .eq('published', true)
-    //                 .eq('content_views.content_type', 'audio')
-    //                 .eq('content_views.content_id', 'audio.id')
-    //                 .order('created_at', { ascending: false })
-    //                 .limit(8);
-
-    //             // Fetch published articles with views
-    //             const { data: articlesData } = await supabase
-    //                 .from('articles')
-    //                 .select(`
-    //                     *,
-    //                     author:users(
-    //                         id,
-    //                         username,
-    //                         avatar_url
-    //                     ),
-    //                     content_views!inner(count)
-    //                 `)
-    //                 .eq('published', true)
-    //                 .eq('content_views.content_type', 'article')
-    //                 .eq('content_views.content_id', 'articles.id')
-    //                 .order('created_at', { ascending: false })
-    //                 .limit(8);
-
-    //             setFeaturedContent({
-    //                 videos: (videosData || []).map(video => ({
-    //                     ...video,
-    //                     kind: 'video',
-    //                     views: video.content_views?.[0]?.count || 0,
-    //                 })),
-    //                 audio: (audioData || []).map(audio => ({
-    //                     ...audio,
-    //                     kind: 'audio',
-    //                     views: audio.content_views?.[0]?.count || 0,
-    //                 })),
-    //                 articles: (articlesData || []).map(article => ({
-    //                     ...article,
-    //                     kind: 'article',
-    //                     views: article.content_views?.[0]?.count || 0,
-    //                 })),
-    //             });
-    //         } catch (error) {
-    //             console.error('Error fetching content:', error);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     fetchFeaturedContent();
-    // }, [user]);
-
-    // Filter content based on search term and selected type
-    // const getFilteredContent = () => {
-    //     let filteredContent = {
-    //         videos: featuredContent.videos,
-    //         audio: featuredContent.audio,
-    //         articles: featuredContent.articles,
-    //     };
-
-    //     // Apply search filter
-    //     if (searchTerm.trim() !== '') {
-    //         const term = searchTerm.toLowerCase();
-    //         filteredContent = {
-    //             videos: filteredContent.videos.filter(video =>
-    //                 video.kind === 'video' && (
-    //                     video.title.toLowerCase().includes(term) ||
-    //                     ((video).description && (video).description.toLowerCase().includes(term))
-    //                 )
-    //             ),
-    //             audio: filteredContent.audio.filter(audio =>
-    //                 audio.kind === 'audio' && (
-    //                     audio.title.toLowerCase().includes(term) ||
-    //                     ((audio).description && (audio).description.toLowerCase().includes(term))
-    //                 )
-    //             ),
-    //             articles: filteredContent.articles.filter(article =>
-    //                 article.kind === 'article' && (
-    //                     article.title.toLowerCase().includes(term) ||
-    //                     ((article).excerpt && (article).excerpt.toLowerCase().includes(term)) ||
-    //                     ((article).content && (article).content.toLowerCase().includes(term))
-    //                 )
-    //             ),
-    //         };
-    //     }
-
-    //     // Apply type filter
-    //     if (selectedType !== 'all') {
-    //         return {
-    //             videos: selectedType === 'video' ? filteredContent.videos : [],
-    //             audio: selectedType === 'audio' ? filteredContent.audio : [],
-    //             articles: selectedType === 'article' ? filteredContent.articles : [],
-    //         };
-    //     }
-
-    //     return filteredContent;
-    // };
+    // Handle carousel item click
+    const handleCarouselItemClick = (item: CarouselItem) => {
+        console.log('Carousel item clicked:', item);
+        // Navigate to the content page based on content type
+        const contentType = item.contentType;
+        const contentId = item.id;
+        
+        // You can implement navigation here
+        // For example: router.push(`/content/${contentType}/${contentId}`);
+    };
 
     return (
         <div className="flex-1 flex flex-col relative px-8">
@@ -193,24 +87,23 @@ export default function Home() {
                         <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
                     </button>
                     {user && (
-                      <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
+                      <Button onClick={() => router.push('/dashboard/content')} className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
                     )}
                 </div>
             </nav>
-            {/* Featured Banner */}
+
+            {/* Hero Carousel */}
             <div className="pb-8">
-                <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-72 mb-10">
-                    {/* Example featured content, replace with dynamic */}
-                    <img src="/images/default-thumbnail.png" alt="Featured" className="absolute inset-0 w-full h-full object-cover opacity-60" />
-                    <div className="relative z-10 p-8 flex flex-col max-w-lg">
-                        <h2 className="text-3xl font-bold mb-2">Avengers Age of Ultron</h2>
-                        <div className="flex items-center space-x-2 mb-4">
-                            <img src="https://robohash.org/206" className="w-8 h-8 rounded-full border-2 border-purple-500" />
-                            <span className="text-sm text-gray-200">Silvertoken • 67k views • 9 hours ago</span>
-                        </div>
-                        <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold w-32">Watch</Button>
+                {loading ? (
+                    <div className="relative w-full h-72 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden rounded-2xl flex items-center justify-center">
+                        <div className="text-white text-lg">Loading featured content...</div>
                     </div>
-                </div>
+                ) : (
+                    <HeroCarousel 
+                        items={carouselItems.length > 0 ? carouselItems : undefined} 
+                        onItemClick={handleCarouselItemClick} 
+                    />
+                )}
             </div>
 
             {/* Trending Video Section */}

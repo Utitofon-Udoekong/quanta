@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabase } from '@/app/utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
 import FileDropzone from './FileDropzone';
@@ -15,6 +15,8 @@ import rehypeKatex from 'rehype-katex';
 import { toast } from '@/app/components/helpers/toast';
 import 'katex/dist/katex.min.css';
 import { Icon } from '@iconify/react';
+import { cookieName } from '@/app/utils/supabase';
+import Cookies from 'js-cookie';
 
 const contentTypes = [
   { id: 'audio', name: 'Audio' },
@@ -61,7 +63,8 @@ export default function UnifiedContentForm() {
   const [category, setCategory] = useState('');
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState('');
-  const [published, setPublished] = useState(false);
+  const [publishAction, setPublishAction] = useState<'now' | 'schedule' | 'draft'>('now');
+  const [releaseDate, setReleaseDate] = useState('');
 
   // Audio/Video
   const [mainFile, setMainFile] = useState<File | null>(null);
@@ -78,7 +81,23 @@ export default function UnifiedContentForm() {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
 
   const router = useRouter();
-  const supabase = getSupabase();
+
+  const getMissingFields = () => {
+    const missing = [];
+    if (!title) missing.push('Title');
+    if (!category) missing.push('Category');
+    if (isPremium && !price) missing.push('Price');
+    if ((selectedType === 'audio' || selectedType === 'video') && !mainFile) {
+      missing.push(selectedType === 'audio' ? 'Audio File' : 'Video File');
+    }
+    if (selectedType === 'article' && !content) missing.push('Article Content');
+    if (publishAction === 'schedule' && !releaseDate) missing.push('Release Date');
+    return missing;
+  };
+
+  const missingFields = getMissingFields();
+  const isButtonDisabled = missingFields.length > 0;
+
 
   // File handlers
   const handleMainFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,14 +153,20 @@ export default function UnifiedContentForm() {
 
   // Submission logic
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('Form submission initiated...');
     e.preventDefault();
     setError(null);
     setThumbnailError(undefined);
     setLoading(true);
     setUploadProgress(0);
     try {
+      const supabase = getSupabase(Cookies.get(cookieName) || '');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('You must be logged in');
+      console.log('User:', user);
+      if (!user) {
+        toast.error('You must be logged in');
+        return;
+      }
 
       let uploadedMainFileUrl = mainFileUrl;
       let uploadedThumbnailUrl = thumbnailUrl;
@@ -155,6 +180,28 @@ export default function UnifiedContentForm() {
         uploadedThumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
       }
 
+      let published: boolean;
+      let release_date: string | null;
+
+      switch (publishAction) {
+        case 'now':
+          published = true;
+          release_date = new Date().toISOString();
+          break;
+        case 'schedule':
+          if (!releaseDate) {
+            throw new Error('Please select a release date for scheduling.');
+          }
+          published = false;
+          release_date = new Date(releaseDate).toISOString();
+          break;
+        case 'draft':
+        default:
+          published = false;
+          release_date = null;
+          break;
+      }
+
       if (selectedType === 'audio') {
         const audioData = {
           title,
@@ -166,8 +213,7 @@ export default function UnifiedContentForm() {
           thumbnail_url: uploadedThumbnailUrl,
           category,
           user_id: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          release_date,
         };
         const response = await fetch('/api/content/audio', {
           method: 'POST',
@@ -177,7 +223,8 @@ export default function UnifiedContentForm() {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create audio');
+          toast.error(errorData.error || 'Failed to create audio');
+          return;
         }
         toast('Audio created successfully');
         router.push('/dashboard/content/audio');
@@ -193,6 +240,7 @@ export default function UnifiedContentForm() {
           is_premium: isPremium,
           category,
           user_id: user.id,
+          release_date,
         };
         const response = await fetch('/api/content/videos', {
           method: 'POST',
@@ -202,7 +250,8 @@ export default function UnifiedContentForm() {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create video');
+          toast.error(errorData.error || 'Failed to create video');
+          return;
         }
         toast('Video created successfully');
         router.push('/dashboard/content/videos');
@@ -217,6 +266,7 @@ export default function UnifiedContentForm() {
           thumbnail_url: uploadedThumbnailUrl,
           category,
           user_id: user.id,
+          release_date,
         };
         const response = await fetch('/api/content/articles', {
           method: 'POST',
@@ -226,7 +276,8 @@ export default function UnifiedContentForm() {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create article');
+          toast.error(errorData.error || 'Failed to create article');
+          return;
         }
         toast('Article created successfully');
         router.push('/dashboard/content/articles');
@@ -240,7 +291,7 @@ export default function UnifiedContentForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-[#0A0C10] text-white p-6 rounded-lg">
+    <form onSubmit={handleSubmit} className="space-y-6 bg-[#0A0C10] text-white p-6 rounded-lg" noValidate>
       {/* Content Type Dropdown */}
       <div>
         <label htmlFor="content-type" className="block text-sm font-medium text-gray-200 mb-1">
@@ -373,7 +424,6 @@ export default function UnifiedContentForm() {
               value={price}
               onChange={e => setPrice(e.target.value)}
               className="w-24 bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              required
             />
           </>
         )}
@@ -403,10 +453,72 @@ export default function UnifiedContentForm() {
         </select>
       </div>
 
+      {/* Publishing Options */}
+      <div>
+        <label className="block text-sm font-medium text-gray-200 mb-2">Publishing Options</label>
+        <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
+          <button
+            type="button"
+            onClick={() => setPublishAction('now')}
+            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+              publishAction === 'now' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            Publish Now
+          </button>
+          <button
+            type="button"
+            onClick={() => setPublishAction('schedule')}
+            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+              publishAction === 'schedule' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            Schedule
+          </button>
+          <button
+            type="button"
+            onClick={() => setPublishAction('draft')}
+            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+              publishAction === 'draft' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
+            }`}
+          >
+            Save as Draft
+          </button>
+        </div>
+      </div>
+
+      {/* Release Date Picker */}
+      {publishAction === 'schedule' && (
+        <div>
+          <label htmlFor="release-date" className="block text-sm font-medium text-gray-200 mb-1">
+            Release Date
+          </label>
+          <input
+            type="datetime-local"
+            id="release-date"
+            value={releaseDate}
+            onChange={e => setReleaseDate(e.target.value)}
+            className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            required={publishAction === 'schedule'}
+          />
+          <p className="text-xs text-gray-500 mt-1">Schedule your content to be released at a future date.</p>
+        </div>
+      )}
+
       {/* Publish Button */}
-      <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mt-6">
-        Publish Post
+      <button 
+        type="submit" 
+        disabled={isButtonDisabled} 
+        className="w-full cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-bold py-2 px-4 rounded mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {publishAction === 'now' ? 'Publish Now' : publishAction === 'schedule' ? 'Schedule Post' : 'Save Draft'}
       </button>
+
+      {isButtonDisabled && (
+        <div className="mt-2 text-sm text-red-500 text-center">
+          Please complete all required fields: {missingFields.join(', ')}
+        </div>
+      )}
     </form>
   );
 } 

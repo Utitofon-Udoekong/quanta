@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Abstraxion,
   useAbstraxionAccount,
-  useModal,
 } from "@burnt-labs/abstraxion";
 
 import './page.css';
 import { getSupabase } from '../utils/supabase/client';
 import { toast } from '@/app/components/helpers/toast';
+import { useUserStore } from '../stores/user';
 
 
 export default function AuthPage() {
@@ -18,12 +17,22 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
-  const { data: account } = useAbstraxionAccount();
-  const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();  
-  
-  const handleCloseModal = async () => {
-    if (account?.bech32Address) {
+  const { data: account, login, isConnected, isConnecting} = useAbstraxionAccount();
+  const { fetchUser } = useUserStore()
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
+
+  const handleWalletAuth = async () => {
+    if (account?.bech32Address && isConnected) {
       try {
+        setLoading(true);
+        setError(null);
+        console.log('signing in')
         // Call backend to authenticate wallet and get JWT
         const res = await fetch('/api/wallet-auth/login', {
           method: 'POST',
@@ -33,11 +42,21 @@ export default function AuthPage() {
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.error || 'Authentication failed');
+          const errorMessage = errorData.error || 'Authentication failed';
+          
+          // Handle specific error types
+          if (res.status === 503) {
+            setError('Connection issue. Please check your internet and try again.');
+          } else if (res.status === 500) {
+            setError('Server error. Please try again later.');
+          } else {
+            setError(errorMessage);
+          }
+          return;
         }
 
         const { token, user } = await res.json();
-        console.log('Authentication successful:', { user });
+        console.log('Authentication successful:', { user, token });
 
         if (token) {
           // Get Supabase client with the new token
@@ -51,21 +70,28 @@ export default function AuthPage() {
 
           if (sessionError) {
             console.error('Session error:', sessionError);
-            throw new Error('Failed to set session');
+            setError('Failed to establish session. Please try again.');
+            return;
           }
 
           toast.success('Wallet connected successfully');
-          
-          // Redirect to dashboard or wherever you want
-          // router.push('/dashboard');
+          await fetchUser(account.bech32Address)
+          router.push('/');
         }
       } catch (err) {
         console.error('Authentication error:', err);
-        toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
+        setError('Network error. Please check your connection and try again.');
+      } finally {
+        setLoading(false);
       }
     }
-    setShowModal(false);
   };
+
+  useEffect(() => {
+    if (account?.bech32Address) {
+      handleWalletAuth();
+    }
+  }, [account?.bech32Address]);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center relative z-20 overflow-hidden bg-[#181A20] gr-bi">
@@ -82,14 +108,13 @@ export default function AuthPage() {
         </div>
       )}
         <button
-          className="cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 py-2 rounded-4xl w-full"
-          onClick={() => setShowModal(true)}
-        disabled={loading}
+          className="cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 py-2 rounded-4xl w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleLogin}
+          disabled={loading || isConnecting}
         >
-          {loading ? 'CONNECTING...' : account?.bech32Address ? 'VIEW ACCOUNT' : 'CONNECT'}
+          {loading ? 'AUTHENTICATING...' : isConnecting ? 'CONNECTING...' : account?.bech32Address  ? 'VIEW ACCOUNT' : 'CONNECT'}
         </button>
       </div>
-      <Abstraxion onClose={handleCloseModal} />
     </div>
   );
 }

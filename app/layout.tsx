@@ -7,6 +7,8 @@ import { Toaster } from 'react-hot-toast';
 import { AbstraxionProvider } from '@burnt-labs/abstraxion';
 import UserProvider from '@/app/providers/UserProvider';
 import LayoutShell from '@/app/components/LayoutShell';
+import UserStoreDebug from '@/app/components/debug/UserStoreDebug';
+import '@/app/utils/debug'; // Import debug utilities
 
 const treasuryConfig = {
     treasury: process.env.treasuryAddress ?? '',
@@ -35,6 +37,7 @@ export default function RootLayout({
                             {children}
                         </LayoutShell>
                         <Toaster position="bottom-right" />
+                        <UserStoreDebug />
                     </UserProvider>
                 </AbstraxionProvider>
             </body>

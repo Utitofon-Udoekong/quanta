@@ -3,19 +3,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SearchInput from '@/app/components/ui/SearchInput';
-import { getSupabase } from '@/app/utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import { Content } from '@/app/types';
+import Cookies from 'js-cookie';
+import { cookieName } from '@/app/utils/supabase';
 
 const categories = [
-  { id: 'movie', name: 'Movie' },
-  { id: 'course', name: 'Course' },
-  { id: 'podcast', name: 'Podcast' },
+  { id: 'all', name: 'All Content' },
+  { id: 'video', name: 'Videos' },
   { id: 'audio', name: 'Audio' },
-  { id: 'music', name: 'Music' },
-  { id: 'comedy', name: 'Comedy' },
+  { id: 'article', name: 'Articles' },
 ];
 
 export default function ContentManagement() {
@@ -23,10 +23,10 @@ export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { data: account } = useAbstraxionAccount();
-  const supabase = getSupabase();
-  const { user, error: userError } = useUserStore();
+  const { user } = useUserStore();
+  const supabase = getSupabase(Cookies.get(cookieName) || '');
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('course');
+  const [activeCategory, setActiveCategory] = useState('all');
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -78,7 +78,7 @@ export default function ContentManagement() {
       getDescription(item).toLowerCase().includes(search.toLowerCase());
     // For demo, just filter by kind for category
     const matchesCategory =
-      activeCategory === 'course' ? true : item.kind === activeCategory;
+      activeCategory === 'all' ? true : item.kind === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -119,7 +119,7 @@ export default function ContentManagement() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.username || 'User'}</h1>
+          <h1 className="text-2xl font-bold">Welcome back, {user?.wallet_address?.slice(0, 8) || 'User'}</h1>
           <p className="text-gray-400 text-sm">Manage your post and view all post activities</p>
         </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -130,7 +130,7 @@ export default function ContentManagement() {
             className="flex-1 md:w-72"
           />
           <Link href="/dashboard/content/create">
-            <button className="bg-[#8B25FF] hover:bg-[#350FDD] text-white px-6 py-2 rounded-full font-semibold shadow-lg transition-colors">
+            <button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-6 py-2 rounded-full font-semibold shadow-lg transition-colors">
               Create
             </button>
           </Link>

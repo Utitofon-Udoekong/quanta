@@ -4,76 +4,44 @@ import Link from 'next/link';
 import { useUserStore } from '@/app/stores/user';
 import { useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import GeneralButton from '@/app/components/ui/GeneralButton';
 import {
-  Abstraxion,
   useAbstraxionAccount,
-  useModal,
 } from "@burnt-labs/abstraxion";
-import { toast } from 'react-hot-toast';
-import { getSupabase } from '@/app/utils/supabase/client';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
   const { logout } = useAbstraxionSigningClient();
   const pathname = usePathname();
-
-  const { data: account } = useAbstraxionAccount();
-  const [, setShowModal]: [boolean, React.Dispatch<React.SetStateAction<boolean>>] = useModal();
+  const router = useRouter();
+  const { data: account, logout: logoutAbstraxionAccount } = useAbstraxionAccount();
   
-  const handleCloseModal = async () => {
-    if (account?.bech32Address) {
-      console.log('account', account)
-      console.log('account?.bech32Address', account?.bech32Address)
-      // try {
-      //   console.log('signing in')
-      //   // Call backend to authenticate wallet and get JWT
-      //   const res = await fetch('/api/wallet-auth/login', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({ wallet_address: account.bech32Address })
-      //   });
-
-      //   if (!res.ok) {
-      //     const errorData = await res.json();
-      //     throw new Error(errorData.error || 'Authentication failed');
-      //   }
-
-      //   const { token, user } = await res.json();
-      //   console.log('Authentication successful:', { user, token });
-
-      //   if (token) {
-      //     // Get Supabase client with the new token
-      //     const supabase = await getSupabase(token);
-          
-      //     // Set the session using the custom JWT
-      //     const { error: sessionError } = await supabase.auth.setSession({
-      //       access_token: token,
-      //       refresh_token: token, // Using same token for refresh
-      //     });
-
-      //     if (sessionError) {
-      //       console.error('Session error:', sessionError);
-      //       throw new Error('Failed to set session');
-      //     }
-
-      //     toast.success('Wallet connected successfully');
-          
-      //     // Redirect to dashboard or wherever you want
-      //     // router.push('/dashboard');
-      //   }
-      // } catch (err) {
-      //   console.error('Authentication error:', err);
-      //   toast.error(err instanceof Error ? err.message : 'An error occurred during authentication');
-      // }
-    }
-    setShowModal(false);
-  };
-
   const handleSignOut = async () => {
+    logoutAbstraxionAccount?.();
     logout?.();
+    router.push('/');
   };
+
+  const getLinkClass = (path: string) => {
+    const isActive = pathname === path;
+    if (isActive) {
+      return "flex items-center space-x-3 py-2 px-3 bg-[#8B25FF]/5 border-r text-[#8B25FF] border-l-[#8B25FF] font-semibold";
+    }
+    return "flex items-center space-x-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5";
+  };
+
+  const getDashboardLinkClass = (path: string) => {
+    const isActive = pathname.startsWith(path);
+    if (isActive) {
+      return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
+    }
+    return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
+  }
+
+  if (pathname === '/auth') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white">
@@ -86,13 +54,13 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 <span className="text-4xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
               </div>
               <nav className="space-y-2">
-                <Link href="/" className="flex items-center space-x-3 py-2 px-3 text-[#8B25FF] bg-[#8B25FF]/5 border-r border-l-[#8B25FF] font-semibold">
+                <Link href="/" className={getLinkClass('/')}>
                   <span>Home</span>
                 </Link>
-                <Link href="/discover" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">
+                <Link href="/discover" className={getLinkClass('/discover')}>
                   <span>Discover</span>
                 </Link>
-                <Link href="/coming-soon" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">
+                <Link href="/coming-soon" className={getLinkClass('/coming-soon')}>
                   <span>Coming Soon</span>
                 </Link>
               </nav>
@@ -102,10 +70,12 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               </div>
             </div>
             <div>
-              <GeneralButton className="w-full flex items-center justify-center" onClick={() => setShowModal(true)}>
+              <Link href="/auth" className="">
+              <GeneralButton className="w-full flex items-center justify-center">
                 <Icon icon="mdi:login" className="w-5 h-5 mr-2" />
                 Sign In
               </GeneralButton>
+              </Link>
 
             </div>
           </>
@@ -120,15 +90,15 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                   <Icon icon="mdi:view-dashboard-outline" className="w-5 h-5 mr-2" />
                   Home
                 </Link>
-                <Link href="/dashboard/content" className={`flex items-center space-x-3 py-2 px-3 rounded-lg font-bold ${pathname.startsWith('/dashboard/content') ? 'text-[#8B25FF] bg-[#8B25FF]/10' : 'text-gray-300 hover:bg-[#8B25FF]/5'}`}>
+                <Link href="/dashboard/content" className={getDashboardLinkClass('/dashboard/content')}>
                   <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-2" />
                   Post Management
                 </Link>
-                <Link href="/settings" className={`flex items-center space-x-3 py-2 px-3 rounded-lg font-bold ${pathname === '/settings' ? 'text-[#8B25FF] bg-[#8B25FF]/10' : 'text-gray-300 hover:bg-[#8B25FF]/5'}`}>
+                <Link href="/settings" className={getDashboardLinkClass('/settings')}>
                   <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
                   Settings
                 </Link>
-                <Link href="/help" className={`flex items-center space-x-3 py-2 px-3 rounded-lg font-bold ${pathname === '/help' ? 'text-[#8B25FF] bg-[#8B25FF]/10' : 'text-gray-300 hover:bg-[#8B25FF]/5'}`}>
+                <Link href="/help" className={getDashboardLinkClass('/help')}>
                   <Icon icon="mdi:help-circle-outline" className="w-5 h-5 mr-2" />
                   Help
                 </Link>
@@ -151,13 +121,13 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 <span className="text-4xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
               </div>
               <nav className="space-y-2">
-                <Link href="/" className="flex items-center space-x-3 py-2 px-3 text-[#8B25FF] bg-[#8B25FF]/5 border-r border-l-[#8B25FF] font-semibold">
+                <Link href="/" className={getLinkClass('/')}>
                   <span>Home</span>
                 </Link>
-                <Link href="/discover" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">
+                <Link href="/discover" className={getLinkClass('/discover')}>
                   <span>Discover</span>
                 </Link>
-                <Link href="/coming-soon" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">
+                <Link href="/coming-soon" className={getLinkClass('/coming-soon')}>
                   <span>Coming Soon</span>
                 </Link>
               </nav>
@@ -174,8 +144,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 </nav>
               </div>
               <div className="mt-10 space-y-1">
-                <Link href="/settings" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Settings</Link>
-                <Link href="/help" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Help</Link>
+                <Link href="/settings" className={getLinkClass('/settings')}>Settings</Link>
+                <Link href="/help" className={getLinkClass('/help')}>Help</Link>
               </div>
             </div>
             <div>
@@ -193,7 +163,6 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           {children}
         </main>
       </div>
-      <Abstraxion onClose={handleCloseModal} />
     </div>
   );
 } 
