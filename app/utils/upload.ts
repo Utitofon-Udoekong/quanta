@@ -18,7 +18,6 @@ export async function uploadFileResumable(
   onProgress?: (percentage: number) => void
 ): Promise<string> {
   const supabase = getSupabase(Cookies.get(cookieName) || '');
-  console.log('Supabase:', supabase);
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {
