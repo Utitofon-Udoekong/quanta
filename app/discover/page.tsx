@@ -85,7 +85,7 @@ export default function DiscoverPage() {
     }, []);
 
     const handleCarouselItemClick = (item: CarouselItem) => {
-        router.push(`/content/${item.contentType}/${item.id}`);
+        router.push(`/content/${item.id}?kind=${item.contentType}`);
     };
 
     return (
@@ -140,18 +140,19 @@ export default function DiscoverPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {featuredContent.videos.slice(0, 4).map((video) => (
-                        <ContentCard
-                            key={video.id}
-                            image={video.thumbnail_url || '/images/default-thumbnail.png'}
-                            title={video.title}
-                            subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
-                            actionLabel="Watch"
-                            author={video.author ? {
-                                name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-                            } : undefined}
-                            contentType="video"
-                        />
+                        <Link key={video.id} href={`/content/${video.id}?kind=video`} className="block transition-transform duration-300 hover:scale-105">
+                            <ContentCard
+                                image={video.thumbnail_url || '/images/default-thumbnail.png'}
+                                title={video.title}
+                                subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
+                                actionLabel="Watch"
+                                author={video.author ? {
+                                    name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
+                                    avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
+                                } : undefined}
+                                contentType="video"
+                            />
+                        </Link>
                     ))}
                 </div>
             </section>
@@ -164,18 +165,19 @@ export default function DiscoverPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {featuredContent.videos.slice(4, 8).map((video) => (
-                        <ContentCard
-                            key={video.id}
-                            image={video.thumbnail_url || '/images/default-thumbnail.png'}
-                            title={video.title}
-                            subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
-                            actionLabel="Watch"
-                            author={video.author ? {
-                                name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-                            } : undefined}
-                            contentType="video"
-                        />
+                         <Link key={video.id} href={`/content/${video.id}?kind=video`} className="block transition-transform duration-300 hover:scale-105">
+                            <ContentCard
+                                image={video.thumbnail_url || '/images/default-thumbnail.png'}
+                                title={video.title}
+                                subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
+                                actionLabel="Watch"
+                                author={video.author ? {
+                                    name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
+                                    avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
+                                } : undefined}
+                                contentType="video"
+                            />
+                        </Link>
                     ))}
                 </div>
             </section>

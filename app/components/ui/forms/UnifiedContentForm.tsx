@@ -49,38 +49,45 @@ const allowedImageTypes = {
   'image/webp': ['.webp']
 };
 
-export default function UnifiedContentForm() {
-  const [selectedType, setSelectedType] = useState('audio');
+export default function UnifiedContentForm({
+  initialData,
+  onSave,
+}: {
+  initialData?: any;
+  onSave: (data: any, type: string) => Promise<void>;
+}) {
+  const [selectedType, setSelectedType] = useState(initialData?.kind || 'audio');
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | undefined>(undefined);
 
   // Shared fields
-  const [title, setTitle] = useState('');
-  const [introduction, setIntroduction] = useState('');
-  const [category, setCategory] = useState('');
-  const [isPremium, setIsPremium] = useState(false);
-  const [price, setPrice] = useState('');
-  const [publishAction, setPublishAction] = useState<'now' | 'schedule' | 'draft'>('now');
-  const [releaseDate, setReleaseDate] = useState('');
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [introduction, setIntroduction] = useState(initialData?.description || '');
+  const [category, setCategory] = useState(initialData?.category || '');
+  const [isPremium, setIsPremium] = useState(initialData?.is_premium || false);
+  const [price, setPrice] = useState(initialData?.price || '');
+  const [publishAction, setPublishAction] = useState<'now' | 'schedule' | 'draft'>(initialData?.published ? 'now' : 'draft');
+  const [releaseDate, setReleaseDate] = useState(initialData?.release_date || '');
 
   // Audio/Video
   const [mainFile, setMainFile] = useState<File | null>(null);
-  const [mainFileUrl, setMainFileUrl] = useState('');
-  const [duration, setDuration] = useState<number | undefined>(undefined);
+  const [mainFileUrl, setMainFileUrl] = useState(initialData?.audio_url || initialData?.video_url || '');
+  const [duration, setDuration] = useState<number | undefined>(initialData?.duration);
 
   // Article
-  const [content, setContent] = useState('');
-  const [excerpt, setExcerpt] = useState('');
+  const [content, setContent] = useState(initialData?.content || '');
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt || '');
   const [previewMode, setPreviewMode] = useState<'edit' | 'preview'>('edit');
 
   // Thumbnail
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState(initialData?.thumbnail_url || '');
 
   const router = useRouter();
   const { user } = useUserStore();
+  const isEditing = !!initialData;
 
   const getMissingFields = () => {
     const missing = [];
@@ -156,14 +163,13 @@ export default function UnifiedContentForm() {
 
   // Submission logic
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('Form submission initiated...');
     e.preventDefault();
     setError(null);
     setThumbnailError(undefined);
     setLoading(true);
     setUploadProgress(0);
+    
     try {
-      console.log('User from store:', user);
       if (!user) {
         toast.error('You must be logged in to create content.');
         setLoading(false);
@@ -176,123 +182,41 @@ export default function UnifiedContentForm() {
       // Upload main file if needed
       if ((selectedType === 'audio' || selectedType === 'video') && mainFile) {
         uploadedMainFileUrl = await uploadFile(mainFile, selectedType === 'audio' ? 'audio' : 'videos');
-        console.log('Uploaded main file:', uploadedMainFileUrl);
       }
       // Upload thumbnail if needed
       if (thumbnailFile) {
         uploadedThumbnailUrl = await uploadFile(thumbnailFile, 'thumbnails');
-        console.log('Uploaded thumbnail:', uploadedThumbnailUrl);
       }
 
-      let published: boolean;
-      let release_date: string | null;
+      const published = publishAction === 'now';
+      const release_date = publishAction === 'schedule' && releaseDate ? new Date(releaseDate).toISOString() : null;
 
-      switch (publishAction) {
-        case 'now':
-          published = true;
-          release_date = new Date().toISOString();
-          break;
-        case 'schedule':
-          if (!releaseDate) {
-            throw new Error('Please select a release date for scheduling.');
-          }
-          published = false;
-          release_date = new Date(releaseDate).toISOString();
-          break;
-        case 'draft':
-        default:
-          published = false;
-          release_date = null;
-          break;
-      }
+      const baseData = {
+        title,
+        category,
+        is_premium: isPremium,
+        thumbnail_url: uploadedThumbnailUrl,
+        published,
+        release_date,
+        user_id: user.id,
+      };
+
+      let finalData;
 
       if (selectedType === 'audio') {
-        const audioData = {
-          title,
-          description: introduction,
-          audio_url: uploadedMainFileUrl,
-          duration,
-          published,
-          is_premium: isPremium,
-          thumbnail_url: uploadedThumbnailUrl,
-          category,
-          user_id: user.id,
-          release_date,
-        };
-
-        console.log('Audio data:', audioData);
-        const response = await fetch('/api/content/audio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(audioData),
-          next: { revalidate: 0 },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          toast.error(errorData.error || 'Failed to create audio');
-          return;
-        }
-        toast('Audio created successfully');
-        router.push('/dashboard/content/audio');
-        router.refresh();
+        finalData = { ...baseData, description: introduction, audio_url: uploadedMainFileUrl, duration };
       } else if (selectedType === 'video') {
-        const videoData = {
-          title,
-          description: introduction,
-          video_url: uploadedMainFileUrl,
-          thumbnail_url: uploadedThumbnailUrl,
-          duration,
-          published,
-          is_premium: isPremium,
-          category,
-          user_id: user.id,
-          release_date,
-        };
-        console.log('Video data:', videoData);
-        const response = await fetch('/api/content/videos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(videoData),
-          next: { revalidate: 0 },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          toast.error(errorData.error || 'Failed to create video');
-          return;
-        }
-        toast('Video created successfully');
-        router.push('/dashboard/content/videos');
-        router.refresh();
+        finalData = { ...baseData, description: introduction, video_url: uploadedMainFileUrl, duration };
       } else if (selectedType === 'article') {
-        const articleData = {
-          title,
-          content,
-          excerpt,
-          published,
-          is_premium: isPremium,
-          thumbnail_url: uploadedThumbnailUrl,
-          category,
-          user_id: user.id,
-          release_date,
-        };
-        console.log('Article data:', articleData);
-        const response = await fetch('/api/content/articles', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(articleData),
-          next: { revalidate: 0 },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          toast.error(errorData.error || 'Failed to create article');
-          return;
-        }
-        toast('Article created successfully');
-        router.push('/dashboard/content/articles');
-        router.refresh();
+        finalData = { ...baseData, content, excerpt };
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while saving the content');
+
+      await onSave(finalData, selectedType);
+
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.');
+      console.error('Submission failed:', error);
     } finally {
       setLoading(false);
     }
@@ -305,16 +229,23 @@ export default function UnifiedContentForm() {
         <label htmlFor="content-type" className="block text-sm font-medium text-gray-200 mb-1">
           Content Type
         </label>
-        <select
-          id="content-type"
-          value={selectedType}
-          onChange={e => setSelectedType(e.target.value)}
-          className="block w-full bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
+        <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
           {contentTypes.map(type => (
-            <option key={type.id} value={type.id}>{type.name}</option>
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => setSelectedType(type.id)}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                selectedType === type.id
+                  ? 'bg-purple-600 text-white'
+                  : 'text-gray-300 bg-gray-700 hover:bg-gray-600'
+              }`}
+              disabled={isEditing}
+            >
+              {type.name}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {/* Title */}
@@ -514,19 +445,14 @@ export default function UnifiedContentForm() {
       )}
 
       {/* Publish Button */}
-      <button 
-        type="submit" 
-        disabled={isButtonDisabled || loading} 
-        className="w-full cursor-pointer bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-bold py-2 px-4 rounded mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+      <button
+        type="submit"
+        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={loading || isButtonDisabled}
       >
-        {loading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-            {publishAction === 'now' ? 'Publishing...' : publishAction === 'schedule' ? 'Scheduling...' : 'Saving...'}
-          </>
-        ) : (
-          publishAction === 'now' ? 'Publish Now' : publishAction === 'schedule' ? 'Schedule Post' : 'Save Draft'
-        )}
+        {loading
+          ? `Uploading... ${uploadProgress}%`
+          : (isEditing ? 'Save Changes' : 'Create Content')}
       </button>
 
       {isButtonDisabled && (

@@ -104,9 +104,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 </Link>
               </nav>
             </div>
-            <div>
-              <p className="text-gray-400 text-sm">{account?.bech32Address.slice(0, 8)}</p>
-            </div>
+           
             <div>
               <GeneralButton onClick={handleSignOut} className="w-full flex items-center justify-center bg-none text-gray-400 hover:bg-[#8B25FF]/5">
                 <Icon icon="mdi:logout" className="w-5 h-5 mr-2" />

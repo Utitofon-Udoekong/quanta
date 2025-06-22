@@ -34,7 +34,7 @@ export default function ComingSoonPage() {
               wallet_address,
                             avatar_url
             )
-          `)
+                    `)
           .eq('published', false)
           .gt('release_date', new Date().toISOString())
           .order('release_date', { ascending: true })
@@ -81,8 +81,8 @@ export default function ComingSoonPage() {
                   href="#"
                   className={`py-2 text-sm transition-colors ${
                       tab === 'For You' ? 'text-white font-medium' : 'text-gray-300 hover:text-white font-light'
-                  }`}
-              >
+            }`}
+          >
                   {tab}
               </Link>
           ))}

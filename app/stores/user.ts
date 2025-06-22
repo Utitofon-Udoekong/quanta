@@ -15,6 +15,7 @@ interface UserStore {
     stack?: string
   } | null
   checkAndSetUser: () => Promise<void>
+  autoSignIn: (walletAddress: string) => Promise<void>
   fetchUser: (walletAddress: string) => Promise<void>
   updateUser: (walletAddress: string, data: Partial<UserData>) => Promise<void>
   clearUser: () => void
@@ -75,6 +76,54 @@ export const useUserStore = create<UserStore>((set, get) => ({
       const errorMessage = error instanceof Error ? error.message : 'Failed to check and set user';
       console.error('[UserStore] checkAndSetUser failed:', error);
       get().setError(errorMessage, 'checkAndSetUser');
+      set({ loading: false });
+    }
+  },
+
+  autoSignIn: async (walletAddress: string) => {
+    set({ loading: true, error: null, errorDetails: null });
+    try {
+      console.log('[UserStore] Starting automatic sign-in for:', walletAddress);
+      
+      // Call backend to authenticate wallet and get JWT
+      const res = await fetch('/api/wallet-auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: walletAddress })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        const errorMessage = errorData.error || 'Authentication failed';
+        throw new Error(errorMessage);
+      }
+
+      const { token, user } = await res.json();
+      console.log('[UserStore] Authentication successful:', { user, token });
+
+      if (token) {
+        // Set the session using the custom JWT
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: token, // Using same token for refresh
+        });
+
+        if (sessionError) {
+          console.error('[UserStore] Session error:', sessionError);
+          throw new Error('Failed to establish session');
+        }
+
+        // Set the user data
+        set({ user: user as UserData, loading: false });
+        console.log('[UserStore] Auto sign-in completed successfully');
+      } else {
+        throw new Error('No token received from authentication');
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Automatic sign-in failed';
+      console.error('[UserStore] Auto sign-in failed:', error);
+      get().setError(errorMessage, 'autoSignIn');
       set({ loading: false });
     }
   },

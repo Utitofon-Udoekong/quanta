@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
     
     try {
         const { wallet_address } = await req.json()
-        console.log('wallet_address', wallet_address)
         
         if (!wallet_address) {
             return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
@@ -151,7 +150,6 @@ export async function POST(req: NextRequest) {
         }
 
         const token = jwt.sign(payload, JWT);
-        console.log('token', token)
         
         const response = NextResponse.json({ 
             token,
