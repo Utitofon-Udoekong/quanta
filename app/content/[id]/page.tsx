@@ -96,7 +96,6 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
             src={(content as VideoContent).video_url || ''}
             poster={content.thumbnail_url}
             title={content.title}
-            className="mb-6"
           />
         );
       case 'audio':
@@ -104,12 +103,11 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
           <CustomAudioPlayer
             src={(content as AudioContent).audio_url || ''}
             title={content.title}
-            className="mb-6"
           />
         );
       case 'article':
         return (
-          <div className="prose prose-invert max-w-none p-6">
+          <div className="prose prose-invert max-w-none">
             <MarkdownViewer content={(content as ArticleContent).content || ''} />
           </div>
         );
@@ -130,23 +128,29 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
   const getContentMetadata = (content: Content) => {
     switch (content.kind) {
       case 'video':
+        const videoDuration = (content as VideoContent).duration || 0;
+        const videoMinutes = Math.floor(videoDuration / 60);
+        const videoSeconds = videoDuration % 60;
         return (
           <>
-            {Math.floor(((content as VideoContent).duration || 0) / 60)}:
-            {(((content as VideoContent).duration || 0) % 60).toString().padStart(2, '0')}
+            {videoMinutes}:{videoSeconds.toString().padStart(2, '0')}
           </>
         );
       case 'audio':
+        const audioDuration = (content as AudioContent).duration || 0;
+        const audioMinutes = Math.floor(audioDuration / 60);
+        const audioSeconds = audioDuration % 60;
         return (
           <>
-            {Math.floor(((content as AudioContent).duration || 0) / 60)}:
-            {(((content as AudioContent).duration || 0) % 60).toString().padStart(2, '0')}
+            {audioMinutes}:{audioSeconds.toString().padStart(2, '0')}
           </>
         );
       case 'article':
+        const wordCount = (content as ArticleContent).content?.split(' ').length || 0;
+        const readTimeMinutes = Math.ceil(wordCount / 200);
         return (
           <>
-            {Math.ceil(((content as ArticleContent).content?.split(' ').length || 0) / 200)} min read
+            {readTimeMinutes} min read
           </>
         );
       default:

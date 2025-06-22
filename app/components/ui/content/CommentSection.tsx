@@ -21,80 +21,196 @@ interface CommentSectionProps {
   contentType: string;
 }
 
-function CommentForm({ onSubmit, loading, initialValue = '', placeholder = 'Add a comment...' }: any) {
+function CommentForm({ onSubmit, onCancel, loading, initialValue = '', placeholder = 'Add a comment...' }: any) {
   const [value, setValue] = useState(initialValue);
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!value.trim()) return;
+    onSubmit(value);
+    setValue('');
+  };
+
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      setValue('');
+    }
+  };
+
   return (
-    <form
-      onSubmit={e => {
-        e.preventDefault();
-        if (!value.trim()) return;
-        onSubmit(value);
-        setValue('');
-      }}
-      className="flex gap-2 mt-2"
-    >
-      <input
-        className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white"
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <textarea
+        className="w-full bg-gray-900/50 border border-gray-700/50 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         value={value}
         onChange={e => setValue(e.target.value)}
         placeholder={placeholder}
         disabled={loading}
+        rows={3}
       />
-      <button
-        type="submit"
-        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        disabled={loading}
-      >
-        {loading ? '...' : 'Post'}
-      </button>
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading || !value.trim()}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Icon icon="mdi:loading" className="animate-spin h-4 w-4" />
+              Posting...
+            </span>
+          ) : (
+            'Post Comment'
+          )}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            disabled={loading}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }
 
-function CommentItem({ comment, onReply, onEdit, onDelete, user, replyingTo, editingId, loading }: any) {
+function CommentItem({ comment, onReply, onEdit, onDelete, user, replyingTo, editingId, loading, setEditingId }: any) {
   const [showReply, setShowReply] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
+
+  const handleEditSubmit = (newContent: string) => {
+    onEdit(comment.id, newContent);
+    setEditingId(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+  };
+
+  const handleReplySubmit = (content: string) => {
+    onReply(comment.id, content);
+    setShowReply(false);
+  };
+
+  const handleReplyCancel = () => {
+    setShowReply(false);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else if (diffInHours < 168) { // 7 days
+      return `${Math.floor(diffInHours / 24)}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   return (
-    <div className="mb-4">
-      <div className="flex items-start gap-3">
-        <img src={comment.user.avatar_url || '/default-avatar.png'} alt="avatar" className="w-8 h-8 rounded-full" />
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm">{comment.user.username}</span>
-            <span className="text-xs text-gray-400">{new Date(comment.created_at).toLocaleString()}</span>
-          </div>
-          {editingId === comment.id ? (
-            <CommentForm
-              initialValue={comment.content}
-              loading={loading}
-              onSubmit={val => onEdit(comment.id, val)}
-              placeholder="Edit your comment..."
-            />
-          ) : (
-            <p className="text-gray-200 text-sm mt-1">{comment.content}</p>
-          )}
-          <div className="flex gap-2 mt-1 text-xs text-gray-400">
-            {user && (
-              <button onClick={() => setShowReply(!showReply)} className="hover:underline">Reply</button>
+    <div className="group hover:bg-gray-900/30 rounded-lg p-4 transition-colors">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <img 
+            src={comment.user.avatar_url || `https://robohash.org/${comment.user.wallet_address}`} 
+            alt="avatar" 
+            className="w-10 h-10 rounded-full border-2 border-gray-700"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold text-sm text-white">
+              {comment.user.username || comment.user.wallet_address?.slice(0, 8) + '...'}
+            </span>
+            <span className="text-xs text-gray-400">
+              {formatDate(comment.created_at)}
+            </span>
+            {comment.updated_at !== comment.created_at && (
+              <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded-full">
+                edited
+              </span>
             )}
-            {user && user.wallet_address === comment.user.wallet_address && (
+          </div>
+          
+          {editingId === comment.id ? (
+            <div className="mb-3">
+              <CommentForm
+                initialValue={comment.content}
+                loading={loading}
+                onSubmit={handleEditSubmit}
+                onCancel={handleEditCancel}
+                placeholder="Edit your comment..."
+              />
+            </div>
+          ) : (
+            <p className="text-gray-200 text-sm leading-relaxed mb-3">{comment.content}</p>
+          )}
+          
+          <div className="flex items-center gap-4 text-xs">
+            {user && !showReply && editingId !== comment.id && (
+              <button 
+                onClick={() => setShowReply(true)} 
+                className="text-gray-400 hover:text-purple-400 transition-colors font-medium"
+              >
+                Reply
+              </button>
+            )}
+            {user && user.wallet_address === comment.user.wallet_address && editingId !== comment.id && (
               <>
-                <button onClick={() => setShowEdit(!showEdit)} className="hover:underline">Edit</button>
-                <button onClick={() => onDelete(comment.id)} className="hover:underline text-red-400">Delete</button>
+                <button 
+                  onClick={() => setEditingId(comment.id)} 
+                  className="text-gray-400 hover:text-blue-400 transition-colors font-medium"
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={() => onDelete(comment.id)} 
+                  className="text-gray-400 hover:text-red-400 transition-colors font-medium"
+                >
+                  Delete
+                </button>
               </>
             )}
           </div>
-          {showReply && user && (
-            <div className="ml-4 mt-2">
-              <CommentForm loading={loading} onSubmit={val => { onReply(comment.id, val); setShowReply(false); }} placeholder={`Reply to @${comment.user.username}`} />
+          
+          {showReply && user && editingId !== comment.id && (
+            <div className="mt-4 ml-4 pl-4 border-l-2 border-purple-500/30">
+              <CommentForm 
+                loading={loading} 
+                onSubmit={handleReplySubmit} 
+                onCancel={handleReplyCancel}
+                placeholder={`Reply to @${comment.user.username || comment.user.wallet_address?.slice(0, 8)}`} 
+              />
             </div>
           )}
         </div>
       </div>
+      
       {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-8 mt-2 border-l border-gray-700 pl-4">
+        <div className="mt-4 ml-14 pl-4 border-l-2 border-gray-700 space-y-4">
           {comment.replies.map((reply: Comment) => (
-            <CommentItem key={reply.id} comment={reply} onReply={onReply} onEdit={onEdit} onDelete={onDelete} user={user} replyingTo={replyingTo} editingId={editingId} loading={loading} />
+            <CommentItem 
+              key={reply.id} 
+              comment={reply} 
+              onReply={onReply} 
+              onEdit={onEdit} 
+              onDelete={onDelete} 
+              user={user} 
+              replyingTo={replyingTo} 
+              editingId={editingId} 
+              loading={loading}
+              setEditingId={setEditingId}
+            />
           ))}
         </div>
       )}
@@ -184,24 +300,51 @@ export default function CommentSection({ contentId, contentType }: CommentSectio
   };
 
   return (
-    <section className="mt-10">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <Icon icon="mdi:comment-multiple-outline" className="w-6 h-6" />
-        Comments
-      </h2>
-      {error && <div className="text-red-400 mb-2">{error}</div>}
+    <section className="mt-10 bg-[#121418] rounded-lg p-6 shadow-lg">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-purple-600/20 rounded-lg">
+          <Icon icon="mdi:comment-multiple-outline" className="w-6 h-6 text-purple-400" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-white">Comments</h2>
+          <p className="text-sm text-gray-400">
+            {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+          </p>
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+      
       {user && (
-        <CommentForm loading={submitting} onSubmit={val => handlePost(val)} />
+        <div className="mb-6 p-4 bg-gray-900/50 rounded-lg border border-gray-700/50">
+          <CommentForm loading={submitting} onSubmit={(val: string) => handlePost(val)} />
+        </div>
       )}
+      
       {!user && (
-        <div className="mb-4 text-gray-400">Sign in to post a comment.</div>
+        <div className="mb-6 p-4 bg-gray-900/50 rounded-lg border border-gray-700/50 text-center">
+          <p className="text-gray-400">Sign in to post a comment.</p>
+        </div>
       )}
+      
       {loading ? (
-        <div className="text-gray-400">Loading comments...</div>
+        <div className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-3 text-gray-400">
+            <Icon icon="mdi:loading" className="animate-spin h-5 w-5" />
+            <span>Loading comments...</span>
+          </div>
+        </div>
       ) : comments.length === 0 ? (
-        <div className="text-gray-400">No comments yet. Be the first to comment!</div>
+        <div className="text-center py-8">
+          <Icon icon="mdi:comment-outline" className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">No comments yet. Be the first to comment!</p>
+        </div>
       ) : (
-        <div className="mt-4">
+        <div className="space-y-2">
           {comments.map(comment => (
             <CommentItem
               key={comment.id}
@@ -210,8 +353,10 @@ export default function CommentSection({ contentId, contentType }: CommentSectio
               onEdit={handleEdit}
               onDelete={handleDelete}
               user={user}
+              replyingTo={null}
               editingId={editingId}
               loading={submitting}
+              setEditingId={setEditingId}
             />
           ))}
         </div>

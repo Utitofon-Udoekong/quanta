@@ -53,8 +53,7 @@ export default function DiscoverPage() {
                                 username,
                                 wallet_address,
                                 avatar_url
-                            ),
-                            content_views!left(count)
+                            )
                         `)
                         .eq('published', true)
                         .order('created_at', { ascending: false })
@@ -68,7 +67,7 @@ export default function DiscoverPage() {
                     videos: videos.map((video: any) => ({
                         ...video,
                         kind: 'video',
-                        views: video.content_views[0]?.count ?? 0,
+                        views: 0, // We'll handle views separately if needed
                     })),
                     audio: [],
                     articles: [],

@@ -88,14 +88,18 @@ export default function UnifiedContentForm({
   const router = useRouter();
   const { user } = useUserStore();
   const isEditing = !!initialData;
+  const isAlreadyPublished = initialData?.published;
 
   const getMissingFields = () => {
     const missing = [];
     if (!title) missing.push('Title');
     if (!category) missing.push('Category');
     if (isPremium && !price) missing.push('Price');
-    if ((selectedType === 'audio' || selectedType === 'video') && !mainFile) {
+    if ((selectedType === 'audio' || selectedType === 'video') && !mainFile && !mainFileUrl) {
       missing.push(selectedType === 'audio' ? 'Audio File' : 'Video File');
+    }
+    if (!thumbnailFile && !thumbnailUrl) {
+      missing.push('Thumbnail');
     }
     if (selectedType === 'article' && !content) missing.push('Article Content');
     if (publishAction === 'schedule' && !releaseDate) missing.push('Release Date');
@@ -191,13 +195,22 @@ export default function UnifiedContentForm({
       const published = publishAction === 'now';
       const release_date = publishAction === 'schedule' && releaseDate ? new Date(releaseDate).toISOString() : null;
 
+      // For editing published content, always keep it published
+      let finalPublished = published;
+      let finalReleaseDate = release_date;
+      
+      if (isEditing && isAlreadyPublished) {
+        finalPublished = true; // Keep published content published
+        finalReleaseDate = null; // Clear any scheduled release date
+      }
+
       const baseData = {
         title,
         category,
         is_premium: isPremium,
         thumbnail_url: uploadedThumbnailUrl,
-        published,
-        release_date,
+        published: finalPublished,
+        release_date: finalReleaseDate,
         user_id: user.id,
       };
 
@@ -395,6 +408,14 @@ export default function UnifiedContentForm({
       {/* Publishing Options */}
       <div>
         <label className="block text-sm font-medium text-gray-200 mb-2">Publishing Options</label>
+        {isEditing && isAlreadyPublished && (
+          <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-300">
+              <Icon icon="material-symbols:info" className="inline h-4 w-4 mr-1" />
+              This content is already published and cannot be unpublished.
+            </p>
+          </div>
+        )}
         <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
           <button
             type="button"
@@ -402,6 +423,7 @@ export default function UnifiedContentForm({
             className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               publishAction === 'now' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
             }`}
+            disabled={isEditing && isAlreadyPublished}
           >
             Publish Now
           </button>
@@ -411,6 +433,7 @@ export default function UnifiedContentForm({
             className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               publishAction === 'schedule' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
             }`}
+            disabled={isEditing && isAlreadyPublished}
           >
             Schedule
           </button>
@@ -419,11 +442,17 @@ export default function UnifiedContentForm({
             onClick={() => setPublishAction('draft')}
             className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
               publishAction === 'draft' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
-            }`}
+            } ${isEditing && isAlreadyPublished ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isEditing && isAlreadyPublished}
           >
             Save as Draft
           </button>
         </div>
+        {isEditing && isAlreadyPublished && (
+          <p className="text-xs text-gray-500 mt-2">
+            Published content remains published. You can only update other fields.
+          </p>
+        )}
       </div>
 
       {/* Release Date Picker */}

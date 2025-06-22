@@ -25,14 +25,16 @@ export async function POST(
 
     const { type, id } = params;
     const { content, parentId } = await request.json();
-    const walletAddress = user.user_metadata.wallet_address;
+    const userId = user.id;
+
+    console.log('Creating comment:', { type, id, userId, content, parentId });
 
     const { data: comment, error: insertError } = await supabase
       .from('content_comments')
       .insert({
         content_id: id,
         content_type: type,
-        user_id: walletAddress,
+        user_id: userId,
         content,
         parent_id: parentId || null
       })
@@ -46,7 +48,10 @@ export async function POST(
       `)
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Error inserting comment:', insertError);
+      throw insertError;
+    }
     return NextResponse.json(comment);
   } catch (error) {
     console.error('Error creating comment:', error);
@@ -138,13 +143,13 @@ export async function PATCH(
 
     const { content } = await request.json();
     const commentId = params.id;
-    const walletAddress = user.user_metadata.wallet_address;
+    const userId = user.id;
 
     const { data: comment, error: updateError } = await supabase
       .from('content_comments')
       .update({ content })
       .eq('id', commentId)
-      .eq('user_id', walletAddress)
+      .eq('user_id', userId)
       .select(`
         *,
         user:users (
@@ -155,7 +160,10 @@ export async function PATCH(
       `)
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Error updating comment:', updateError);
+      throw updateError;
+    }
     return NextResponse.json(comment);
   } catch (error) {
     console.error('Error updating comment:', error);
@@ -187,15 +195,20 @@ export async function DELETE(
     }
 
     const commentId = params.id;
-    const walletAddress = user.user_metadata.wallet_address;
+    const userId = user.id;
+
+    console.log('Deleting comment:', { commentId, userId });
 
     const { error: deleteError } = await supabase
       .from('content_comments')
       .delete()
       .eq('id', commentId)
-      .eq('user_id', walletAddress);
+      .eq('user_id', userId);
 
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error('Error deleting comment:', deleteError);
+      throw deleteError;
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting comment:', error);

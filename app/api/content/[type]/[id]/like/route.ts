@@ -24,16 +24,23 @@ export async function POST(
     }
 
     const { type, id } = params;
-    const walletAddress = user.user_metadata.wallet_address;
+    const userId = user.id;
+
+    console.log('Like request:', { type, id, userId });
 
     // Check if like already exists
-    const { data: existingLike } = await supabase
+    const { data: existingLike, error: checkError } = await supabase
       .from('content_likes')
       .select('id')
       .eq('content_id', id)
       .eq('content_type', type)
-      .eq('user_id', walletAddress)
+      .eq('user_id', userId)
       .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing like:', checkError);
+      throw checkError;
+    }
 
     if (existingLike) {
       // Unlike if already liked
@@ -42,7 +49,10 @@ export async function POST(
         .delete()
         .eq('id', existingLike.id);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Error deleting like:', deleteError);
+        throw deleteError;
+      }
       return NextResponse.json({ liked: false });
     }
 
@@ -52,10 +62,13 @@ export async function POST(
       .insert({
         content_id: id,
         content_type: type,
-        user_id: walletAddress
+        user_id: userId
       });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Error inserting like:', insertError);
+      throw insertError;
+    }
     return NextResponse.json({ liked: true });
   } catch (error) {
     console.error('Error handling like:', error);
@@ -83,20 +96,28 @@ export async function GET(
       .eq('content_id', id)
       .eq('content_type', type);
 
-    if (countError) throw countError;
+    if (countError) {
+      console.error('Error getting like count:', countError);
+      throw countError;
+    }
 
     // Get user's like status if authenticated
     const { data: { user } } = await supabase.auth.getUser();
     let userLiked = false;
 
     if (user) {
-      const { data: userLike } = await supabase
+      const { data: userLike, error: userLikeError } = await supabase
         .from('content_likes')
         .select('id')
         .eq('content_id', id)
         .eq('content_type', type)
-        .eq('user_id', user.user_metadata.wallet_address)
+        .eq('user_id', user.id)
         .single();
+
+      if (userLikeError && userLikeError.code !== 'PGRST116') {
+        console.error('Error checking user like:', userLikeError);
+        throw userLikeError;
+      }
 
       userLiked = !!userLike;
     }

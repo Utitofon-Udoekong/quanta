@@ -13,12 +13,55 @@ import { useUserStore } from '@/app/stores/user';
 import { supabase } from '@/app/utils/supabase/client';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from '@/app/components/helpers/toast';
+import UnifiedContentForm from '@/app/components/ui/forms/UnifiedContentForm';
+import LikeButton from '@/app/components/ui/content/LikeButton';
+
+// Utility function to get only changed fields
+const getChangedFields = (originalData: any, newData: any) => {
+  const changedFields: any = {};
+  
+  Object.keys(newData).forEach(key => {
+    // Skip user_id as it shouldn't change
+    if (key === 'user_id') return;
+    
+    // Handle nested objects or arrays
+    if (typeof newData[key] === 'object' && newData[key] !== null) {
+      if (JSON.stringify(originalData[key]) !== JSON.stringify(newData[key])) {
+        changedFields[key] = newData[key];
+      }
+    } else {
+      // Handle primitive values
+      if (originalData[key] !== newData[key]) {
+        changedFields[key] = newData[key];
+      }
+    }
+  });
+  
+  return changedFields;
+};
+
+// Helper function to convert singular content types to plural for API calls
+const getContentTypeForAPI = (kind: string) => {
+  switch (kind) {
+    case 'video':
+      return 'videos';
+    case 'audio':
+      return 'audio';
+    case 'article':
+      return 'articles';
+    default:
+      return 'videos';
+  }
+};
 
 export default function ContentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const [content, setContent] = useState<Content | null>(null);
   const [analytics, setAnalytics] = useState<{ views: number; likes: number; comments: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [publishLoading, setPublishLoading] = useState(false);
+
   const { id } = use(params);
   const { user, error: userError } = useUserStore();
   const searchParams = useSearchParams();
@@ -27,6 +70,11 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
   const kind = (kindParam === 'video' || kindParam === 'audio' || kindParam === 'article') 
     ? kindParam 
     : 'video'; // Default to video if no kind specified or invalid kind
+
+  // Handle like changes and update analytics
+  const handleLikeChange = (liked: boolean, count: number) => {
+    setAnalytics(prev => prev ? { ...prev, likes: count } : null);
+  };
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -173,23 +221,29 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
   const getContentMetadata = (content: Content) => {
     switch (content.kind) {
       case 'video':
+        const videoDuration = (content as VideoContent).duration || 0;
+        const videoMinutes = Math.floor(videoDuration / 60);
+        const videoSeconds = videoDuration % 60;
         return (
           <>
-            {Math.floor(((content as VideoContent).duration || 0) / 60)}:
-            {(((content as VideoContent).duration || 0) % 60).toString().padStart(2, '0')}
+            {videoMinutes}:{videoSeconds.toString().padStart(2, '0')}
           </>
         );
       case 'audio':
+        const audioDuration = (content as AudioContent).duration || 0;
+        const audioMinutes = Math.floor(audioDuration / 60);
+        const audioSeconds = audioDuration % 60;
         return (
           <>
-            {Math.floor(((content as AudioContent).duration || 0) / 60)}:
-            {(((content as AudioContent).duration || 0) % 60).toString().padStart(2, '0')}
+            {audioMinutes}:{audioSeconds.toString().padStart(2, '0')}
           </>
         );
       case 'article':
+        const wordCount = (content as ArticleContent).content?.split(' ').length || 0;
+        const readTimeMinutes = Math.ceil(wordCount / 200);
         return (
           <>
-            {Math.ceil(((content as ArticleContent).content?.split(' ').length || 0) / 200)} min read
+            {readTimeMinutes} min read
           </>
         );
       default:
@@ -224,10 +278,18 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
   const handlePublishToggle = async () => {
     if (!content) return;
     
-    const newPublishedStatus = !content.published;
+    // Prevent unpublishing already published content
+    if (content.published) {
+      toast('Published content cannot be unpublished.', { className: 'bg-blue-500' });
+      return;
+    }
+    
+    // Only allow publishing draft content
+    const newPublishedStatus = true;
 
     try {
-      const response = await fetch(`/api/content/${content.kind}/${content.id}`, {
+      setPublishLoading(true);
+      const response = await fetch(`/api/content/${getContentTypeForAPI(content.kind)}/${content.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ published: newPublishedStatus }),
@@ -241,13 +303,48 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
       const updatedContent = await response.json();
 
       setContent(prev => prev ? { ...prev, published: updatedContent.published } : null);
-      toast(`Content status updated to ${newPublishedStatus ? 'Published' : 'Draft'}.`, {
+      toast('Content published successfully!', {
         className: 'bg-green-500',
       });
 
     } catch (err: any) {
       toast(err.message, { className: 'bg-red-500' });
       console.error(err);
+    } finally {
+      setPublishLoading(false);
+    }
+  };
+
+  const handleSave = async (data: any, type: string) => {
+    if (!content) {
+      toast.error('No content to update.');
+      return;
+    }
+
+    // Get only the fields that have actually changed
+    const changedFields = getChangedFields(content, data);
+    
+    // If no fields have changed, just close the modal
+    if (Object.keys(changedFields).length === 0) {
+      toast('No changes detected.');
+      setIsEditModalOpen(false);
+      return;
+    }
+
+    console.log('Updating fields:', changedFields);
+
+    const { error } = await supabase
+      .from(type === 'video' ? 'videos' : type === 'audio' ? 'audio' : 'articles')
+      .update(changedFields)
+      .eq('id', id);
+
+    if (error) {
+      toast.error(error.message || 'Failed to update content.');
+    } else {
+      toast('Content updated successfully!');
+      setIsEditModalOpen(false);
+      setContent(prev => prev ? { ...prev, ...changedFields } : null);
+      router.refresh();
     }
   };
 
@@ -330,6 +427,15 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
                   {getContentDescription(content)}
                 </div>
               )}
+              
+              {/* Interactive Elements */}
+              <div className="flex items-center gap-4 mt-6 pt-6 border-t border-gray-700">
+                <LikeButton 
+                  contentId={content.id} 
+                  contentType={content.kind} 
+                  onLikeChange={handleLikeChange}
+                />
+              </div>
             </div>
           </div>
 
@@ -348,9 +454,21 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
                 </span>
                 <button 
                   onClick={handlePublishToggle}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                  disabled={content.published || publishLoading}
+                  className={`font-bold py-2 px-4 rounded-lg transition-colors text-sm ${
+                    content.published || publishLoading
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
                 >
-                  {content.published ? 'Set to Draft' : 'Publish Now'}
+                  {publishLoading ? (
+                    <span className="flex items-center justify-center">
+                      <Icon icon="mdi:loading" className="animate-spin h-4 w-4 mr-2" />
+                      Publishing...
+                    </span>
+                  ) : (
+                    content.published ? 'Already Published' : 'Publish Now'
+                  )}
                 </button>
               </div>
             </div>
@@ -360,7 +478,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
               <h3 className="text-lg font-bold mb-4">Actions</h3>
               <div className="flex gap-3">
                  <button
-                    onClick={() => router.push(`/dashboard/content/${content.kind}/${content.id}/edit`)}
+                    onClick={() => setIsEditModalOpen(true)}
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
                   >
                    <Icon icon="heroicons:pencil" className="h-5 w-5" />
@@ -400,7 +518,11 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
                     <Icon icon="mdi:heart" className="h-5 w-5 mr-2 text-gray-400" />
                     Likes
                   </span>
-                  <span className="font-medium text-white">{analytics?.likes?.toLocaleString() || 0}</span>
+                  <LikeButton 
+                    contentId={content.id} 
+                    contentType={content.kind} 
+                    onLikeChange={handleLikeChange}
+                  />
                 </div>
                 <div className="flex items-center justify-between text-gray-300">
                   <span className="flex items-center">
@@ -425,6 +547,28 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </div>
+
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#181A20] rounded-lg shadow-2xl max-w-4xl w-full max-h-full overflow-y-auto relative">
+             <button 
+               onClick={() => setIsEditModalOpen(false)}
+               className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              >
+                <Icon icon="mdi:close" className="h-6 w-6" />
+             </button>
+             <div className="p-8">
+               <h2 className="text-2xl font-bold mb-6 text-white">Edit {content?.kind?.charAt(0).toUpperCase() + content?.kind?.slice(1)}</h2>
+               {content && (
+                  <UnifiedContentForm
+                    initialData={content}
+                    onSave={handleSave}
+                  />
+               )}
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
