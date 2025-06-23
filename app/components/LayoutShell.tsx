@@ -6,9 +6,10 @@ import { useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
 import { usePathname, useRouter } from 'next/navigation';
 import GeneralButton from '@/app/components/ui/GeneralButton';
-import {
-  useAbstraxionAccount,
-} from "@burnt-labs/abstraxion";
+import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
+import { useState } from 'react';
+import SearchInput from './ui/SearchInput';
+import { Button } from '@headlessui/react';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
@@ -16,6 +17,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { data: account, logout: logoutAbstraxionAccount } = useAbstraxionAccount();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const handleSignOut = async () => {
     logoutAbstraxionAccount?.();
@@ -32,132 +34,162 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   };
 
   const getDashboardLinkClass = (path: string) => {
-    const isActive = pathname.startsWith(path);
-    if (isActive) {
+    if (path === '/dashboard') {
+      if (pathname === '/dashboard') {
+        return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
+      }
+      return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
+    }
+    if (path === '/dashboard/content') {
+      if (pathname === '/dashboard/content' || pathname.startsWith('/dashboard/content/')) {
+        return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
+      }
+      return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
+    }
+    if (pathname === path) {
       return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
     }
     return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
-  }
+  };
 
   if (pathname === '/auth') {
     return <>{children}</>;
   }
 
-  return (
-    <div className="min-h-screen bg-[#0A0C10] text-white">
-      {/* Left Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 overflow-y-auto flex flex-col justify-between py-8 px-6 bg-[#0A0C10] z-20 shadow-xl shadow-[#8B25FF]/50">
-        {!user ? (
-          <>
-            <div>
-              <div className="mb-10 flex items-center sticky top-0 bg-[#0A0C10]">
-                <span className="text-4xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
-              </div>
-              <nav className="space-y-2">
-                <Link href="/" className={getLinkClass('/')}>
-                  <span>Home</span>
-                </Link>
-                <Link href="/discover" className={getLinkClass('/discover')}>
-                  <span>Discover</span>
-                </Link>
-                <Link href="/coming-soon" className={getLinkClass('/coming-soon')}>
-                  <span>Coming Soon</span>
-                </Link>
-              </nav>
-              <div className="mt-10 space-y-1">
-                <Link href="/settings" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Settings</Link>
-                <Link href="/help" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Help</Link>
-              </div>
-            </div>
-            <div>
-              <Link href="/auth" className="">
-              <GeneralButton className="w-full flex items-center justify-center">
-                <Icon icon="mdi:login" className="w-5 h-5 mr-2" />
-                Sign In
-              </GeneralButton>
-              </Link>
-
-            </div>
-          </>
-        ) : pathname.startsWith('/dashboard') ? (
-          <>
-            <div>
-              <div className="mb-10 flex items-center sticky top-0 bg-[#0A0C10]">
-                <span className="text-4xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
-              </div>
-              <nav className="space-y-2">
-                <Link href="/" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-white font-bold hover:bg-[#8B25FF]/5">
-                  <Icon icon="mdi:view-dashboard-outline" className="w-5 h-5 mr-2" />
-                  Home
-                </Link>
-                <Link href="/dashboard/content" className={getDashboardLinkClass('/dashboard/content')}>
-                  <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-2" />
-                  Post Management
-                </Link>
-                <Link href="/settings" className={getDashboardLinkClass('/settings')}>
-                  <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
-                  Settings
-                </Link>
-                <Link href="/help" className={getDashboardLinkClass('/help')}>
-                  <Icon icon="mdi:help-circle-outline" className="w-5 h-5 mr-2" />
-                  Help
-                </Link>
-              </nav>
-            </div>
-           
-            <div>
-              <GeneralButton onClick={handleSignOut} className="w-full flex items-center justify-center bg-none text-gray-400 hover:bg-[#8B25FF]/5">
-                <Icon icon="mdi:logout" className="w-5 h-5 mr-2" />
-                Logout
-              </GeneralButton>
-            </div>
-          </>
+  const sidebarContent = (
+    <>
+      <div>
+        <div className="mb-10 flex items-center justify-between sticky top-0 bg-[#0A0C10] px-3 py-4">
+          <span className="text-2xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
+          <button
+            className="md:hidden text-gray-400 hover:text-white focus:outline-none"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close sidebar"
+          >
+            <Icon icon="mdi:close" className="w-6 h-6" />
+          </button>
+        </div>
+        
+        {pathname.startsWith('/dashboard') && user ? (
+          <nav className="space-y-2 px-3">
+            <Link href="/" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-white font-bold hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:arrow-left" className="w-5 h-5 mr-2" />
+              Back to App
+            </Link>
+            <Link href="/dashboard" className={getDashboardLinkClass('/dashboard')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:home-outline" className="w-5 h-5 mr-2" />
+              Dashboard
+            </Link>
+            <Link href="/dashboard/content" className={getDashboardLinkClass('/dashboard/content')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-2" />
+              Content Management
+            </Link>
+            <Link href="/settings" className={getDashboardLinkClass('/settings')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
+              Settings
+            </Link>
+            <Link href="/help" className={getDashboardLinkClass('/help')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:help-circle-outline" className="w-5 h-5 mr-2" />
+              Help
+            </Link>
+          </nav>
         ) : (
-          <>
-            <div>
-              <div className="mb-10 flex items-center sticky top-0 bg-[#0A0C10]">
-                <span className="text-4xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
-              </div>
-              <nav className="space-y-2">
-                <Link href="/" className={getLinkClass('/')}>
-                  <span>Home</span>
-                </Link>
-                <Link href="/discover" className={getLinkClass('/discover')}>
-                  <span>Discover</span>
-                </Link>
-                <Link href="/coming-soon" className={getLinkClass('/coming-soon')}>
-                  <span>Coming Soon</span>
-                </Link>
-              </nav>
+          <nav className="space-y-2 px-3">
+            <Link href="/" className={getLinkClass('/')} onClick={() => setIsSidebarOpen(false)}><span>Home</span></Link>
+            <Link href="/discover" className={getLinkClass('/discover')} onClick={() => setIsSidebarOpen(false)}><span>Discover</span></Link>
+            <Link href="/coming-soon" className={getLinkClass('/coming-soon')} onClick={() => setIsSidebarOpen(false)}><span>Coming Soon</span></Link>
+            {user && (
               <div className="mt-10">
                 <div className="uppercase text-xs text-gray-500 mb-2 tracking-widest">Library</div>
                 <nav className="space-y-1">
-                  <Link href="#" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Downloaded</Link>
-                  <Link href="#" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Recently Added</Link>
-                  <Link href="#" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">Play list</Link>
-                  <Link href="/dashboard/subscriptions" className="flex items-center py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5">
+                  <Link href="#" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>Downloaded</Link>
+                  <Link href="#" className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>Recently Added</Link>
+                  <Link href="/dashboard/subscriptions" className="flex items-center py-2 px-3 rounded-lg text-gray-300 hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>
                     <span>Subscription</span>
                     <span className="ml-2 text-xs bg-[#8B25FF] text-white px-2 py-0.5 rounded-full">NEW</span>
                   </Link>
                 </nav>
               </div>
-              <div className="mt-10 space-y-1">
-                <Link href="/settings" className={getLinkClass('/settings')}>Settings</Link>
-                <Link href="/help" className={getLinkClass('/help')}>Help</Link>
-              </div>
+            )}
+            <div className="mt-10 space-y-1">
+              <Link href="/settings" className={getLinkClass('/settings')} onClick={() => setIsSidebarOpen(false)}>Settings</Link>
+              <Link href="/help" className={getLinkClass('/help')} onClick={() => setIsSidebarOpen(false)}>Help</Link>
             </div>
+          </nav>
+        )}
+      </div>
+      <div className="px-3">
+        {user ? (
+          <GeneralButton onClick={handleSignOut} className="w-full flex items-center justify-center bg-transparent text-gray-400 hover:bg-[#8B25FF]/5">
+            <Icon icon="mdi:logout" className="w-5 h-5 mr-2" />
+            Logout
+          </GeneralButton>
+        ) : (
+          <Link href="/auth">
+            <GeneralButton className="w-full flex items-center justify-center">
+              <Icon icon="mdi:login" className="w-5 h-5 mr-2" />
+              Sign In
+            </GeneralButton>
+          </Link>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#0A0C10] text-white">
+      <header className="sticky top-0 z-30 bg-[#0A0C10]/80 backdrop-blur-sm flex items-center justify-between gap-4 p-4 sm:px-8 md:ml-64 shadow-sm shadow-[#8B25FF]/30">
+        {pathname.startsWith('/dashboard') ? (
+          <div className="flex-1 flex md:items-center md:justify-between w-full gap-4">
             <div>
-              <GeneralButton onClick={handleSignOut} className="w-full flex items-center justify-center bg-none text-gray-400 hover:bg-[#8B25FF]/5">
-                Logout
-              </GeneralButton>
+              <h1 className="text-xl md:text-2xl font-bold text-white">
+                Welcome back{user?.username ? `, ${user.username}` : user?.wallet_address ? `, ${user.wallet_address.slice(0, 8)}` : ''}
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">Manage your content and view all content activities</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <img src={user?.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-white">
+                <Icon icon="mdi:menu" className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 max-w-lg mx-auto">
+              <SearchInput />
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="hidden md:flex p-2 rounded-full hover:bg-[#212121] transition-colors">
+                <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
+              </button>
+              {user && (
+                <div className="hidden md:flex items-center justify-center">
+                  <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
+                </div>
+              )}
+              <div className="w-6 md:hidden"></div>
             </div>
           </>
         )}
+      </header>
+      
+      {isSidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 z-30" 
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+      <aside className={`fixed top-0 h-screen w-64 overflow-y-auto flex flex-col justify-between py-4 bg-[#0A0C10] z-40 transition-transform duration-300 ease-in-out shadow-sm shadow-[#8B25FF]/50
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+          md:translate-x-0 md:left-0`}>
+        {sidebarContent}
       </aside>
 
-      {/* Main Content (scrollable) */}
-      <div className="ml-64 overflow-y-auto relative">
-        <main className="flex-1">
+      <div className="md:ml-64">
+        <main className="flex-1 p-4 md:p-8">
           {children}
         </main>
       </div>

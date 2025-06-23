@@ -1,17 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Content } from '@/app/types';
-import { Button } from '@headlessui/react';
+import { Menu, MenuItems, MenuItem, MenuButton, Transition } from '@headlessui/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentCard from '@/app/components/ui/ContentCard';
-import HeroCarousel from '@/app/components/ui/HeroCarousel';
 import { Icon } from '@iconify/react';
 import { supabase } from '@/app/utils/supabase/client';
-import SearchInput from '@/app/components/ui/SearchInput';
-import { CarouselItem, getFeaturedCarouselItems } from '@/app/utils/carousel';
 
 // Content types for filtering
 const contentTypes = [
@@ -21,18 +18,18 @@ const contentTypes = [
     { id: 'article', name: 'Articles' },
 ];
 
+// Premium filter options
+const premiumFilters = [
+    { id: 'both', name: 'All' },
+    { id: 'free', name: 'Free' },
+    { id: 'premium', name: 'Premium' },
+];
+
 export default function DiscoverPage() {
     const router = useRouter();
-    const [featuredContent, setFeaturedContent] = useState<{
-        videos: Content[];
-        audio: Content[];
-        articles: Content[];
-    }>({
-        videos: [],
-        audio: [],
-        articles: [],
-    });
-    const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
+    const [selectedType, setSelectedType] = useState('all');
+    const [selectedPremium, setSelectedPremium] = useState('both');
+    const [allContent, setAllContent] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useUserStore();
 
@@ -40,141 +37,110 @@ export default function DiscoverPage() {
         const fetchContent = async () => {
             try {
                 setLoading(true);
-
-                // Fetch content for carousel and page sections in parallel
-                const [carouselData, pageData] = await Promise.all([
-                    getFeaturedCarouselItems(supabase),
-                    supabase
-                        .from('videos')
-                        .select(`
-                            *,
-                            author:users(
-                                id,
-                                username,
-                                wallet_address,
-                                avatar_url
-                            )
-                        `)
-                        .eq('published', true)
-                        .order('created_at', { ascending: false })
-                        .limit(8)
+                const [videosData, audioData, articlesData] = await Promise.all([
+                    supabase.from('videos').select(`*, author:users(id, username, wallet_address, avatar_url)`).eq('published', true).order('created_at', { ascending: false }),
+                    supabase.from('audio').select(`*, author:users(id, username, wallet_address, avatar_url)`).eq('published', true).order('created_at', { ascending: false }),
+                    supabase.from('articles').select(`*, author:users(id, username, wallet_address, avatar_url)`).eq('published', true).order('created_at', { ascending: false })
                 ]);
 
-                setCarouselItems(carouselData);
-
-                const videos = pageData.data || [];
-                setFeaturedContent({
-                    videos: videos.map((video: any) => ({
-                        ...video,
-                        kind: 'video',
-                        views: 0, // We'll handle views separately if needed
-                    })),
-                    audio: [],
-                    articles: [],
-                });
-
+                const combined = [
+                    ...(videosData.data || []).map((item: any) => ({ ...item, kind: 'video' })),
+                    ...(audioData.data || []).map((item: any) => ({ ...item, kind: 'audio' })),
+                    ...(articlesData.data || []).map((item: any) => ({ ...item, kind: 'article' })),
+                ];
+                setAllContent(combined);
             } catch (error) {
                 console.error('Error fetching content:', error);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchContent();
     }, []);
 
-    const handleCarouselItemClick = (item: CarouselItem) => {
-        router.push(`/content/${item.id}?kind=${item.contentType}`);
+    const getFilteredContent = () => {
+        let content = allContent;
+        if (selectedType !== 'all') {
+            content = content.filter(item => item.kind === selectedType);
+        }
+        if (selectedPremium !== 'both') {
+            content = content.filter(item => (selectedPremium === 'premium' ? item.is_premium : !item.is_premium));
+        }
+        return content;
     };
 
+    const filteredContent = getFilteredContent();
+
     return (
-        <div className="flex-1 flex flex-col relative px-8">
-            {/* Top Navigation Bar */}
-            <nav className="flex items-center gap-x-4 justify-between bg-transparent py-4 mt-4 mb-8 shadow-lg sticky top-0 z-10">
-                <div className="flex items-center space-x-4">
-                    {['For You', 'TV Shows', 'Watched'].map((tab) => (
-                        <Link
-                            key={tab}
-                            href="#"
-                            className={`py-2 text-sm transition-colors ${
-                                tab === 'For You' ? 'text-white font-medium' : 'text-gray-300 hover:text-white font-light'
-                            }`}
-                        >
-                            {tab}
-                        </Link>
-                    ))}
-                </div>
-                <div className="flex-1 flex justify-center">
-                    <SearchInput />
-                </div>
-                <div className="flex items-center space-x-4">
-                    <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
-                        <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
-                    </button>
-                    {user && (
-                      <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
-                    )}
-                </div>
-            </nav>
-            
-            {/* Hero Carousel */}
-            <div className="pb-8">
-                {loading ? (
-                    <div className="relative w-full h-72 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden rounded-2xl flex items-center justify-center">
-                        <div className="text-white text-lg">Loading featured content...</div>
-                    </div>
-                ) : (
-                    <HeroCarousel 
-                        items={carouselItems.length > 0 ? carouselItems : undefined} 
-                        onItemClick={handleCarouselItemClick} 
-                    />
-                )}
+        <div className="flex-1 flex flex-col relative">
+            <header className="py-4 mt-4 mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white">Discover</h1>
+                <p className="text-gray-400 mt-1">
+                    Find new videos, audio, and articles from creators.
+                </p>
+            </header>
+
+            {/* Filter Dropdowns */}
+            <div className="mb-10 flex flex-col sm:flex-row gap-4">
+                <Menu as="div" className="relative w-full sm:w-52 text-left">
+                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                        <span>Type: {contentTypes.find(f => f.id === selectedType)?.name}</span>
+                        <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </MenuButton>
+                    <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                        <MenuItems className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                            <div className="py-1">
+                                {contentTypes.map((filter) => (
+                                    <MenuItem key={filter.id}>
+                                        {({ active }) => (
+                                            <button onClick={() => setSelectedType(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
+                                                {filter.name}
+                                            </button>
+                                        )}
+                                    </MenuItem>
+                                ))}
+                            </div>
+                        </MenuItems>
+                    </Transition>
+                </Menu>
+                <Menu as="div" className="relative w-full sm:w-52 text-left">
+                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                        <span>Access: {premiumFilters.find(f => f.id === selectedPremium)?.name}</span>
+                        <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </MenuButton>
+                    <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                        <MenuItems className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                            <div className="py-1">
+                                {premiumFilters.map((filter) => (
+                                    <MenuItem key={filter.id}>
+                                        {({ active }) => (
+                                            <button onClick={() => setSelectedPremium(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
+                                                {filter.name}
+                                            </button>
+                                        )}
+                                    </MenuItem>
+                                ))}
+                            </div>
+                        </MenuItems>
+                    </Transition>
+                </Menu>
             </div>
 
-            {/* Trending Video Section */}
-            <section className="mb-10">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold">Trending Video <span className="text-yellow-400">•</span></h3>
-                    <Link href="#" className="text-purple-400 hover:underline">See All</Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {featuredContent.videos.slice(0, 4).map((video) => (
-                        <Link key={video.id} href={`/content/${video.id}?kind=video`} className="block transition-transform duration-300 hover:scale-105">
-                            <ContentCard
-                                image={video.thumbnail_url || '/images/default-thumbnail.png'}
-                                title={video.title}
-                                subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
-                                actionLabel="Watch"
-                                author={video.author ? {
-                                    name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                    avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-                                } : undefined}
-                                contentType="video"
-                            />
-                        </Link>
-                    ))}
-                </div>
-            </section>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                <h3 className="text-xl font-bold">All Content</h3>
+            </div>
 
-            {/* Top Rated Section */}
             <section className="mb-10">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold">Top Rated <span className="text-yellow-400">★</span></h3>
-                    <Link href="#" className="text-purple-400 hover:underline">See All</Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {featuredContent.videos.slice(4, 8).map((video) => (
-                         <Link key={video.id} href={`/content/${video.id}?kind=video`} className="block transition-transform duration-300 hover:scale-105">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    {filteredContent.map((content) => (
+                        <Link key={content.id} href={`/content/${content.id}?kind=${content.kind}`} className="block group">
                             <ContentCard
-                                image={video.thumbnail_url || '/images/default-thumbnail.png'}
-                                title={video.title}
-                                subtitle={`${(video.author?.username || video.author?.wallet_address?.slice(0, 8) || 'Unknown')} • ${video.views || 0} views`}
-                                actionLabel="Watch"
-                                author={video.author ? {
-                                    name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                    avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-                                } : undefined}
-                                contentType="video"
+                                image={content.thumbnail_url || '/images/default-thumbnail.png'}
+                                title={content.title}
+                                subtitle={(content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown') + (content.views ? ` - ${content.views} views` : '')}
+                                actionLabel={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
+                                author={content.author ? { name: content.author.username || content.author.wallet_address?.slice(0, 8) || 'Unknown', avatar: content.author.avatar_url || 'https://robohash.org/206' } : undefined}
+                                contentType={content.kind}
                             />
                         </Link>
                     ))}

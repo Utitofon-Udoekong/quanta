@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from "@burnt-labs/ui";
 import { useAbstraxionAccount, useAbstraxionSigningClient } from "@burnt-labs/abstraxion";
-import { getSupabase } from '@/app/utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
 import { toast } from '@/app/components/helpers/toast';
 import { useUserStore } from '@/app/stores/user';
 import { useKeplr } from '@/app/providers/KeplrProvider';
 import { tokenDenoms, DECIMALS } from '@/app/utils/xion';
 import { Subscription, SubscriptionPlan, SubscriptionPayment, Token } from '@/app/types/index';
 import { Icon } from '@iconify/react';
+import Cookies from 'js-cookie';
 
 import {
     formatXionAmount,
@@ -166,7 +167,7 @@ export default function SubscriptionsPage() {
     const { walletAddress, isConnecting, balance, xionPrice, connectKeplr, getTokenBalance, offlineSigner } = useKeplr();
 
     const router = useRouter();
-    const supabase = getSupabase();
+    const supabase = getSupabase(Cookies.get('sb-access-token') || '');
     const { user } = useUserStore();
 
     // Filter plans based on the selected interval (monthly or annual)

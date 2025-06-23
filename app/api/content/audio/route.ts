@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const userId = searchParams.get('user_id');
     const offset = (page - 1) * limit;
-
+    
     let query = supabase
       .from('audio')
       .select('*', { count: 'exact' })

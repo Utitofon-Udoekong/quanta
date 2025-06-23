@@ -59,7 +59,7 @@ export default function ContentCard({
   // Featured Banner
   if (type === 'featured') {
     return (
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-72 w-full">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg hover:shadow-2xl transition-shadow group flex items-end h-72 w-full">
         <Image src={image} alt={title} fill className="object-cover opacity-60" />
         <div className="relative z-10 p-8 flex flex-col max-w-lg">
           <h2 className="text-3xl font-bold mb-2">{title}</h2>
@@ -80,9 +80,9 @@ export default function ContentCard({
   // Trending Card
   if (type === 'trending') {
     return (
-      <div className="min-w-[320px] bg-gray-900/80 rounded-xl shadow-lg overflow-hidden relative">
-        <Image src={image} alt={title} width={320} height={160} className="w-full h-40 object-cover" />
-        <div className="p-4">
+      <div className="w-full relative bg-gray-900/80 rounded-xl shadow-lg hover:shadow-2xl transition-shadow group overflow-hidden">
+        <Image src={image} alt={title} width={320} height={160} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <div className="p-4 absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
           <h4 className="text-lg font-semibold mb-1">{title}</h4>
           {author && (
             <div className="flex items-center space-x-2 mb-2">
@@ -103,7 +103,10 @@ export default function ContentCard({
 
   // Continue Watching Card
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-lg min-w-[320px] max-w-xs bg-gray-900/80">
+    <div
+      className="rounded-2xl border border-gray-800 bg-gray-900/70 shadow-lg transition-transform duration-200 hover:scale-[1.03] hover:shadow-xl p-4 flex flex-col gap-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
+      tabIndex={0}
+    >
       {/* Card Image */}
       <div className="relative w-full h-40">
         <Image src={image} alt={title} fill className="object-cover" />

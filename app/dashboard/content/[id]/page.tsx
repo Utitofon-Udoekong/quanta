@@ -393,7 +393,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
   const backLink = getBackLink();
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#0A0C10] text-white">
       <div className="max-w-screen-xl mx-auto">
         <div className="mb-6">
           <Link

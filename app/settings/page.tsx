@@ -13,25 +13,8 @@ export default function SettingsPage() {
   const [avatar, setAvatar] = useState('https://robohash.org/206');
 
   return (
-    <div className="mx-auto p-8">
-      {/* Top Navigation Bar */}
-      <nav className="flex items-center gap-x-4 justify-between bg-transparent mb-8 shadow-lg sticky top-0 z-10">
-        <div className="flex items-center space-x-2">
-          <Link
-            href={`/settings`}
-            className="py-2 font-medium text-sm transition-colors text-white"
-          >
-            Settings
-          </Link>
-        </div>
-       
-        <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
-            <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
-          </button>
-          <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
-        </div>
-      </nav>
+    <div className="mx-auto">
+      
       {/* Tabs */}
       <div className="flex space-x-8 border-b border-gray-700 mb-8">
         {TABS.map(tab => (

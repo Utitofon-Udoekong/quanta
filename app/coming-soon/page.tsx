@@ -1,22 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Content } from '@/app/types';
-import { Button } from '@headlessui/react';
+import { Menu, Transition } from '@headlessui/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentCard from '@/app/components/ui/ContentCard';
 import { Icon } from '@iconify/react';
 import { supabase } from '@/app/utils/supabase/client';
-import SearchInput from '@/app/components/ui/SearchInput';
+
+// Content types for filtering
+const contentTypes = [
+  { id: 'all', name: 'All Content' },
+  { id: 'video', name: 'Videos' },
+  { id: 'audio', name: 'Audio' },
+  { id: 'article', name: 'Articles' },
+];
+
+// Premium filter options
+const premiumFilters = [
+    { id: 'both', name: 'All' },
+    { id: 'free', name: 'Free' },
+    { id: 'premium', name: 'Premium' },
+];
 
 export default function ComingSoonPage() {
   const router = useRouter();
-  const [featuredVideo, setFeaturedVideo] = useState<Content | null>(null);
-  const [freeVideos, setFreeVideos] = useState<Content[]>([]);
-  const [premiumVideos, setPremiumVideos] = useState<Content[]>([]);
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedPremium, setSelectedPremium] = useState('both');
+  const [featuredContent, setFeaturedContent] = useState<Content | null>(null);
+  const [scheduledContent, setScheduledContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useUserStore();
 
@@ -24,35 +39,21 @@ export default function ComingSoonPage() {
     const fetchComingSoonContent = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('videos')
-          .select(`
-                        *,
-            author:users (
-                            id,
-                            username,
-              wallet_address,
-                            avatar_url
-            )
-                    `)
-          .eq('published', false)
-          .gt('release_date', new Date().toISOString())
-          .order('release_date', { ascending: true })
-          .limit(9);
+        const [videosData, audioData, articlesData] = await Promise.all([
+          supabase.from('videos').select(`*, author:users (id, username, wallet_address, avatar_url)`).eq('published', false).gt('release_date', new Date().toISOString()).order('release_date', { ascending: true }),
+          supabase.from('audio').select(`*, author:users (id, username, wallet_address, avatar_url)`).eq('published', false).gt('release_date', new Date().toISOString()).order('release_date', { ascending: true }),
+          supabase.from('articles').select(`*, author:users (id, username, wallet_address, avatar_url)`).eq('published', false).gt('release_date', new Date().toISOString()).order('release_date', { ascending: true })
+        ]);
 
-        if (error) throw error;
+        const allContent = [
+          ...(videosData.data || []).map((item: any) => ({ ...item, kind: 'video' })),
+          ...(audioData.data || []).map((item: any) => ({ ...item, kind: 'audio' })),
+          ...(articlesData.data || []).map((item: any) => ({ ...item, kind: 'article' }))
+        ].sort((a, b) => new Date(a.release_date).getTime() - new Date(b.release_date).getTime());
 
-        if (data && data.length > 0) {
-          const formattedData = data.map((item: any) => ({
-            ...item,
-            kind: 'video',
-          }));
-          
-          setFeaturedVideo(formattedData[0]);
-          const remainingVideos = formattedData.slice(1);
-          
-          setFreeVideos(remainingVideos.filter(v => !v.is_premium).slice(0, 4));
-          setPremiumVideos(remainingVideos.filter(v => v.is_premium).slice(0, 4));
+        if (allContent.length > 0) {
+          setFeaturedContent(allContent[0]);
+          setScheduledContent(allContent.slice(1));
         }
       } catch (error) {
         console.error('Error fetching coming soon content:', error);
@@ -64,135 +65,108 @@ export default function ComingSoonPage() {
     fetchComingSoonContent();
   }, []);
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'TBA';
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+  const getFilteredContent = () => {
+    let content = scheduledContent;
+    
+    if (selectedType !== 'all') {
+      content = content.filter(item => item.kind === selectedType);
+    }
+
+    if (selectedPremium !== 'both') {
+      content = content.filter(item => (selectedPremium === 'premium' ? item.is_premium : !item.is_premium));
+    }
+
+    return content;
   };
 
+  const filteredContent = getFilteredContent();
+
   return (
-    <div className="flex-1 flex flex-col relative px-8">
-      {/* Top Navigation Bar */}
-      <nav className="flex items-center gap-x-4 justify-between bg-transparent py-4 mt-4 mb-8 shadow-lg sticky top-0 z-10">
-        <div className="flex items-center space-x-4">
-          {['For You', 'TV Shows', 'Watched'].map((tab) => (
-              <Link
-                  key={tab}
-                  href="#"
-                  className={`py-2 text-sm transition-colors ${
-                      tab === 'For You' ? 'text-white font-medium' : 'text-gray-300 hover:text-white font-light'
-            }`}
-          >
-                  {tab}
-              </Link>
-          ))}
-        </div>
-        <div className="flex-1 flex justify-center">
-          <SearchInput />
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-[#212121] transition-colors">
-            <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
-          </button>
-          {user && (
-            <Button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white px-6 py-2 rounded-full font-semibold shadow-lg">Create</Button>
-          )}
-        </div>
-      </nav>
-      
-      {/* Featured Content */}
-      <div className="pb-8">
-        {loading ? (
-          <div className="relative w-full h-80 bg-slate-800 rounded-2xl animate-pulse" />
-        ) : featuredVideo ? (
-          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg flex items-end h-80">
-            <Image 
-              src={featuredVideo.thumbnail_url || '/images/default-thumbnail.png'} 
-              alt={featuredVideo.title}
-              fill
-              className="absolute inset-0 w-full h-full object-cover opacity-50"
-            />
-            <div className="relative z-10 p-8 flex flex-col max-w-lg text-white">
-              <div className="flex items-center space-x-3 mb-3">
-                <Image 
-                  src={featuredVideo.author?.avatar_url || `https://robohash.org/${featuredVideo.author?.id}`} 
-                  alt={featuredVideo.author?.username || 'author'}
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full border-2 border-purple-500"
-                />
-                <div>
-                  <h3 className="font-semibold text-lg">{featuredVideo.author?.username || 'Anonymous'}</h3>
-                  <p className="text-sm text-gray-300">{featuredVideo.title}</p>
-                </div>
-              </div>
-              <p className="text-sm font-medium text-gray-200 mb-4">
-                Available {formatDate(featuredVideo.release_date)}
-              </p>
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-2 rounded-full font-semibold w-fit shadow-lg">
-                <Icon icon="mdi:bell-plus-outline" className="w-5 h-5 mr-2 inline" />
-                Reminder
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="relative w-full h-80 bg-slate-800 rounded-2xl flex items-center justify-center">
-            <p className="text-white">No upcoming content found.</p>
-        </div>
-        )}
+    <div className="flex-1 flex flex-col relative">
+      {/* Page Header */}
+      <header className="py-4 mt-4 mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-white">Coming Soon</h1>
+        <p className="text-gray-400 mt-1">
+          Get ready for scheduled content from your favorite creators.
+        </p>
+      </header>
+
+      {/* Filter Dropdowns */}
+      <div className="mb-10 flex flex-col sm:flex-row gap-4">
+          {/* Content Type Dropdown */}
+          <Menu as="div" className="relative w-full sm:w-52 text-left">
+              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                  <span>Type: {contentTypes.find(f => f.id === selectedType)?.name}</span>
+                  <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </Menu.Button>
+              <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                  <Menu.Items className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                      <div className="py-1">
+                          {contentTypes.map((filter) => (
+                              <Menu.Item key={filter.id}>
+                                  {({ active }) => (
+                                      <button onClick={() => setSelectedType(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
+                                          {filter.name}
+                                      </button>
+                                  )}
+                              </Menu.Item>
+                          ))}
+                      </div>
+                  </Menu.Items>
+              </Transition>
+          </Menu>
+
+          {/* Premium Dropdown */}
+          <Menu as="div" className="relative w-full sm:w-52 text-left">
+              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                  <span>Access: {premiumFilters.find(f => f.id === selectedPremium)?.name}</span>
+                  <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </Menu.Button>
+              <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
+                  <Menu.Items className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                      <div className="py-1">
+                          {premiumFilters.map((filter) => (
+                              <Menu.Item key={filter.id}>
+                                  {({ active }) => (
+                                      <button onClick={() => setSelectedPremium(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
+                                          {filter.name}
+                                      </button>
+                                  )}
+                              </Menu.Item>
+                          ))}
+                      </div>
+                  </Menu.Items>
+              </Transition>
+          </Menu>
       </div>
 
-      {/* Free Video Section */}
-      {freeVideos.length > 0 && (
-      <section className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Free Video</h3>
-          <Link href="#" className="text-purple-400 hover:underline">See All</Link>
-        </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {freeVideos.map((video) => (
-            <ContentCard
-              key={video.id}
-              image={video.thumbnail_url || '/images/default-thumbnail.png'}
-              title={video.title}
-                subtitle={`Available ${formatDate(video.release_date)}`}
-              actionLabel="Reminder"
-              author={video.author ? {
-                name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                  avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-              } : undefined}
-              contentType="video"
-            />
-          ))}
-        </div>
-      </section>
-      )}
+      {/* Content Grid Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h3 className="text-xl font-bold">Scheduled For Release</h3>
+      </div>
 
-      {/* Premium Video Section */}
-      {premiumVideos.length > 0 && (
+      {/* Content Grid */}
       <section className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Premium Video <span className="text-yellow-400">👑</span></h3>
-          <Link href="#" className="text-purple-400 hover:underline">See All</Link>
-        </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {premiumVideos.map((video) => (
-            <ContentCard
-                key={video.id}
-                image={video.thumbnail_url || '/images/default-thumbnail.png'}
-                title={`${video.title} 👑`}
-                subtitle={`Available ${formatDate(video.release_date)}`}
-              actionLabel="Reminder"
-                author={video.author ? {
-                  name: video.author.username || video.author.wallet_address?.slice(0, 8) || 'Unknown',
-                  avatar: video.author.avatar_url || `https://robohash.org/${video.author.id}`,
-              } : undefined}
-                contentType="video"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {filteredContent.map((content) => (
+            <Link key={content.id} href={`/content/${content.id}?kind=${content.kind}`} className="block group">
+                <ContentCard
+                  image={content.thumbnail_url || '/images/default-thumbnail.png'}
+                  title={content.title}
+                  subtitle={
+                    (content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown')
+                  }
+                  actionLabel={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
+                  author={content.author ? {
+                    name: content.author.username || content.author.wallet_address?.slice(0, 8) || 'Unknown',
+                    avatar: content.author.avatar_url || 'https://robohash.org/206',
+                  } : undefined}
+                  contentType={content.kind}
+                />
+            </Link>
           ))}
         </div>
       </section>
-      )}
     </div>
   );
 }

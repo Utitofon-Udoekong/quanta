@@ -1,14 +1,15 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Subscription, UserData } from '@/app/types';
+import { Content, Subscription, UserData } from '@/app/types';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Button } from '@burnt-labs/ui';
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
-import ContentTable, { ContentItem } from '@/app/components/ui/dashboard/ContentTable';
+import ContentTable from '@/app/components/ui/dashboard/ContentTable';
 import { useKeplr } from '@/app/providers/KeplrProvider';
-import { getSupabase } from '../utils/supabase';
+import { getSupabase } from '@/app/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserData | null>(null);
@@ -20,24 +21,24 @@ export default function Dashboard() {
     totalViews: 0,
     totalEarnings: 0
   });
-  const [allContent, setAllContent] = useState<ContentItem[]>([]);
+  const [allContent, setAllContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const { data: account } = useAbstraxionAccount();
-  const supabase = getSupabase(account.bech32Address)
+  const supabase = getSupabase(account.bech32Address);
   const { user, error: userError } = useUserStore();
   const { walletAddress, connectKeplr } = useKeplr();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Get current user from Supabase auth
         if (userError || !user) {
           console.error('Error fetching user:', userError);
           return;
         }
-        // Set profile from auth user data
+
         setProfile({
           id: user.id,
           username: user.username,
@@ -45,17 +46,15 @@ export default function Dashboard() {
           wallet_address: user.wallet_address
         });
         
-        // Only fetch content if wallet is connected
         if (walletAddress) {
-          // Update user's wallet address if not set
           if (!user.wallet_address) {
             await supabase.auth.updateUser({
-              data: { wallet_address: walletAddress, }
+              data: { wallet_address: walletAddress }
             });
             setProfile(prev => prev ? { ...prev, wallet_address: walletAddress } : null);
           }
           
-          // Fetch subscription data using user ID
+          // Fetch subscription data
           const { data: subscriptionData, error: subscriptionError } = await supabase
             .from('subscriptions')
             .select('*')
@@ -65,34 +64,30 @@ export default function Dashboard() {
             .limit(1)
             .single();
             
-          if (subscriptionError) {
-            console.error('Error fetching subscription:', subscriptionError);
-          } else {
+          if (!subscriptionError) {
             setSubscription(subscriptionData);
           }
           
-          // First get all content IDs
+          // Get content counts and IDs
           const [articlesRes, videosRes, audioRes] = await Promise.all([
             supabase.from('articles').select('id').eq('user_id', user.id),
             supabase.from('videos').select('id').eq('user_id', user.id),
             supabase.from('audio').select('id').eq('user_id', user.id),
           ]);
 
-          // Get content counts
           const contentCounts = {
             articles: articlesRes.data?.length || 0,
             videos: videosRes.data?.length || 0,
             audio: audioRes.data?.length || 0,
           };
 
-          // Get all content IDs
           const contentIds = [
             ...(articlesRes.data?.map(article => article.id) || []),
             ...(videosRes.data?.map(video => video.id) || []),
             ...(audioRes.data?.map(audio => audio.id) || [])
           ];
 
-          // Get total views from other users
+          // Get total views
           const { count: totalViews } = await supabase
             .from('content_views')
             .select('id', { count: 'exact' })
@@ -107,7 +102,7 @@ export default function Dashboard() {
             totalEarnings: 0
           });
           
-          // Get all content using user ID
+          // Get all content
           const [articlesData, videosData, audioData] = await Promise.all([
             supabase
               .from('articles')
@@ -126,8 +121,7 @@ export default function Dashboard() {
               .order('created_at', { ascending: false })
           ]);
           
-          // Combine all content with type information
-          const combinedContent: ContentItem[] = [
+          const combinedContent: Content[] = [
             ...(articlesData.data || []).map(article => ({
               ...article,
               type: 'article' as const,
@@ -184,92 +178,75 @@ export default function Dashboard() {
       if (error) throw error;
       
       // Refresh content after deletion
-      const fetchDashboardData = async () => {
-        // Re-fetch content data
-        const [articlesData, videosData, audioData] = await Promise.all([
-          supabase
-            .from('articles')
-            .select('id, title, created_at, published, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('videos')
-            .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('audio')
-            .select('id, title, created_at, published, duration, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false })
-        ]);
-        
-        // Combine all content with type information
-        const combinedContent: ContentItem[] = [
-          ...(articlesData.data || []).map(article => ({
-            ...article,
-            type: 'article' as const,
-            is_premium: article.is_premium || false
-          })),
-          ...(videosData.data || []).map(video => ({
-            ...video,
-            type: 'video' as const,
-            is_premium: video.is_premium || false
-          })),
-          ...(audioData.data || []).map(audio => ({
-            ...audio,
-            type: 'audio' as const,
-            is_premium: audio.is_premium || false
-          }))
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        setAllContent(combinedContent);
-      };
+      const [articlesData, videosData, audioData] = await Promise.all([
+        supabase
+          .from('articles')
+          .select('id, title, created_at, published, is_premium')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('videos')
+          .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('audio')
+          .select('id, title, created_at, published, duration, is_premium')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false })
+      ]);
       
-      fetchDashboardData();
+      const combinedContent: Content[] = [
+        ...(articlesData.data || []).map(article => ({
+          ...article,
+          type: 'article' as const,
+          is_premium: article.is_premium || false,
+          kind: 'article',
+          updated_at: article.created_at,
+          user_id: user?.id
+        })),
+        ...(videosData.data || []).map(video => ({
+          ...video,
+          type: 'video' as const,
+          is_premium: video.is_premium || false,
+          kind: 'video',
+          updated_at: video.created_at,
+          user_id: user?.id
+        })),
+        ...(audioData.data || []).map(audio => ({
+          ...audio,
+          type: 'audio' as const,
+          is_premium: audio.is_premium || false,
+          kind: 'audio',
+          updated_at: audio.created_at,
+          user_id: user?.id
+        }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      setAllContent(combinedContent);
     } catch (error) {
       console.error(`Error deleting ${type}:`, error);
       alert(`Failed to delete ${type}. Please try again.`);
     }
   };
-  
-  const handleUpdateProfile = async (updates: Partial<UserData>) => {
-    if (!user) return;
-    
-    try {
-      const { data: updatedUser, error } = await supabase
-        .from('users')
-        .update({
-          ...updates,
-          display_name: user.username,
-          updated_at: new Date().toISOString()
-        })
-        .eq('wallet_address', user.wallet_address)
-        .select()
-        .single();
 
-      if (error) throw error;
-      setProfile(updatedUser);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    }
+  const handleCreateContent = (type: 'article' | 'video' | 'audio') => {
+    router.push(`/dashboard/content/create?type=${type}`);
   };
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0C10]">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
         <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+          <Icon icon="mdi:account-lock" className="w-8 h-8 text-gray-400" />
         </div>
         <h1 className="text-2xl font-bold mb-4 text-white">Please sign in to view your dashboard</h1>
         <p className="text-gray-400 mb-6 text-center max-w-md">
@@ -279,14 +256,11 @@ export default function Dashboard() {
     );
   }
 
-  // Show wallet connection prompt if not connected
   if (!walletAddress) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0C10] p-4">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
         <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+          <Icon icon="mdi:wallet" className="w-8 h-8 text-gray-400" />
         </div>
         <h1 className="text-2xl font-bold mb-4 text-white">Connect Your Wallet</h1>
         <p className="text-gray-400 mb-6 text-center max-w-md">
@@ -294,148 +268,138 @@ export default function Dashboard() {
         </p>
         <Button
           onClick={connectKeplr}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-6 py-3 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white rounded-lg hover:from-[#7A1FEF] hover:to-[#2A0BC7] transition-all duration-200"
         >
           Connect Wallet
         </Button>
-        {/* <Abstraxion onClose={() => setShowModal(false)} /> */}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white">
-    <div className="py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-400">Connected Wallet:</span>
-            <span className="text-sm font-mono bg-gray-800/50 px-3 py-1 rounded">
-              {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
-            </span>
-          </div>
+    <>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="text-gray-400 mt-1">Manage your content and track your performance</p>
         </div>
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Content</p>
-                <h3 className="text-2xl font-bold">{contentStats.articles + contentStats.videos + contentStats.audio}</h3>
-              </div>
-              <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <Icon icon="material-symbols:bar-chart" className="w-5 h-5 text-blue-400" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Views</p>
-                <h3 className="text-2xl font-bold">{contentStats.totalViews.toLocaleString()}</h3>
-              </div>
-              <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Earnings</p>
-                <h3 className="text-2xl font-bold">${contentStats.totalEarnings.toFixed(2)}</h3>
-              </div>
-              <div className="w-10 h-10 bg-purple-500/10 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Subscription</p>
-                <h3 className="text-2xl font-bold">
-                  {subscription ? (
-                    <span className="text-green-400">Active</span>
-                  ) : (
-                    <span className="text-gray-400">None</span>
-                  )}
-                </h3>
-              </div>
-              <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+          <span className="text-sm text-gray-400">Connected:</span>
+          <span className="text-sm font-mono bg-gray-800/50 px-3 py-1 rounded-lg border border-gray-700/50">
+            {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+          </span>
         </div>
-        
-        {/* Content Table */}
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden mb-8">
-          <div className="flex justify-between items-center p-6 border-gray-700/50">
-            <h2 className="text-xl font-bold">Your Content</h2>
-            <div className="flex space-x-3">
-              <Link 
-                href="/dashboard/content/articles/create" 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-              >
-                <Icon icon="material-symbols:article" className="w-4 h-4 mr-2" />
-                New Article
-              </Link>
-                      <Link 
-                href="/dashboard/content/videos/create" 
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-                      >
-                <Icon icon="material-symbols:video-camera-back" className="w-4 h-4 mr-2" />
-                New Video
-                      </Link>
-              <Link 
-                href="/dashboard/content/audio/create" 
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-              >
-                <Icon icon="material-symbols:music-note" className="w-4 h-4 mr-2" />
-                New Audio
-              </Link>
-            </div>
-          </div>
-          
-          {allContent.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Icon icon="material-symbols:bar-chart" className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No Content Yet</h3>
-              <p className="text-gray-400 mb-6">Create your first piece of content to get started.</p>
-              <Link 
-                href="/dashboard/content/articles/create" 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Content
-              </Link>
-              </div>
-            ) : (
-            <ContentTable 
-              content={allContent} 
-              onDelete={handleDeleteContent}
-            />
-          )}
-        </div>
-        
-        
       </div>
-    </div>
+      
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Total Content</p>
+              <h3 className="text-2xl font-bold text-white">{contentStats.articles + contentStats.videos + contentStats.audio}</h3>
+            </div>
+            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
+              <Icon icon="mdi:file-multiple" className="w-6 h-6 text-blue-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Total Views</p>
+              <h3 className="text-2xl font-bold text-white">{contentStats.totalViews.toLocaleString()}</h3>
+            </div>
+            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
+              <Icon icon="mdi:eye" className="w-6 h-6 text-green-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Total Earnings</p>
+              <h3 className="text-2xl font-bold text-white">${contentStats.totalEarnings.toFixed(2)}</h3>
+            </div>
+            <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center">
+              <Icon icon="mdi:currency-usd" className="w-6 h-6 text-purple-400" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700/50 hover:border-gray-600/50 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Subscription</p>
+              <h3 className="text-2xl font-bold">
+                {subscription ? (
+                  <span className="text-green-400">Active</span>
+                ) : (
+                  <span className="text-gray-400">None</span>
+                )}
+              </h3>
+            </div>
+            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center">
+              <Icon icon="mdi:crown" className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Content Management */}
+      <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-6 border-b border-gray-700/50">
+          <h2 className="text-xl font-bold text-white mb-4 sm:mb-0">Your Content</h2>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button 
+              onClick={() => handleCreateContent('article')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <Icon icon="mdi:file-document" className="w-4 h-4 mr-2" />
+              New Article
+            </button>
+            <button 
+              onClick={() => handleCreateContent('video')}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <Icon icon="mdi:video" className="w-4 h-4 mr-2" />
+              New Video
+            </button>
+            <button 
+              onClick={() => handleCreateContent('audio')}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <Icon icon="mdi:music" className="w-4 h-4 mr-2" />
+              New Audio
+            </button>
+          </div>
+        </div>
+        
+        {allContent.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Icon icon="mdi:file-plus" className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2 text-white">No Content Yet</h3>
+            <p className="text-gray-400 mb-6">Create your first piece of content to get started.</p>
+            <button 
+              onClick={() => handleCreateContent('article')}
+              className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] hover:from-[#7A1FEF] hover:to-[#2A0BC7] text-white px-6 py-3 rounded-lg transition-all duration-200 inline-flex items-center"
+            >
+              <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
+              Create Content
+            </button>
+          </div>
+        ) : (
+          <ContentTable 
+            content={allContent} 
+            onDelete={handleDeleteContent}
+          />
+        )}
+      </div>
+    </>
   );
 } 

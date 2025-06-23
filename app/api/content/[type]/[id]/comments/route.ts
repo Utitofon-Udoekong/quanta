@@ -141,9 +141,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content } = await request.json();
-    const commentId = params.id;
+    const { commentId, content } = await request.json();
     const userId = user.id;
+
+    if (!commentId) {
+      return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
+    }
 
     const { data: comment, error: updateError } = await supabase
       .from('content_comments')
@@ -165,10 +168,10 @@ export async function PATCH(
       throw updateError;
     }
     return NextResponse.json(comment);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating comment:', error);
     return NextResponse.json(
-      { error: 'Failed to update comment' },
+      { error: 'Failed to update comment', details: error.message },
       { status: 500 }
     );
   }
@@ -194,8 +197,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const commentId = params.id;
+    const { commentId } = await request.json();
     const userId = user.id;
+
+    if (!commentId) {
+      return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
+    }
 
     console.log('Deleting comment:', { commentId, userId });
 
@@ -210,10 +217,10 @@ export async function DELETE(
       throw deleteError;
     }
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting comment:', error);
     return NextResponse.json(
-      { error: 'Failed to delete comment' },
+      { error: 'Failed to delete comment', details: error.message },
       { status: 500 }
     );
   }

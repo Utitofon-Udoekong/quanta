@@ -83,7 +83,7 @@ interface HeroCarouselProps {
 }
 
 export default function HeroCarousel({ items = defaultCarouselItems, onItemClick }: HeroCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(2)
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
   const [touchStart, setTouchStart] = useState(0)
@@ -229,11 +229,22 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
   }, [nextSlide, prevSlide, isAutoPlaying, startAutoPlay, stopAutoPlay])
 
   useEffect(() => {
-    const currentItem = items[currentIndex]
+    if (items.length === 0) return;
+    
+    const currentItem = items[currentIndex];
+    if (!currentItem) return;
+    
     setAnnouncement(
       `Now viewing ${currentItem.title} by ${currentItem.user}. Slide ${currentIndex + 1} of ${items.length}.`,
     )
   }, [currentIndex, items])
+
+  // Reset currentIndex when items change to ensure it's valid
+  useEffect(() => {
+    if (currentIndex >= items.length && items.length > 0) {
+      setCurrentIndex(0);
+    }
+  }, [items, currentIndex]);
 
   const getCardStyle = (index: number) => {
     const diff = index - currentIndex
@@ -292,7 +303,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
 
   return (
     <div
-      className="relative w-full h-96 "
+      className="relative w-full min-h-60 md:h-80 z-10"
       role="application"
       aria-label="Content carousel"
       aria-describedby="carousel-instructions"
@@ -325,7 +336,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
       {/* Carousel container */}
       <div
         ref={carouselRef}
-        className="relative h-full flex items-center justify-center px-8"
+        className="relative h-full flex items-center justify-center px-4 md:px-8"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -338,7 +349,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
       >
         {/* Navigation buttons */}
         <Button
-          className="absolute left-4 z-50 h-10 w-10 rounded-full bg-black/30 hover:bg-black/50 text-white border border-white/20 flex items-center justify-center"
+          className="absolute left-2 md:left-4 z-50 h-8 w-8 md:h-10 md:w-10 rounded-full bg-black/30 hover:bg-black/50 text-white border border-white/20 flex items-center justify-center"
           onClick={() => {
             prevSlide()
             stopAutoPlay()
@@ -350,11 +361,11 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
           aria-label="Previous content"
           aria-describedby="carousel-instructions"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
 
         <Button
-          className="absolute right-4 z-50 h-10 w-10 rounded-full bg-black/30 hover:bg-black/50 text-white border border-white/20 flex items-center justify-center"
+          className="absolute right-2 md:right-4 z-50 h-8 w-8 md:h-10 md:w-10 rounded-full bg-black/30 hover:bg-black/50 text-white border border-white/20 flex items-center justify-center"
           onClick={() => {
             nextSlide()
             stopAutoPlay()
@@ -366,12 +377,12 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
           aria-label="Next content"
           aria-describedby="carousel-instructions"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
 
         {/* Cards */}
         <div className="relative w-full max-w-4xl h-full aspect-video" role="group" aria-label="Content slides">
-          {items.map((item, index) => {
+          {items.filter(item => item).map((item, index) => {
             const style = getCardStyle(index)
             const isCenter = index === currentIndex
 
@@ -410,12 +421,12 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
                   <div className={`absolute inset-0 bg-gradient-to-t ${item.gradient} opacity-60`} />
 
                   {/* Content overlay */}
-                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                  <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6 text-white">
                     {isCenter && (
                       <>
                         {/* User info */}
-                        <div className="flex items-center gap-3 mb-3" id={`slide-${item.id}-details`}>
-                          <div className="h-8 w-8 rounded-full border-2 border-white/30 overflow-hidden">
+                        <div className="flex items-center gap-3 mb-2 md:mb-3" id={`slide-${item.id}-details`}>
+                          <div className="h-7 w-7 md:h-8 md:w-8 rounded-full border-2 border-white/30 overflow-hidden">
                             <Image 
                               src={item.avatar || "https://robohash.org/default"} 
                               alt={`${item.user}'s profile picture`}
@@ -424,7 +435,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <div className="text-sm">
+                          <div className="text-xs md:text-sm">
                             <div className="font-semibold" aria-label="Creator name">
                               {item.user}
                             </div>
@@ -435,16 +446,16 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-2xl font-bold mb-4" aria-label="Content title">
+                        <h2 className="text-lg md:text-2xl font-bold mb-3 md:mb-4" aria-label="Content title">
                           {item.title}
                         </h2>
 
                         {/* Action button */}
                         <Button 
-                          className="w-fit bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-6 py-2 rounded-full shadow-lg flex items-center"
+                          className="w-fit bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-4 py-1.5 md:px-6 md:py-2 rounded-full shadow-lg flex items-center text-sm md:text-base"
                           aria-label={`${item.contentType === 'video' ? 'Watch' : item.contentType === 'audio' ? 'Listen to' : 'Read'} ${item.title}`}
                         >
-                          <Play className="w-4 h-4 mr-2 fill-current" aria-hidden="true" />
+                          <Play className="w-3 h-3 md:w-4 md:h-4 mr-2 fill-current" aria-hidden="true" />
                           {item.contentType === 'video' ? 'Watch' : item.contentType === 'audio' ? 'Listen' : 'Read'}
                         </Button>
                       </>
@@ -452,7 +463,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
 
                     {!isCenter && (
                       <div className="text-center">
-                        <h3 className="text-lg font-bold" aria-label="Content title">
+                        <h3 className="text-base md:text-lg font-bold" aria-label="Content title">
                           {item.title}
                         </h3>
                       </div>
@@ -488,10 +499,10 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
       </div>
 
       {/* Auto-play and timing controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+      <div className="absolute bottom-4 right-2 md:right-4 flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
           <Button
-            className="bg-black/30 hover:bg-black/50 text-white border border-white/20 rounded-full px-4 text-sm"
+            className="hidden md:flex bg-black/30 hover:bg-black/50 text-white border border-white/20 rounded-full px-4 text-sm"
             onClick={toggleAutoPlay}
             aria-label={isAutoPlaying ? "Pause auto-play" : "Start auto-play"}
             aria-pressed={isAutoPlaying}
@@ -500,7 +511,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
           </Button>
 
           <Button
-            className="bg-black/30 hover:bg-black/50 text-white border border-white/20 rounded-full px-2 text-sm"
+            className="hidden md:flex bg-black/30 hover:bg-black/50 text-white border border-white/20 rounded-full px-2 text-sm"
             onClick={() => setShowTimingControls(!showTimingControls)}
             aria-label="Auto-play timing settings"
             aria-expanded={showTimingControls}
@@ -510,7 +521,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
         </div>
 
         {showTimingControls && (
-          <div className="bg-black/50 backdrop-blur-sm rounded-lg p-4 border border-white/20 min-w-48">
+          <div className="hidden md:block bg-black/50 backdrop-blur-sm rounded-lg p-4 border border-white/20 min-w-48">
             <div className="text-white text-sm mb-3 font-medium">Auto-play Speed</div>
             <div className="space-y-2">
               {[
@@ -547,6 +558,10 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
             )}
           </div>
         )}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-6">
+        {/* ...filter buttons... */}
       </div>
     </div>
   )

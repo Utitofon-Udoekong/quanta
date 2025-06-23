@@ -40,7 +40,6 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
             *,
             author:users (
               id,
-              username,
               avatar_url,
               wallet_address
             )
@@ -126,6 +125,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
   };
 
   const getContentMetadata = (content: Content) => {
+    console.log(content);
     switch (content.kind) {
       case 'video':
         const videoDuration = (content as VideoContent).duration || 0;

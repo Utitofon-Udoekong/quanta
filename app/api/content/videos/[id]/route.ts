@@ -182,12 +182,12 @@ export async function PATCH(
 
     return NextResponse.json(updatedVideo);
   } catch (error: any) {
-    return NextResponse.json(
+      return NextResponse.json(
       { error: error.message || 'Failed to update video' },
       { status: 500 }
-    );
+      );
   }
-}
+    }
 
 export async function DELETE(
   request: Request,

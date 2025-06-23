@@ -13,7 +13,7 @@ export interface CarouselItem {
 }
 
 // Gradient options for different content types
-const gradients = {
+export const gradients = {
   video: [
     "from-blue-600 to-purple-600",
     "from-purple-600 to-blue-600", 
@@ -38,7 +38,7 @@ const gradients = {
 };
 
 // Format view count
-const formatViews = (views: number): string => {
+export const formatViews = (views: number): string => {
   if (views >= 1000000) {
     return `${(views / 1000000).toFixed(1)}M`;
   } else if (views >= 1000) {
@@ -48,7 +48,7 @@ const formatViews = (views: number): string => {
 };
 
 // Format time ago
-const formatTimeAgo = (date: string): string => {
+export const formatTimeAgo = (date: string): string => {
   const now = new Date();
   const contentDate = new Date(date);
   const diffInSeconds = Math.floor((now.getTime() - contentDate.getTime()) / 1000);
@@ -80,130 +80,4 @@ export const convertContentToCarouselItems = (content: Content[]): CarouselItem[
       contentType
     };
   });
-};
-
-// Get featured content for carousel (top viewed content)
-export const getFeaturedCarouselItems = async (supabase: any): Promise<CarouselItem[]> => {
-  try {
-    // Fetch top viewed content from all types
-    const { data: videos } = await supabase
-      .from('videos')
-      .select(`
-        *,
-        author:users(id, username, wallet_address, avatar_url),
-        content_views(count)
-      `)
-      .eq('published', true)
-      .order('created_at', { ascending: false })
-      .limit(2);
-
-    const { data: audio } = await supabase
-      .from('audio')
-      .select(`
-        *,
-        author:users(id, username, wallet_address, avatar_url),
-        content_views(count)
-      `)
-      .eq('published', true)
-      .order('created_at', { ascending: false })
-      .limit(2);
-
-    const { data: articles } = await supabase
-      .from('articles')
-      .select(`
-        *,
-        author:users(id, username, wallet_address, avatar_url),
-        content_views(count)
-      `)
-      .eq('published', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    // Combine and convert to carousel format
-    const allContent = [
-      ...(videos || []).map((v: any) => ({ ...v, kind: 'video' as const })),
-      ...(audio || []).map((a: any) => ({ ...a, kind: 'audio' as const })),
-      ...(articles || []).map((ar: any) => ({ ...ar, kind: 'article' as const }))
-    ];
-
-    // If no content found, return default items
-    if (allContent.length === 0) {
-      console.log('No content found in database, using default carousel items');
-      return [
-        {
-          id: "1",
-          title: "Welcome to Quanta",
-          image: "/images/default-thumbnail.png",
-          user: "Quanta Team",
-          avatar: "https://robohash.org/quanta",
-          views: "0",
-          timeAgo: "Just now",
-          gradient: "from-blue-600 to-purple-600",
-          contentType: "video"
-        },
-        {
-          id: "2",
-          title: "Create Your First Content",
-          image: "/images/default-thumbnail.png",
-          user: "Get Started",
-          avatar: "https://robohash.org/start",
-          views: "0",
-          timeAgo: "Just now",
-          gradient: "from-purple-600 to-blue-600",
-          contentType: "video"
-        },
-        {
-          id: "3",
-          title: "Join the Community",
-          image: "/images/default-thumbnail.png",
-          user: "Community",
-          avatar: "https://robohash.org/community",
-          views: "0",
-          timeAgo: "Just now",
-          gradient: "from-orange-500 to-red-600",
-          contentType: "article"
-        }
-      ];
-    }
-
-    return convertContentToCarouselItems(allContent);
-  } catch (error) {
-    console.error('Error fetching featured content:', error);
-    // Return default items on error
-    return [
-      {
-        id: "1",
-        title: "Welcome to Quanta",
-        image: "/images/default-thumbnail.png",
-        user: "Quanta Team",
-        avatar: "https://robohash.org/quanta",
-        views: "0",
-        timeAgo: "Just now",
-        gradient: "from-blue-600 to-purple-600",
-        contentType: "video"
-      },
-      {
-        id: "2",
-        title: "Create Your First Content",
-        image: "/images/default-thumbnail.png",
-        user: "Get Started",
-        avatar: "https://robohash.org/start",
-        views: "0",
-        timeAgo: "Just now",
-        gradient: "from-purple-600 to-blue-600",
-        contentType: "video"
-      },
-      {
-        id: "3",
-        title: "Join the Community",
-        image: "/images/default-thumbnail.png",
-        user: "Community",
-        avatar: "https://robohash.org/community",
-        views: "0",
-        timeAgo: "Just now",
-        gradient: "from-orange-500 to-red-600",
-        contentType: "article"
-      }
-    ];
-  }
 }; 

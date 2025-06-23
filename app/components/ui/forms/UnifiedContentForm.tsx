@@ -205,13 +205,13 @@ export default function UnifiedContentForm({
       }
 
       const baseData = {
-        title,
+          title,
         category,
-        is_premium: isPremium,
-        thumbnail_url: uploadedThumbnailUrl,
+          is_premium: isPremium,
+          thumbnail_url: uploadedThumbnailUrl,
         published: finalPublished,
         release_date: finalReleaseDate,
-        user_id: user.id,
+          user_id: user.id,
       };
 
       let finalData;

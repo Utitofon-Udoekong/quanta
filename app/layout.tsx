@@ -37,7 +37,7 @@ export default function RootLayout({
                             {children}
                         </LayoutShell>
                         <Toaster position="bottom-right" />
-                        <UserStoreDebug />
+                        {/* <UserStoreDebug /> */}
                     </UserProvider>
                 </AbstraxionProvider>
             </body>
