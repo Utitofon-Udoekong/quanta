@@ -13,8 +13,6 @@ interface NovyPayPaymentRequest {
   amount: number;
   currency: string;
   token_type: 'USDC' | 'XION';
-  email: string;
-  fullname: string;
   phone_country_code?: string;
   phone_number?: string;
   address_line1?: string;
@@ -84,9 +82,7 @@ async function createSubscriptionPaymentRecord(
   novypayReference: string,
   amount: number,
   currency: string,
-  tokenType: 'USDC' | 'XION',
-  userEmail?: string,
-  userFullname?: string
+  tokenType: 'USDC' | 'XION'
 ): Promise<string | null> {
   try {
     const { data, error } = await supabase
@@ -98,8 +94,6 @@ async function createSubscriptionPaymentRecord(
         currency: currency,
         token_type: tokenType,
         status: 'pending',
-        user_email: userEmail,
-        user_fullname: userFullname,
       })
       .select('id')
       .single();
@@ -126,14 +120,13 @@ export async function POST(request: NextRequest) {
       amount,
       currency = 'USD',
       tokenType = 'XION',
-      userEmail,
-      userFullname,
       userPhone,
       userAddress,
     } = body;
 
     // Validate required fields
-    if (!creatorWalletAddress || !subscriberWalletAddress || !type || !amount || !userEmail || !userFullname) {
+    if (!creatorWalletAddress || !subscriberWalletAddress || !type || !amount) {
+      console.log('Missing required fields', body);
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -255,8 +248,6 @@ export async function POST(request: NextRequest) {
       amount: amount,
       currency: currency,
       token_type: tokenType,
-      email: userEmail,
-      fullname: userFullname,
       phone_number: userPhone,
       address_line1: userAddress?.line1,
       city: userAddress?.city,
@@ -284,9 +275,7 @@ export async function POST(request: NextRequest) {
       paymentResponse.reference!,
       amount,
       currency,
-      tokenType,
-      userEmail,
-      userFullname
+      tokenType
     );
 
     return NextResponse.json({
