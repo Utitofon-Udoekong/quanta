@@ -407,4 +407,149 @@ export async function cancelPaidSubscription(
     console.error('Error in cancelPaidSubscription:', error);
     return false;
   }
+}
+
+// Check if user has access to premium content from a specific creator
+export async function hasPremiumAccessToCreator(
+  subscriberUserId: string, 
+  creatorUserId: string
+): Promise<boolean> {
+  try {
+    const accessToken = Cookies.get(cookieName);
+    if (!subscriberUserId || !creatorUserId || !accessToken) return false;
+
+    const supabase = await getSupabase(accessToken);
+
+    // Check if user has an active subscription to this creator
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('status, expires_at')
+      .eq('subscriber_id', subscriberUserId)
+      .eq('creator_id', creatorUserId)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !data) return false;
+
+    // Check if subscription hasn't expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error checking premium access:', error);
+    return false;
+  }
+}
+
+// Check if user has access to specific premium content
+export async function hasAccessToContent(
+  subscriberUserId: string,
+  contentId: string,
+  contentType: 'article' | 'video' | 'audio',
+  creatorUserId: string
+): Promise<{ hasAccess: boolean; isPremium: boolean; reason?: string }> {
+  try {
+    const accessToken = Cookies.get(cookieName);
+    if (!subscriberUserId || !contentId || !accessToken) {
+      return { hasAccess: false, isPremium: false, reason: 'Not authenticated' };
+    }
+
+    const supabase = await getSupabase(accessToken);
+
+    // First check if the content is premium
+    const tableName = contentType === 'video' ? 'videos' : contentType === 'audio' ? 'audio' : 'articles';
+    
+    const { data: content, error: contentError } = await supabase
+      .from(tableName)
+      .select('is_premium, published, user_id')
+      .eq('id', contentId)
+      .single();
+
+    if (contentError || !content) {
+      return { hasAccess: false, isPremium: false, reason: 'Content not found' };
+    }
+
+    // If content is not published, only creator can access
+    if (!content.published) {
+      return { 
+        hasAccess: subscriberUserId === content.user_id, 
+        isPremium: content.is_premium,
+        reason: subscriberUserId === content.user_id ? undefined : 'Content not published'
+      };
+    }
+
+    // If content is not premium, anyone can access
+    if (!content.is_premium) {
+      return { hasAccess: true, isPremium: false };
+    }
+
+    // If content is premium, check subscription
+    if (content.is_premium) {
+      const hasSubscription = await hasPremiumAccessToCreator(subscriberUserId, creatorUserId);
+      return { 
+        hasAccess: hasSubscription, 
+        isPremium: true,
+        reason: hasSubscription ? undefined : 'Premium subscription required'
+      };
+    }
+
+    return { hasAccess: true, isPremium: false };
+  } catch (error) {
+    console.error('Error checking content access:', error);
+    return { hasAccess: false, isPremium: false, reason: 'Error checking access' };
+  }
+}
+
+// Get subscription status for a user-creator pair
+export async function getSubscriptionStatus(
+  subscriberUserId: string,
+  creatorUserId: string
+): Promise<{
+  isFollowing: boolean;
+  isPaidSubscriber: boolean;
+  subscriptionType?: string;
+  expiresAt?: string;
+  amount?: number;
+  currency?: string;
+}> {
+  try {
+    const accessToken = Cookies.get(cookieName);
+    if (!subscriberUserId || !creatorUserId || !accessToken) {
+      return { isFollowing: false, isPaidSubscriber: false };
+    }
+
+    const supabase = await getSupabase(accessToken);
+
+    // Check if following (free subscription)
+    const { data: followerData } = await supabase
+      .from('subscribers')
+      .select('status')
+      .eq('subscriber_id', subscriberUserId)
+      .eq('creator_id', creatorUserId)
+      .eq('status', 'active')
+      .single();
+
+    // Check if paid subscriber
+    const { data: paidData } = await supabase
+      .from('subscriptions')
+      .select('type, expires_at, amount, currency')
+      .eq('subscriber_id', subscriberUserId)
+      .eq('creator_id', creatorUserId)
+      .eq('status', 'active')
+      .single();
+
+    return {
+      isFollowing: !!followerData,
+      isPaidSubscriber: !!paidData,
+      subscriptionType: paidData?.type,
+      expiresAt: paidData?.expires_at,
+      amount: paidData?.amount,
+      currency: paidData?.currency,
+    };
+  } catch (error) {
+    console.error('Error getting subscription status:', error);
+    return { isFollowing: false, isPaidSubscriber: false };
+  }
 } 

@@ -1,176 +1,239 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@burnt-labs/ui';
-
-interface Author {
-  avatar: string;
-  name: string;
-}
+import { Icon } from '@iconify/react';
+import { useUserStore } from '@/app/stores/user';
+import { hasAccessToContent, getSubscriptionStatus } from '@/app/utils/subscription';
+import Link from 'next/link';
+import { Content } from '@/app/types';
 
 interface ContentCardProps {
-  image: string;
-  title: string;
-  subtitle?: string;
-  actionLabel?: 'Watch' | 'Subscribe' | 'Reminder' | 'Read' | 'Listen';
-  onAction?: () => void;
-  isPremium?: boolean;
-  isComingSoon?: boolean;
-  isContinueWatching?: boolean;
-  progress?: number; // 0-100
-  showPlayIcon?: boolean;
-  badge?: string; // e.g. Trending, 4K, etc.
-  type?: 'featured' | 'trending' | 'continue';
-  author?: Author;
-  views?: string;
-  timeAgo?: string;
-  contentType?: 'video' | 'audio' | 'article';
+  content: Content;
+  badge?: string; // Optional badge for source pages to show differences
 }
 
 const contentTypeIcons = {
-  video: (
-    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-  ),
-  audio: (
-    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-2v13" /><circle cx="6" cy="18" r="3" fill="currentColor" /></svg>
-  ),
-  article: (
-    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" strokeWidth={2} /><line x1="8" y1="8" x2="16" y2="8" strokeWidth={2} /><line x1="8" y1="12" x2="16" y2="12" strokeWidth={2} /><line x1="8" y1="16" x2="12" y2="16" strokeWidth={2} /></svg>
-  ),
+  video: 'material-symbols:video-library',
+  audio: 'material-symbols:audio-file',
+  article: 'material-symbols:article',
 };
 
-export default function ContentCard({
-  image,
-  title,
-  subtitle,
-  actionLabel,
-  onAction,
-  isPremium = false,
-  isComingSoon = false,
-  isContinueWatching = false,
-  progress,
-  showPlayIcon = false,
-  badge,
-  type = 'trending',
-  author,
-  views,
-  timeAgo,
-  contentType = 'video',
-}: ContentCardProps) {
-  // Featured Banner
-  if (type === 'featured') {
+export default function ContentCard({ content, badge }: ContentCardProps) {
+  const { user } = useUserStore();
+  const [accessInfo, setAccessInfo] = useState<{
+    hasAccess: boolean;
+    isPremium: boolean;
+    reason?: string;
+  } | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    isFollowing: boolean;
+    isPaidSubscriber: boolean;
+    subscriptionType?: string;
+    expiresAt?: string;
+    amount?: number;
+    currency?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (user?.id && content.author?.id) {
+        const access = await hasAccessToContent(
+          user.id,
+          content.id,
+          content.kind,
+          content.author.id
+        );
+        setAccessInfo(access);
+
+        // Get subscription status
+        const status = await getSubscriptionStatus(user.id, content.author.id);
+        setSubscriptionStatus(status);
+      } else if (!user) {
+        // For non-authenticated users, only show non-premium content
+        setAccessInfo({
+          hasAccess: !content.is_premium,
+          isPremium: content.is_premium,
+          reason: content.is_premium ? 'Authentication required' : undefined
+        });
+      }
+      setLoading(false);
+    };
+
+    checkAccess();
+  }, [user?.id, content.id, content.author?.id, content.kind, content.is_premium]);
+
+  const getContentLink = () => {
+    if (!user) return '/auth';
+    // if (accessInfo?.isPremium && !accessInfo?.hasAccess) {
+    //   return `/dashboard/subscriptions?creator=${content.author?.wallet_address}`;
+    // }
+    return `/content/${content.id}?kind=${content.kind}`;
+  };
+
+  const canAccessContent = accessInfo?.hasAccess ?? (!content.is_premium);
+
+  const getActionButton = () => {
+    // if (!canAccessContent) {
+    //   return (
+    //     <Button
+    //       className="bg-[#8B25FF] hover:bg-[#350FDD] text-white px-4 py-2 rounded-lg font-semibold"
+    //       onClick={(e) => {
+    //         e.preventDefault();
+    //         e.stopPropagation();
+    //       }}
+    //     >
+    //       <Icon icon="material-symbols:star" className="w-4 h-4 mr-2" />
+    //       Subscribe to Access
+    //     </Button>
+    //   );
+    // }
+
+    const actionLabels = {
+      video: 'Watch Now',
+      audio: 'Listen Now',
+      article: 'Read Now',
+    };
+
     return (
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-purple-800/80 to-blue-800/80 shadow-lg hover:shadow-2xl transition-shadow group flex items-end h-72 w-full">
-        <Image src={image} alt={title} fill className="object-cover opacity-60" />
-        <div className="relative z-10 p-8 flex flex-col max-w-lg">
-          <h2 className="text-3xl font-bold mb-2">{title}</h2>
-          {author && (
-            <div className="flex items-center space-x-2 mb-4">
-              <Image src={author.avatar} alt={author.name} width={32} height={32} className="w-8 h-8 rounded-full border-2 border-purple-500" />
-              <span className="text-sm text-gray-200">{author.name}{views && ` • ${views}`}{timeAgo && ` • ${timeAgo}`}</span>
-            </div>
-          )}
-          {actionLabel && (
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-semibold w-32" onClick={onAction}>{actionLabel}</Button>
-          )}
+      <Button
+        className="bg-[#8B25FF] hover:bg-[#350FDD] text-white px-4 py-2 rounded-lg font-semibold flex items-center"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <Icon
+          icon={
+            content.kind === 'video' ? 'material-symbols:play-arrow' :
+              content.kind === 'audio' ? 'material-symbols:play-arrow' :
+                'material-symbols:read-more'
+          }
+          className="size-4 mr-2"
+        />
+        {actionLabels[content.kind]}
+      </Button>
+    );
+  };
+
+  const getDurationDisplay = () => {
+    if (content.kind === 'article' || !('duration' in content) || !content.duration) return null;
+
+    const minutes = Math.floor(content.duration / 60);
+    const seconds = content.duration % 60;
+
+    return (
+      <div className="absolute bottom-3 right-3">
+        <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-black/70 text-white">
+          <Icon icon="material-symbols:access-time" className="w-3 h-3 mr-1" />
+          {minutes}:{seconds.toString().padStart(2, '0')}
         </div>
       </div>
     );
-  }
+  };
 
-  // Trending Card
-  if (type === 'trending') {
+  const getReadingTime = () => {
+    if (content.kind !== 'article' || !content.excerpt) return null;
+
+    const wordCount = content.excerpt.split(/\s+/).length;
+    const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
     return (
-      <div className="w-full relative bg-gray-900/80 rounded-xl shadow-lg hover:shadow-2xl transition-shadow group overflow-hidden">
-        <Image src={image} alt={title} width={320} height={160} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        <div className="p-4 absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-          <h4 className="text-lg font-semibold mb-1">{title}</h4>
-          {author && (
-            <div className="flex items-center space-x-2 mb-2">
-              <Image src={author.avatar} alt={author.name} width={24} height={24} className="w-6 h-6 rounded-full border-2 border-purple-500" />
-              <span className="text-xs text-gray-400">{author.name}</span>
-            </div>
-          )}
-          {actionLabel && (
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1 rounded-lg text-sm" onClick={onAction}>{actionLabel}</Button>
-          )}
+      <div className="absolute bottom-3 right-3">
+        <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-black/70 text-white">
+          <Icon icon="material-symbols:access-time" className="w-3 h-3 mr-1" />
+          {readingTime} min read
         </div>
-        {badge && (
-          <span className="absolute top-4 right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">{badge}</span>
-        )}
       </div>
     );
-  }
+  };
 
-  // Continue Watching Card
+  const formatTimeAgo = (date: string): string => {
+    const now = new Date();
+    const contentDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - contentDate.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
+  };
+
   return (
-    <div
-      className="rounded-2xl border border-gray-800 bg-gray-900/70 shadow-lg transition-transform duration-200 hover:scale-[1.03] hover:shadow-xl p-4 flex flex-col gap-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
-      tabIndex={0}
-    >
-      {/* Card Image */}
-      <div className="relative w-full h-40">
-        <Image src={image} alt={title} fill className="object-cover" />
-        {/* Overlay for dark effect */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        {/* Content Type Indicator */}
-        <div className="absolute top-4 left-4 bg-black/60 rounded-full p-1 flex items-center justify-center">
-          {contentType && contentTypeIcons[contentType]}
-        </div>
-        {/* Play Icon for continue watching */}
-        {isContinueWatching && showPlayIcon && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/60 rounded-full p-2">
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+    <Link href={getContentLink()} className="block">
+      <div className="w-full relative bg-gray-900/80 rounded-xl shadow-lg hover:shadow-2xl transition-shadow group overflow-hidden">
+        {/* Card Image */}
+        <div className="relative w-full h-72">
+          <Image
+            src={content.thumbnail_url || '/images/default-thumbnail.png'}
+            alt={content.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+
+          {/* Overlay for dark effect */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+          {/* Content Type Indicator */}
+          <div className="absolute top-4 left-4 bg-black/60 rounded-full p-1 flex items-center justify-center">
+            <Icon icon={contentTypeIcons[content.kind]} className="w-4 h-4 text-white" />
           </div>
-        )}
-        {/* Badge (e.g. Trending, 4K) */}
-        {badge && (
-          <span className="absolute top-4 right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">{badge}</span>
-        )}
-      </div>
-      {/* Card Content */}
-      <div className="absolute left-0 right-0 bottom-0 p-4 z-10">
-        <div className="flex items-center mb-1">
-          <h4 className="text-lg font-semibold text-white flex items-center">
-            {title}
-            {isPremium && (
-              <span className="ml-2 text-yellow-400" title="Premium">
-                <svg className="inline w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.09 6.26L20 9.27l-5 3.64L16.18 20 12 16.9 7.82 20 9 12.91l-5-3.64 5.91-.01z" /></svg>
-              </span>
-            )}
-          </h4>
-        </div>
-        {/* Subtitle or progress/continue watching info */}
-        {!isContinueWatching && subtitle && (
-          <div className="text-gray-300 text-sm whitespace-pre-line">{subtitle}</div>
-        )}
-        {/* Progress bar for continue watching */}
-        {isContinueWatching && (
-          <div className="mt-2">
-            <div className="w-full h-2 bg-gray-700 rounded-full">
-              <div className="h-2 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] rounded-full" style={{ width: `${progress ?? 0}%` }}></div>
+
+          {/* Premium Badge */}
+          {content.is_premium && (
+            <div className="absolute top-4 right-4">
+              <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#8B25FF]/90 text-white">
+                <Icon icon="material-symbols:star" className="w-3 h-3 mr-1" />
+                Premium
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>{/* Current time (optional) */}</span>
-              <span>{/* Duration (optional) */}</span>
+          )}
+
+          {/* Access Control Overlay */}
+          {/* {!canAccessContent && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+              <div className="text-center">
+                <Icon icon="material-symbols:lock" className="w-8 h-8 text-[#8B25FF] mx-auto mb-1" />
+                <p className="text-white font-medium text-sm">Premium</p>
+                <p className="text-gray-300 text-xs">Subscribe to unlock</p>
+              </div>
+            </div>
+          )} */}
+
+          {/* Duration/Reading Time */}
+          {getDurationDisplay() || getReadingTime()}
+
+          {/* Badge (e.g. Trending, Coming Soon, etc.) */}
+          {badge && (
+            <span className="absolute top-4 right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">{badge}</span>
+          )}
+        </div>
+
+        {/* Card Content */}
+        <div className="absolute left-0 right-0 bottom-0 p-4 z-10 flex items-center justify-between">
+          <div>
+            <div className="flex items-center mb-1">
+              <h4 className="text-lg font-semibold text-white flex items-center">
+                {content.title}
+              </h4>
+            </div>
+
+            {/* Subtitle with author and metadata */}
+            <div className="text-gray-300 text-sm mb-2">
+              {content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown'}
+              {content.views && ` • ${content.views} views`}
+              {content.created_at && ` • ${formatTimeAgo(content.created_at)}`}
             </div>
           </div>
-        )}
-        {/* Action Button */}
-        {actionLabel && !isContinueWatching && (
+
+          {/* Action Button */}
           <div className="mt-3 flex justify-end">
-            <Button
-              className={`px-5 py-1.5 rounded-full font-semibold text-sm shadow-md ${
-                actionLabel === 'Subscribe' ? 'bg-[#8B25FF] hover:bg-[#350FDD]' :
-                actionLabel === 'Reminder' ? 'bg-blue-600 hover:bg-blue-700' :
-                'bg-purple-600 hover:bg-purple-700'
-              }`}
-              onClick={onAction}
-            >
-              {actionLabel}
-            </Button>
+            {getActionButton()}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@burnt-labs/ui";
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { getSupabase } from '@/app/utils/supabase/client';
 import { useUserStore } from '@/app/stores/user';
-import { useKeplr } from '@/app/providers/KeplrProvider';
 import { Icon } from '@iconify/react';
 import { 
   getUserSubscriptions, 
@@ -26,22 +23,20 @@ export default function SubscriptionsPage() {
   const [activeTab, setActiveTab] = useState<'following' | 'followers'>('following');
   const [processing, setProcessing] = useState<string | null>(null);
   
-  const { data: account } = useAbstraxionAccount();
   const { user } = useUserStore();
-  const { walletAddress } = useKeplr();
   const router = useRouter();
-
+  
   useEffect(() => {
     const fetchData = async () => {
-      if (!walletAddress) return;
+      if (!user?.wallet_address) return;
       
       try {
         setLoading(true);
         
         // Fetch both user's subscriptions and creator's subscribers
         const [subscriptions, subscribers] = await Promise.all([
-          getUserSubscriptions(walletAddress),
-          getCreatorSubscribers(walletAddress)
+          getUserSubscriptions(user.wallet_address),
+          getCreatorSubscribers(user.wallet_address)
         ]);
         
         setMySubscriptions(subscriptions);
@@ -54,17 +49,17 @@ export default function SubscriptionsPage() {
     };
 
     fetchData();
-  }, [walletAddress]);
+  }, [user?.wallet_address]);
 
   const handleFollow = async (creatorWallet: string) => {
-    if (!walletAddress) return;
+    if (!user?.wallet_address) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await followCreator(walletAddress, creatorWallet);
+      const success = await followCreator(user.wallet_address, creatorWallet);
       if (success) {
         // Refresh data
-        const subscriptions = await getUserSubscriptions(walletAddress);
+        const subscriptions = await getUserSubscriptions(user.wallet_address);
         setMySubscriptions(subscriptions);
       }
     } catch (error) {
@@ -75,14 +70,14 @@ export default function SubscriptionsPage() {
   };
 
   const handleUnfollow = async (creatorWallet: string) => {
-    if (!walletAddress) return;
+    if (!user?.wallet_address) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await unfollowCreator(walletAddress, creatorWallet);
+      const success = await unfollowCreator(user.wallet_address, creatorWallet);
       if (success) {
         // Refresh data
-        const subscriptions = await getUserSubscriptions(walletAddress);
+        const subscriptions = await getUserSubscriptions(user.wallet_address);
         setMySubscriptions(subscriptions);
       }
     } catch (error) {
@@ -93,14 +88,14 @@ export default function SubscriptionsPage() {
   };
 
   const handleSubscribe = async (creatorWallet: string, type: 'monthly' | 'yearly' | 'one-time', amount: number) => {
-    if (!walletAddress) return;
+    if (!user?.wallet_address) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await createPaidSubscription(walletAddress, creatorWallet, type, amount);
+      const success = await createPaidSubscription(user.wallet_address, creatorWallet, type, amount);
       if (success) {
         // Refresh data
-        const subscriptions = await getUserSubscriptions(walletAddress);
+        const subscriptions = await getUserSubscriptions(user.wallet_address);
         setMySubscriptions(subscriptions);
       }
     } catch (error) {
@@ -111,14 +106,14 @@ export default function SubscriptionsPage() {
   };
 
   const handleCancelSubscription = async (creatorWallet: string) => {
-    if (!walletAddress) return;
+    if (!user?.wallet_address) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await cancelPaidSubscription(walletAddress, creatorWallet);
+      const success = await cancelPaidSubscription(user.wallet_address, creatorWallet);
       if (success) {
         // Refresh data
-        const subscriptions = await getUserSubscriptions(walletAddress);
+        const subscriptions = await getUserSubscriptions(user.wallet_address);
         setMySubscriptions(subscriptions);
       }
     } catch (error) {
@@ -137,19 +132,10 @@ export default function SubscriptionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#0A0C10] text-white">
       <div className="max-w-screen-xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Subscriptions</h1>
-          <Button
-            onClick={() => router.push('/discover')}
-            className="px-6 py-3 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white rounded-lg hover:from-[#7A1FEF] hover:to-[#2A0BC7] transition-all duration-200"
-          >
-            <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
-            Discover Creators
-          </Button>
-        </div>
+        <h1 className="text-3xl font-bold text-white">Subscriptions</h1>
 
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-[#121418] p-1 rounded-lg">

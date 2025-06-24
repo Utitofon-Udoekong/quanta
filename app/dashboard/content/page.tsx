@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import SearchInput from '@/app/components/ui/SearchInput';
 import { getSupabase } from '@/app/utils/supabase/client';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { Icon } from '@iconify/react';
@@ -13,6 +12,7 @@ import { cookieName } from '@/app/utils/supabase';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/app/components/helpers/toast';
 import ContentCard from '@/app/components/ui/ContentCard';
+import ContentTable from '@/app/components/ui/dashboard/ContentTable';
 
 const categories = [
   { id: 'all', name: 'All Content' },
@@ -24,16 +24,12 @@ const categories = [
 export default function ContentManagement() {
   const [allContent, setAllContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const { data: account } = useAbstraxionAccount();
   const { user } = useUserStore();
   const supabase = getSupabase(Cookies.get(cookieName) || '');
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const router = useRouter();
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedPremium, setSelectedPremium] = useState('all');
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -48,9 +44,9 @@ export default function ContentManagement() {
         ]);
 
         const combined = [
-          ...(videosData.data || []).map(v => ({ ...v, kind: 'video' })),
-          ...(audioData.data || []).map(a => ({ ...a, kind: 'audio' })),
-          ...(articlesData.data || []).map(article => ({ ...article, kind: 'article' })),
+          ...(videosData.data || []).map(v => ({ ...v, kind: 'video', published: v.published ?? false, is_premium: v.is_premium ?? false })),
+          ...(audioData.data || []).map(a => ({ ...a, kind: 'audio', published: a.published ?? false, is_premium: a.is_premium ?? false })),
+          ...(articlesData.data || []).map(article => ({ ...article, kind: 'article', published: article.published ?? false, is_premium: article.is_premium ?? false })),
         ];
 
         // Fetch views for all content
@@ -75,7 +71,7 @@ export default function ContentManagement() {
         }));
         setAllContent(withViews);
       } catch (e) {
-        setError('Failed to load content');
+        toast.error('Failed to load content');
       } finally {
         setLoading(false);
       }
@@ -85,7 +81,7 @@ export default function ContentManagement() {
 
   const handleDelete = async (id: string, kind: string) => {
     if (!user) {
-      toast('Please sign in to delete content', { className: 'bg-red-500' });
+      toast.error('Please sign in to delete content');
       return;
     }
 
@@ -104,9 +100,9 @@ export default function ContentManagement() {
       }
 
       setAllContent(allContent.filter(content => content.id !== id));
-      toast(`${kind.charAt(0).toUpperCase() + kind.slice(1)} deleted successfully`, { className: 'bg-green-500' });
+      toast.success(`${kind.charAt(0).toUpperCase() + kind.slice(1)} deleted successfully`, { className: 'bg-green-500' });
     } catch (err: any) {
-      toast(err.message || `Failed to delete ${kind}`, { className: 'bg-red-500' });
+      toast.error(err.message || `Failed to delete ${kind}`);
       console.error(err);
     }
   };
@@ -224,7 +220,7 @@ export default function ContentManagement() {
         </div>
       </div>
 
-      {/* Content Grid */}
+      {/* Content Display */}
       <section className="mb-10">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold flex items-center text-white">
@@ -245,10 +241,10 @@ export default function ContentManagement() {
               </button>
             </Link>
           </div>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             {filteredContent.map((content) => (
-              <Link key={content.id} href={`/dashboard/content/${content.id}`} className="block group">
+              <Link key={content.id} href={`/dashboard/content/${content.id}?kind=${content.kind}`} className="block group">
                   <ContentCard
                     image={content.thumbnail_url || '/images/default-thumbnail.png'}
                     title={content.title}
@@ -263,6 +259,11 @@ export default function ContentManagement() {
               </Link>
             ))}
           </div>
+        ) : (
+          <ContentTable 
+            content={filteredContent} 
+            onDelete={handleDelete}
+          />
         )}
       </section>
     </div>

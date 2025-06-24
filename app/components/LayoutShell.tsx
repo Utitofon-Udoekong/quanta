@@ -52,8 +52,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
       }
       return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
     }
-    if (path === '/dashboard/profile') {
-      if (pathname === '/dashboard/profile' || pathname.startsWith('/dashboard/profile/')) {
+    if (path === '/settings') {
+      if (pathname === '/settings' || pathname.startsWith('/settings/')) {
         return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
       }
       return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
@@ -69,8 +69,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   }
 
   const sidebarContent = (
-    <>
-      <div>
+          <>
+            <div>
         <div className="mb-10 flex items-center justify-between sticky top-0 bg-[#0A0C10] px-3 py-4">
           <span className="text-2xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
           <button
@@ -80,39 +80,35 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
           >
             <Icon icon="mdi:close" className="w-6 h-6" />
           </button>
-        </div>
+              </div>
         
         {pathname.startsWith('/dashboard') && user ? (
           <nav className="space-y-2 px-3">
             <Link href="/" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-white font-bold hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:arrow-left" className="w-5 h-5 mr-2" />
               Back to App
-            </Link>
+                </Link>
             <Link href="/dashboard" className={getDashboardLinkClass('/dashboard')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:home-outline" className="w-5 h-5 mr-2" />
               Dashboard
-            </Link>
+                </Link>
             <Link href="/dashboard/content" className={getDashboardLinkClass('/dashboard/content')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-2" />
               Content Management
-            </Link>
+                </Link>
             <Link href="/dashboard/subscriptions" className={getDashboardLinkClass('/dashboard/subscriptions')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:account-group" className="w-5 h-5 mr-2" />
               Subscriptions
-            </Link>
-            <Link href="/dashboard/profile" className={getDashboardLinkClass('/dashboard/profile')} onClick={() => setIsSidebarOpen(false)}>
-              <Icon icon="mdi:account-outline" className="w-5 h-5 mr-2" />
-              Profile
-            </Link>
+              </Link>
             <Link href="/settings" className={getDashboardLinkClass('/settings')} onClick={() => setIsSidebarOpen(false)}>
-              <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
-              Settings
-            </Link>
+                  <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
+                  Settings
+                </Link>
             <Link href="/help" className={getDashboardLinkClass('/help')} onClick={() => setIsSidebarOpen(false)}>
-              <Icon icon="mdi:help-circle-outline" className="w-5 h-5 mr-2" />
-              Help
-            </Link>
-          </nav>
+                  <Icon icon="mdi:help-circle-outline" className="w-5 h-5 mr-2" />
+                  Help
+                </Link>
+              </nav>
         ) : (
           <nav className="space-y-2 px-3">
             <Link href="/" className={getLinkClass('/')} onClick={() => setIsSidebarOpen(false)}><span>Home</span></Link>
@@ -131,7 +127,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 </nav>
               </div>
             )}
-            <div className="mt-10 space-y-1">
+              <div className="mt-10 space-y-1">
               <Link href="/settings" className={getLinkClass('/settings')} onClick={() => setIsSidebarOpen(false)}>Settings</Link>
               <Link href="/help" className={getLinkClass('/help')} onClick={() => setIsSidebarOpen(false)}>Help</Link>
             </div>
@@ -247,13 +243,13 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                       <MenuItem>
                         {({ active }) => (
                           <Link
-                            href="/dashboard/profile"
+                            href="/settings"
                             className={`${
                               active ? 'bg-[#8B25FF]/10 text-[#8B25FF]' : 'text-gray-300'
                             } flex items-center px-4 py-3 text-sm transition-colors`}
                           >
-                            <Icon icon="mdi:account-outline" className="w-5 h-5 mr-3" />
-                            Profile
+                            <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-3" />
+                            Settings
                           </Link>
                         )}
                       </MenuItem>

@@ -26,6 +26,33 @@ const premiumFilters = [
     { id: 'premium', name: 'Premium' },
 ];
 
+// Format time ago
+const formatTimeAgo = (date: string): string => {
+    const now = new Date();
+    const contentDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - contentDate.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} months ago`;
+    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
+};
+
+// Format release date
+const formatReleaseDate = (releaseDate: string): string => {
+    const date = new Date(releaseDate);
+    const now = new Date();
+    const diffInDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Tomorrow';
+    if (diffInDays < 7) return `In ${diffInDays} days`;
+    if (diffInDays < 30) return `In ${Math.floor(diffInDays / 7)} weeks`;
+    return date.toLocaleDateString();
+};
+
 export default function ComingSoonPage() {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState('all');
@@ -95,7 +122,7 @@ export default function ComingSoonPage() {
       <div className="mb-10 flex flex-col sm:flex-row gap-4">
           {/* Content Type Dropdown */}
           <Menu as="div" className="relative w-full sm:w-52 text-left">
-              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                   <span>Type: {contentTypes.find(f => f.id === selectedType)?.name}</span>
                   <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </Menu.Button>
@@ -118,7 +145,7 @@ export default function ComingSoonPage() {
 
           {/* Premium Dropdown */}
           <Menu as="div" className="relative w-full sm:w-52 text-left">
-              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+              <Menu.Button className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                   <span>Access: {premiumFilters.find(f => f.id === selectedPremium)?.name}</span>
                   <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
               </Menu.Button>
@@ -140,32 +167,50 @@ export default function ComingSoonPage() {
           </Menu>
       </div>
 
+      {/* Featured Content */}
+      {featuredContent && (
+        <div className="mb-8">
+          <h3 className="text-xl font-bold mb-4">Next Release</h3>
+          <ContentCard
+            content={featuredContent}
+            badge="Coming Soon"
+          />
+        </div>
+      )}
+
       {/* Content Grid Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h3 className="text-xl font-bold">Scheduled For Release</h3>
+        <span className="text-sm text-gray-400 mt-2 sm:mt-0">
+          {filteredContent.length} {filteredContent.length === 1 ? 'item' : 'items'} scheduled
+        </span>
       </div>
 
       {/* Content Grid */}
       <section className="mb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {filteredContent.map((content) => (
-            <Link key={content.id} href={`/content/${content.id}?kind=${content.kind}`} className="block group">
-                <ContentCard
-                  image={content.thumbnail_url || '/images/default-thumbnail.png'}
-                  title={content.title}
-                  subtitle={
-                    (content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown')
-                  }
-                  actionLabel={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
-                  author={content.author ? {
-                    name: content.author.username || content.author.wallet_address?.slice(0, 8) || 'Unknown',
-                    avatar: content.author.avatar_url || 'https://robohash.org/206',
-                  } : undefined}
-                  contentType={content.kind}
-                />
-            </Link>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredContent.map((content) => (
+              <ContentCard
+                key={content.id}
+                content={content}
+                badge="Scheduled"
+              />
+            ))}
+          </div>
+        )}
+        
+        {!loading && filteredContent.length === 0 && (
+          <div className="text-center py-12">
+            <Icon icon="material-symbols:schedule" className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">No scheduled content</h3>
+            <p className="text-gray-500">Check back later for upcoming releases from creators.</p>
+          </div>
+        )}
       </section>
     </div>
   );

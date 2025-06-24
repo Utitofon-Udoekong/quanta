@@ -14,11 +14,26 @@ import { supabase } from '@/app/utils/supabase/client';
 import { useSearchParams } from 'next/navigation';
 import CommentSection from '@/app/components/ui/content/CommentSection';
 import LikeButton from '@/app/components/ui/content/LikeButton';
+import { hasAccessToContent, getSubscriptionStatus } from '@/app/utils/subscription';
+import SubscribeModal from '@/app/components/ui/SubscribeModal';
 
 export default function PublicContentPage({ params }: { params: Promise<{ id: string }> }) {
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessInfo, setAccessInfo] = useState<{
+    hasAccess: boolean;
+    isPremium: boolean;
+    reason?: string;
+  } | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    isFollowing: boolean;
+    isPaidSubscriber: boolean;
+    subscriptionType?: string;
+    expiresAt?: string;
+    amount?: number;
+    currency?: string;
+  } | null>(null);
   const { id } = use(params);
   const { user } = useUserStore();
   const searchParams = useSearchParams();
@@ -26,6 +41,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
   const kind = (kindParam === 'video' || kindParam === 'audio' || kindParam === 'article') 
     ? kindParam 
     : 'video';
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -41,7 +57,10 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
             author:users (
               id,
               avatar_url,
-              wallet_address
+              wallet_address,
+              subscription_price,
+              subscription_currency,
+              subscription_type
             )
           `)
           .eq('id', id)
@@ -55,8 +74,31 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         const contentWithKind = { ...data, kind };
         setContent(contentWithKind);
 
-        if (user) {
-          trackContentView(contentWithKind.id, kind, user.id);
+        // Check access permissions
+        if (user && contentWithKind.author?.id) {
+          const access = await hasAccessToContent(
+            user.id,
+            contentWithKind.id,
+            kind as 'article' | 'video' | 'audio',
+            contentWithKind.author.id
+          );
+          setAccessInfo(access);
+
+          // Get subscription status
+          const status = await getSubscriptionStatus(user.id, contentWithKind.author.id);
+          setSubscriptionStatus(status);
+
+          // Only track view if user has access
+          if (access.hasAccess) {
+            trackContentView(contentWithKind.id, kind, user.id);
+          }
+        } else if (!user) {
+          // For non-authenticated users, only show non-premium content
+          setAccessInfo({
+            hasAccess: !contentWithKind.is_premium,
+            isPremium: contentWithKind.is_premium,
+            reason: contentWithKind.is_premium ? 'Authentication required' : undefined
+          });
         }
       } catch (err: any) {
         setError(err.message);
@@ -158,32 +200,74 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const renderPremiumLockedContent = () => {
+    if (!content) return null;
+    // Show subscribe modal if user is not subscribed and content is premium
+    if (accessInfo && !accessInfo.hasAccess && accessInfo.isPremium) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 py-12">
+          <Icon icon="mdi:lock" className="text-5xl text-gray-400" />
+          <div className="text-lg font-semibold">This is premium content</div>
+          <div className="text-gray-400 mb-2">Subscribe to unlock this content.</div>
+          <button
+            className="px-6 py-2 rounded bg-gradient-to-r from-[#8B25FF] to-[#350FDD] cursor-pointer text-white font-bold hover:bg-primary/80 transition"
+            onClick={() => setShowSubscribeModal(true)}
+          >
+            Subscribe
+          </button>
+          {content.author && (
+            <SubscribeModal
+              open={showSubscribeModal}
+              onClose={() => setShowSubscribeModal(false)}
+              creator={{
+                id: content.author.id,
+                wallet_address: content.author.wallet_address || '',
+                subscription_price: (content.author as any).subscription_price || 0,
+                subscription_currency: (content.author as any).subscription_currency || 'USD',
+                subscription_type: (content.author as any).subscription_type || 'monthly'
+              }}
+              subscriber={{
+                wallet_address: user?.wallet_address || '',
+                email: (user as any)?.email || 'user@example.com',
+                fullname: user?.username || ''
+              }}
+              contentTitle={content.title}
+            />
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0A0C10]">
-        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-96">
+        <Icon icon="eos-icons:loading" className="text-4xl animate-spin" />
       </div>
     );
   }
 
-  if (error || !content) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-[#0A0C10] text-white p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-lg text-center">
-            <h1 className="text-2xl font-bold mb-4">Content Not Available</h1>
-            <p className="text-gray-300">{error || "The content you're looking for doesn't exist or has been moved."}</p>
-            <Link href="/" className="mt-4 inline-block text-purple-400 hover:text-purple-300">
-              Go to Homepage
-            </Link>
-          </div>
-        </div>
-      </div>
+      <div className="flex items-center justify-center h-96 text-red-500">{error}</div>
     );
+  }
+
+  if (!content) {
+    return null;
+  }
+
+  // If premium and locked, show locked UI
+  if (accessInfo && !accessInfo.hasAccess && accessInfo.isPremium) {
+    return renderPremiumLockedContent();
   }
 
   const color = getContentTypeColor(content.kind);
   const icon = getContentTypeIcon(content.kind);
+
+  // Check if user has access to the content
+  const canAccessContent = accessInfo?.hasAccess ?? (!content.is_premium);
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">
@@ -198,88 +282,64 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <div className="bg-[#121418] rounded-lg overflow-hidden shadow-lg">
-              {getContentPlayer(content)}
+        {/* Content Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-${color}-500/20 text-${color}-400`}>
+              <Icon icon={icon} className="w-4 h-4 mr-2" />
+              {content.kind.charAt(0).toUpperCase() + content.kind.slice(1)}
             </div>
-
-            {/* Metadata Section */}
-            <div className="mt-10 px-4 sm:px-8">
-              <div className="flex items-center mb-4">
-                <Icon icon={icon} className={`h-6 w-6 text-${color}-400 mr-3`} />
-                <span className={`text-${color}-400 font-semibold uppercase tracking-wider text-sm`}>
-                  {content.kind}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 mb-6">
-                {content.author && (
-                  <>
-                    <img src={content.author.avatar_url || '/images/default-avatar.png'} alt="Author" className="w-10 h-10 rounded-full border-2 border-gray-700" />
-                    <span className="font-semibold text-white">{content.author.username || 'Unknown'}</span>
-                  </>
-                )}
-                <span className="text-gray-400 text-sm">• {new Date(content.created_at).toLocaleDateString()}</span>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{content.title}</h1>
-              {getContentDescription(content) && (
-                <p className="text-gray-300 leading-relaxed mb-6">
-                  {getContentDescription(content)}
-                </p>
-              )}
-            </div>
-
-            {/* Comments Section */}
-            <div className="mt-10 px-4 sm:px-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Comments <span className="text-purple-400 font-semibold">{/* comment count here if available */}</span></h2>
-                {/* Optionally add a sort or filter button here */}
-              </div>
-              <CommentSection contentId={content.id} contentType={content.kind} />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {content.author && content.author.wallet_address && (
-              <div className="bg-[#121418] p-5 rounded-lg shadow-lg">
-                <h3 className="text-lg font-bold mb-4">About the Author</h3>
-                <AuthorInfo author={content.author as UserData} />
+            {content.is_premium && (
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400">
+                <Icon icon="material-symbols:star" className="w-4 h-4 mr-2" />
+                Premium
               </div>
             )}
-            <div className="bg-[#121418] p-5 rounded-lg shadow-lg">
-              <h3 className="text-lg font-bold mb-4">Statistics</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-gray-300">
-                  <span className="flex items-center">
-                    <Icon icon="material-symbols:calendar-month" className="h-5 w-5 mr-2 text-gray-400" />
-                    Published
-                  </span>
-                  <span className="font-medium text-white">{new Date(content.created_at).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center justify-between text-gray-300">
-                  <span className="flex items-center">
-                    <Icon icon="mdi:heart" className="h-5 w-5 mr-2 text-gray-400" />
-                    Likes
-                  </span>
-                  <LikeButton contentId={content.id} contentType={content.kind} />
-                </div>
-                {getContentMetadata(content) && (
-                  <div className="flex items-center justify-between text-gray-300">
-                    <span className="flex items-center">
-                      <Icon icon="material-symbols:schedule" className="h-5 w-5 mr-2 text-gray-400" />
-                      {content.kind === 'article' ? 'Read Time' : 'Duration'}
-                    </span>
-                    <span className="font-medium text-white">
-                      {getContentMetadata(content)}
-                    </span>
-                  </div>
-                )}
-              </div>
+          </div>
+          
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">{content.title}</h1>
+          
+          {getContentDescription(content) && (
+            <p className="text-gray-300 text-lg mb-6">{getContentDescription(content)}</p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
+            <div className="flex items-center">
+              <Icon icon="material-symbols:schedule" className="w-4 h-4 mr-2" />
+              {new Date(content.created_at).toLocaleDateString()}
             </div>
+            {getContentMetadata(content) && (
+              <div className="flex items-center">
+                <Icon icon="material-symbols:access-time" className="w-4 h-4 mr-2" />
+                {getContentMetadata(content)}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Author Info */}
+        {content.author && (
+          <div className="mb-8">
+            <AuthorInfo author={content.author as UserData} />
+          </div>
+        )}
+
+        {/* Content Player/Viewer */}
+        <div className="mb-8">
+          {canAccessContent ? (
+            getContentPlayer(content)
+          ) : (
+            renderPremiumLockedContent()
+          )}
+        </div>
+
+        {/* Comments and Likes - Only show if user has access */}
+        {canAccessContent && (
+          <div className="space-y-8">
+            <LikeButton contentId={content.id} contentType={kind} />
+            <CommentSection contentId={content.id} contentType={kind} />
+          </div>
+        )}
       </div>
     </div>
   );

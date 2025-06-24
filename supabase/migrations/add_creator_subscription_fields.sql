@@ -1,0 +1,4 @@
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS subscription_price NUMERIC(10,2) DEFAULT 5.00,
+ADD COLUMN IF NOT EXISTS subscription_currency TEXT DEFAULT 'USD',
+ADD COLUMN IF NOT EXISTS subscription_type TEXT DEFAULT 'monthly'; 

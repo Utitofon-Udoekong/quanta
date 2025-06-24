@@ -7,7 +7,6 @@ import { Button } from '@burnt-labs/ui';
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable from '@/app/components/ui/dashboard/ContentTable';
-import { useKeplr } from '@/app/providers/KeplrProvider';
 import { getSupabase } from '@/app/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
@@ -38,7 +37,6 @@ export default function Dashboard() {
   const { data: account } = useAbstraxionAccount();
   const supabase = useMemo(() => getSupabase(account?.bech32Address || ''), [account?.bech32Address]);
   const { user, error: userError } = useUserStore();
-  const { walletAddress, connectKeplr } = useKeplr();
   const router = useRouter();
 
   // Generate stats from real subscription data
@@ -82,20 +80,20 @@ export default function Dashboard() {
           wallet_address: user.wallet_address
         });
         
-        if (walletAddress) {
+        if (user.wallet_address) {
           if (!user.wallet_address) {
             await supabase.auth.updateUser({
-              data: { wallet_address: walletAddress }
+              data: { wallet_address: user.wallet_address }
             });
-            setProfile(prev => prev ? { ...prev, wallet_address: walletAddress } : null);
+            setProfile(prev => prev ? { ...prev, wallet_address: user.wallet_address } : null);
           }
           
           // Fetch subscription analytics
-          const analytics = await getSubscriptionAnalytics(walletAddress);
+          const analytics = await getSubscriptionAnalytics(user.wallet_address);
           setSubscriptionStats(analytics);
           
           // Fetch recent subscribers
-          const subscribers = await getCreatorSubscribers(walletAddress);
+          const subscribers = await getCreatorSubscribers(user.wallet_address);
           setRecentSubscribers(subscribers.slice(0, 5)); // Show only 5 most recent
           
           // Fetch subscription data (old schema - keeping for compatibility)
@@ -149,10 +147,10 @@ export default function Dashboard() {
             
             const { data: viewsDataRaw, error: viewsError } = await supabase
               .from('content_views')
-              .select('created_at')
+              .select('viewed_at')
               .in('content_id', contentIds)
-              .gte('created_at', thirtyDaysAgo.toISOString())
-              .order('created_at', { ascending: true });
+              .gte('viewed_at', thirtyDaysAgo.toISOString())
+              .order('viewed_at', { ascending: true });
 
             if (!viewsError && viewsDataRaw) {
               // Group views by day
@@ -168,7 +166,7 @@ export default function Dashboard() {
               
               // Count views for each day
               viewsDataRaw.forEach(view => {
-                const dayKey = new Date(view.created_at).toISOString().split('T')[0];
+                const dayKey = new Date(view.viewed_at).toISOString().split('T')[0];
                 viewsByDay.set(dayKey, (viewsByDay.get(dayKey) || 0) + 1);
               });
               
@@ -251,7 +249,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [supabase, walletAddress, user]);
+  }, [supabase, user?.wallet_address]);
   
   const handleDeleteContent = async (id: string, type: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return;

@@ -63,6 +63,7 @@ export default function Home() {
     });
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const { user } = useUserStore();
 
     // Fetch featured content for carousel and sections
     useEffect(() => {
@@ -344,26 +345,22 @@ export default function Home() {
                         </Link>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {filteredContent.map((content) => (
-                        <Link key={content.id} href={`/content/${content.id}?kind=${content.kind}`} className="block group">
                         <ContentCard
-                                    image={content.thumbnail_url || '/images/default-thumbnail.png'}
-                                    title={content.title}
-                            subtitle={
-                                        (content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown') +
-                                        (content.views ? ` - ${content.views} views` : '')
-                                    }
-                                    actionLabel={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
-                                    author={content.author ? {
-                                        name: content.author.username || content.author.wallet_address?.slice(0, 8) || 'Unknown',
-                                        avatar: content.author.avatar_url || 'https://robohash.org/206',
-                            } : undefined}
-                                    contentType={content.kind}
+                            key={content.id}
+                            content={content}
                         />
-                        </Link>
                     ))}
                 </div>
+                
+                {filteredContent.length === 0 && !loading && (
+                    <div className="text-center py-12">
+                        <Icon icon="material-symbols:search-off" className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-300 mb-2">No content found</h3>
+                        <p className="text-gray-500">Try adjusting your filters or check back later for new content.</p>
+                    </div>
+                )}
             </section>
         </>
     );

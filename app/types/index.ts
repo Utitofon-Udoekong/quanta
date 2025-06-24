@@ -16,6 +16,9 @@ export interface UserData {
   created_at?: string;
   updated_at?: string;
   is_admin?: boolean;
+  subscription_price?: number;
+  subscription_currency?: string;
+  subscription_type?: string;
 }
 
 
@@ -136,6 +139,9 @@ export interface ContentBase {
     username?: string;
     avatar_url?: string;
     wallet_address?: string;
+    subscription_price?: number;
+    subscription_currency?: string;
+    subscription_type?: string;
   };
   kind: ContentKind;
   views?: number;

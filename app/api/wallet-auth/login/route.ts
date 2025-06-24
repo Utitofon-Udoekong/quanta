@@ -5,6 +5,95 @@ import { cookieName } from '@/app/utils/supabase';
 
 const expToExpiresIn = (exp: number) => exp - Math.floor(Date.now() / 1000);
 
+// Helper function to create Supabase client with better timeout settings
+const createSupabaseClient = (supabaseUrl: string, serviceRoleSecret: string) => {
+    return createClient(supabaseUrl, serviceRoleSecret, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+        },
+        global: {
+            headers: {
+                'X-Client-Info': 'quanta-wallet-auth'
+            }
+        }
+    });
+};
+
+// Helper function to check if user exists with retry logic
+const checkUserExists = async (supabase: any, wallet_address: string, maxRetries = 3) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const { data: existingUser, error } = await supabase
+                .from('users')
+                .select('id, wallet_address')
+                .eq('wallet_address', wallet_address)
+                .single();
+            
+            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                throw error;
+            }
+            
+            return { existingUser, error: null };
+        } catch (error) {
+            console.warn(`User check attempt ${attempt} failed:`, error);
+            if (attempt === maxRetries) {
+                throw error;
+            }
+            // Wait before retry with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+    }
+};
+
+// Helper function to create auth user with retry logic
+const createAuthUser = async (supabase: any, wallet_address: string, maxRetries = 3) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
+                email: `${wallet_address}@wallet.local`,
+                email_confirm: true,
+                app_metadata: {
+                    provider: "xion",
+                    providers: ["xion"],
+                    wallet_address: wallet_address,
+                    chain: "xion-testnet-2",
+                },
+                user_metadata: { 
+                    address: wallet_address 
+                }
+            });
+
+            if (createError) {
+                // If user already exists, try to get the existing user
+                if (createError.message.includes('already been registered') || createError.status === 422) {
+                    console.log('User already exists, attempting to sign in...');
+                    const { data: existingAuthUser, error: signInError } = await supabase.auth.admin.getUserByEmail(
+                        `${wallet_address}@wallet.local`
+                    );
+                    
+                    if (signInError) {
+                        throw signInError;
+                    }
+                    
+                    return { authUser: existingAuthUser, error: null };
+                }
+                throw createError;
+            }
+
+            return { authUser, error: null };
+        } catch (error) {
+            console.warn(`Auth user creation attempt ${attempt} failed:`, error);
+            if (attempt === maxRetries) {
+                throw error;
+            }
+            // Wait before retry with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+    }
+};
+
 export async function POST(req: NextRequest) {
     // Validate required environment variables
     const JWT = process.env.SUPABASE_JWT_SECRET;
@@ -33,48 +122,28 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
         }
         
-        const supabase = createClient(supabaseUrl, serviceRoleSecret, {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false,
-            },
-        })
+        const supabase = createSupabaseClient(supabaseUrl, serviceRoleSecret);
 
-        // First check if user exists in our users table (which means auth user exists too)
-        const { data: existingUser } = await supabase
-            .from('users')
-            .select('id, wallet_address')
-            .eq('wallet_address', wallet_address)
-            .single();
+        // Check if user exists with retry logic
+        const existingUserCheck = await checkUserExists(supabase, wallet_address);
 
         let authUserId: string;
 
-        if (!existingUser) {
+        if (!existingUserCheck?.existingUser) {
             // Create user in auth.users - trigger will create profile
-            const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
-                email: `${wallet_address}@wallet.local`,
-                email_confirm: true,
-                app_metadata: {
-                    provider: "xion",
-                    providers: ["xion"],
-                    wallet_address: wallet_address,
-                    chain: "xion-testnet-2",
-                },
-                user_metadata: { 
-                    address: wallet_address 
-                }
-            });
+            const authUserCheck = await createAuthUser(supabase, wallet_address);
 
-            if (createError) {
-                console.error('Auth user creation error:', createError);
-                return NextResponse.json({ error: createError.message }, { status: 500 });
+            if (authUserCheck?.error) {
+                console.error('Auth user creation error:', authUserCheck.error);
+                return NextResponse.json({ 
+                    error: 'Failed to create user account. Please try again.' 
+                }, { status: 500 });
             }
 
-            authUserId = authUser.user.id;
+            authUserId = authUserCheck?.authUser?.user?.id;
             
             // Wait a moment for trigger to complete, then check if profile was created
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Check if the trigger created the user profile
             const { data: triggerCreatedUser, error: checkError } = await supabase
@@ -118,7 +187,7 @@ export async function POST(req: NextRequest) {
                 .eq('id', authUserId);
 
         } else {
-            authUserId = existingUser.id;
+            authUserId = existingUserCheck.existingUser?.id;
             
             // Update last login for existing user
             await supabase
@@ -176,17 +245,29 @@ export async function POST(req: NextRequest) {
         // Handle specific error types
         if (error instanceof Error) {
             // Check for network/DNS errors
-            if (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND')) {
+            if (error.message.includes('fetch failed') || 
+                error.message.includes('ENOTFOUND') || 
+                error.message.includes('ConnectTimeoutError') ||
+                error.message.includes('UND_ERR_CONNECT_TIMEOUT')) {
                 return NextResponse.json({ 
                     error: 'Unable to connect to database. Please check your internet connection and try again.' 
                 }, { status: 503 });
             }
             
             // Check for authentication errors
-            if (error.message.includes('AuthRetryableFetchError')) {
+            if (error.message.includes('AuthRetryableFetchError') || 
+                error.message.includes('AuthApiError')) {
                 return NextResponse.json({ 
                     error: 'Database connection failed. Please try again in a moment.' 
                 }, { status: 503 });
+            }
+            
+            // Check for user already exists error
+            if (error.message.includes('already been registered') || 
+                error.message.includes('email_exists')) {
+                return NextResponse.json({ 
+                    error: 'User account already exists. Please try signing in again.' 
+                }, { status: 409 });
             }
             
             return NextResponse.json({ 

@@ -33,13 +33,7 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
     
     // Apply type filter
     if (filters.type !== 'all') {
-      result = result.filter(item => {
-        let type: 'article' | 'video' | 'audio';
-        if ('video_url' in item) type = 'video';
-        else if ('audio_url' in item) type = 'audio';
-        else type = 'article';
-        return type === filters.type;
-      });
+      result = result.filter(item => item.kind === filters.type);
     }
     
     // Apply status filter
@@ -62,62 +56,36 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'article':
-        return <Icon icon="material-symbols:article" className="w-5 h-5 text-blue-400" />;
+        return 'material-symbols:article';
       case 'video':
-        return <Icon icon="material-symbols:videocam" className="w-5 h-5 text-green-400" />;
+        return 'material-symbols:video-library';
       case 'audio':
-        return <Icon icon="material-symbols:music-note" className="w-5 h-5 text-purple-400" />;
+        return 'material-symbols:audio-file';
       default:
-        return null;
+        return 'material-symbols:description';
     }
   };
 
   const getContentTypeColor = (type: string) => {
     switch (type) {
       case 'article':
-        return 'text-blue-400';
+        return 'blue';
       case 'video':
-        return 'text-green-400';
+        return 'green';
       case 'audio':
-        return 'text-purple-400';
+        return 'purple';
       default:
-        return 'text-gray-400';
+        return 'gray';
     }
   };
 
-  const getContentTypeLink = (item: Content) => {
-    let type: 'article' | 'video' | 'audio';
-    if ('video_url' in item) type = 'video';
-    else if ('audio_url' in item) type = 'audio';
-    else type = 'article';
-    switch (type) {
-      case 'article':
-        return `/dashboard/content/articles/${item.id}`;
-      case 'video':
-        return `/dashboard/content/videos/${item.id}`;
-      case 'audio':
-        return `/dashboard/content/audio/${item.id}`;
-      default:
-        return '#';
-    }
-  };
-
-  const getContentEditLink = (item: Content) => {
-    let type: 'article' | 'video' | 'audio';
-    if ('video_url' in item) type = 'video';
-    else if ('audio_url' in item) type = 'audio';
-    else type = 'article';
-    switch (type) {
-      case 'article':
-        return `/dashboard/content/articles/${item.id}/edit`;
-      case 'video':
-        return `/dashboard/content/videos/${item.id}/edit`;
-      case 'audio':
-        return `/dashboard/content/audio/${item.id}/edit`;
-      default:
-        return '#';
-    }
-  };
+  // Helper to get description/excerpt/content for cards
+  function getDescription(item: any) {
+    if ('description' in item && item.description) return item.description;
+    if ('excerpt' in item && item.excerpt) return item.excerpt;
+    if ('content' in item && item.content) return item.content;
+    return 'No description';
+  }
 
   const clearFilters = () => {
     setFilters({
@@ -243,16 +211,12 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
               </tr>
             ) : (
               filteredContent.map((item) => {
-                let type: 'article' | 'video' | 'audio';
-                if ('video_url' in item) type = 'video';
-                else if ('audio_url' in item) type = 'audio';
-                else type = 'article';
                 return (
-                  <tr key={`${type}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
+                  <tr key={`${item.kind}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
                     <td className="py-3 px-4">
                       <div className="flex items-center">
-                        {getContentTypeIcon(type)}
-                        <span className="ml-2 capitalize">{type}</span>
+                        {getContentTypeIcon(item.kind)}
+                        <span className="ml-2 capitalize">{item.kind}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4 font-medium">{item.title}</td>
@@ -276,21 +240,20 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
                     <td className="py-3 px-4">
                       <div className="flex space-x-3">
                         <Link 
-                          href={getContentEditLink(item)}
+                          href={`/dashboard/content/${item.id}?kind=${item.kind}`}
                           className={`hover:opacity-80 transition-opacity`}
                         >
                           <Icon icon="material-symbols:edit" className="w-4 h-4" />
                         </Link>
                         <Link 
-                          href={getContentTypeLink(item)}
+                          href={`/dashboard/content/${item.id}?kind=${item.kind}`}
                           className="text-gray-400 hover:text-gray-300 transition-colors"
-                          // target="_blank"
                         >
                           <Icon icon="material-symbols:visibility" className="w-4 h-4" />
                         </Link>
                         {onDelete && (
                           <button
-                            onClick={() => onDelete(item.id, type)}
+                            onClick={() => onDelete(item.id, item.kind)}
                             className="text-red-400 hover:text-red-300 transition-colors"
                           >
                             <Icon icon="material-symbols:delete" className="h-4 w-4" />

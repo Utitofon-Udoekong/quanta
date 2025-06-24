@@ -5,7 +5,7 @@ import { cookieName } from '@/app/utils/supabase';
 
 export async function POST(
   request: Request,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
     const cookieStore = await cookies()
@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { type, id } = params;
+    const { type, id } = await params;
     const userId = user.id;
 
     console.log('Like request:', { type, id, userId });
@@ -81,13 +81,13 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
     const cookieStore = await cookies()
     const accessToken = cookieStore.get(cookieName)?.value;
     const supabase = await getSupabase(accessToken || '');
-    const { type, id } = params;
+    const { type, id } = await params;
 
     // Get like count
     const { count, error: countError } = await supabase
