@@ -95,11 +95,11 @@ export default function DiscoverPage() {
                                         {({ active }) => (
                                             <button onClick={() => setSelectedType(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
                                                 {filter.name}
-                                            </button>
+                    </button>
                                         )}
                                     </MenuItem>
                                 ))}
-                            </div>
+                </div>
                         </MenuItems>
                     </Transition>
                 </Menu>
@@ -116,11 +116,11 @@ export default function DiscoverPage() {
                                         {({ active }) => (
                                             <button onClick={() => setSelectedPremium(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
                                                 {filter.name}
-                                            </button>
+                    </button>
                                         )}
                                     </MenuItem>
                                 ))}
-                            </div>
+                </div>
                         </MenuItems>
                     </Transition>
                 </Menu>
@@ -128,13 +128,13 @@ export default function DiscoverPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
                 <h3 className="text-xl font-bold">All Content</h3>
-            </div>
+                </div>
 
             <section className="mb-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     {filteredContent.map((content) => (
                         <Link key={content.id} href={`/content/${content.id}?kind=${content.kind}`} className="block group">
-                            <ContentCard
+                        <ContentCard
                                 image={content.thumbnail_url || '/images/default-thumbnail.png'}
                                 title={content.title}
                                 subtitle={(content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown') + (content.views ? ` - ${content.views} views` : '')}

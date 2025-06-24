@@ -144,30 +144,22 @@ function CommentItem({
   };
   
   return (
-    <div className="group relative flex items-start gap-4">
+    <div className="flex items-start gap-3 py-2">
       <img
         src={comment.user.avatar_url || `https://robohash.org/${comment.user.wallet_address}`}
         alt="avatar"
-        className="h-10 w-10 rounded-full border-2 border-gray-800"
+        className="h-9 w-9 rounded-full border border-gray-800 mt-1"
       />
-        <div className="flex-1">
-        <div className="bg-gray-900/60 rounded-lg px-4 py-3">
-          <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-white">
-                {comment.user.username || comment.user.wallet_address?.slice(0, 8) + '...'}
-              </span>
-              {comment.user.wallet_address === user?.wallet_address && (
-                <span className="text-xs bg-purple-600/50 text-purple-300 px-2 py-0.5 rounded-full">
-                  You
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-gray-400">{timeAgo(comment.created_at)} ago</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-bold text-sm text-white truncate">@{comment.user.username || comment.user.wallet_address?.slice(0, 8) + '...'}</span>
+            <span className="text-xs text-gray-400 whitespace-nowrap">• {timeAgo(comment.created_at)} ago</span>
           </div>
-
-          {isEditing ? (
-            <div className="py-2">
+          <button className="ml-2 text-gray-400 hover:text-white"><Icon icon="mdi:dots-vertical" className="w-5 h-5" /></button>
+        </div>
+        {isEditing ? (
+          <div className="py-2">
             <CommentForm
               initialValue={comment.content}
               loading={loading && editingId === comment.id}
@@ -175,35 +167,25 @@ function CommentItem({
               onCancel={() => setEditingId(null)}
               placeholder="Edit your comment..."
             />
-            </div>
-          ) : (
-            <p className="text-gray-300 text-sm">{comment.content}</p>
-          )}
-        </div>
-
+          </div>
+        ) : (
+          <p className="text-gray-200 text-sm mt-1 mb-1 break-words">{comment.content}</p>
+        )}
         {!isEditing && (
-           <div className="mt-1 flex items-center gap-4 text-xs text-gray-400 font-medium">
-            {user && (
-              <button onClick={() => setIsReplying(!isReplying)} className="hover:text-purple-400 transition-colors">
-                Reply
-              </button>
-            )}
+          <div className="flex items-center gap-4 text-xs text-gray-500 font-medium mt-1">
+            <button className="flex items-center gap-1 hover:text-purple-400 transition-colors"><Icon icon="mdi:reply" className="w-4 h-4" />Reply</button>
+            <button className="flex items-center gap-1 hover:text-purple-400 transition-colors"><Icon icon="mdi:heart-outline" className="w-4 h-4" />Like</button>
             {user?.wallet_address === comment.user.wallet_address && (
               <>
-                <button onClick={() => setEditingId(comment.id)} className="hover:text-blue-400 transition-colors">
-                  Edit
-                </button>
-                <button onClick={() => onDelete(comment.id)} className="hover:text-red-400 transition-colors">
-                  Delete
-                </button>
+                <button onClick={() => setEditingId(comment.id)} className="hover:text-blue-400 transition-colors">Edit</button>
+                <button onClick={() => onDelete(comment.id)} className="hover:text-red-400 transition-colors">Delete</button>
               </>
             )}
-             {comment.updated_at !== comment.created_at && (
+            {comment.updated_at !== comment.created_at && (
               <span className="text-gray-500">(edited)</span>
             )}
           </div>
         )}
-
         {isReplying && (
           <div className="mt-3">
             <CommentForm
@@ -213,12 +195,11 @@ function CommentItem({
               placeholder={`Replying to @${comment.user.username || comment.user.wallet_address?.slice(0, 8)}`}
               userAvatar={user.avatar_url || `https://robohash.org/${user.wallet_address}`}
             />
-            </div>
-          )}
-
-      {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-4 space-y-4 pl-6 border-l-2 border-gray-800">
-          {comment.replies.map((reply: Comment) => (
+          </div>
+        )}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-2 space-y-2 pl-6 border-l border-gray-800">
+            {comment.replies.map((reply: Comment) => (
               <CommentItem
                 key={reply.id}
                 comment={reply}
@@ -230,9 +211,9 @@ function CommentItem({
                 setEditingId={setEditingId}
                 loading={loading}
               />
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -327,44 +308,27 @@ export default function CommentSection({ contentId, contentType }: CommentSectio
   };
 
   return (
-    <section className="mt-10 bg-gradient-to-b from-[#1a1c23] to-[#121418] rounded-2xl p-6 shadow-2xl border border-gray-800">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="p-3 bg-gradient-to-br from-purple-600/30 to-blue-600/30 rounded-xl">
-          <Icon icon="mdi:comment-multiple-outline" className="w-7 h-7 text-purple-300" />
+    <section className="mt-10">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold text-white">Comment</span>
+          <span className="text-lg font-bold text-white">{comments.length}</span>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-white">Comments</h2>
-          <p className="text-sm text-gray-400">
-            {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
-          </p>
-        </div>
+        <Icon icon="mdi:comment-outline" className="w-5 h-5 text-gray-400" />
       </div>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-      
       {user ? (
-        <div className="mb-8">
+        <div className="mb-6">
           <CommentForm
             loading={submitting && !editingId}
             onSubmit={(val: string) => handlePost(val)}
             userAvatar={user.avatar_url || `https://robohash.org/${user.wallet_address}`}
           />
         </div>
-      ) : (
-        <div className="mb-8 p-6 bg-gray-900/50 rounded-lg border border-dashed border-gray-700 text-center">
-          <p className="text-gray-400 font-medium">Sign in to join the conversation.</p>
-        </div>
-      )}
-      
+      ) : null}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Icon icon="mdi:loading" className="animate-spin h-8 w-8 text-purple-400 mb-4" />
           <p className="text-gray-400 font-medium">Loading comments...</p>
-          <p className="text-xs text-gray-500">Please wait a moment.</p>
         </div>
       ) : comments.length === 0 ? (
         <div className="text-center py-12">
@@ -373,7 +337,7 @@ export default function CommentSection({ contentId, contentType }: CommentSectio
           <p className="text-gray-500">Be the first to share your thoughts!</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-2">
           {comments.map(comment => (
             <CommentItem
               key={comment.id}

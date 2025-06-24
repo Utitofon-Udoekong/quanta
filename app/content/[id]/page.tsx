@@ -205,24 +205,39 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
               {getContentPlayer(content)}
             </div>
 
-            <div className="mt-8">
+            {/* Metadata Section */}
+            <div className="mt-10 px-4 sm:px-8">
               <div className="flex items-center mb-4">
                 <Icon icon={icon} className={`h-6 w-6 text-${color}-400 mr-3`} />
                 <span className={`text-${color}-400 font-semibold uppercase tracking-wider text-sm`}>
                   {content.kind}
                 </span>
               </div>
-              
+              <div className="flex items-center gap-3 mb-6">
+                {content.author && (
+                  <>
+                    <img src={content.author.avatar_url || '/images/default-avatar.png'} alt="Author" className="w-10 h-10 rounded-full border-2 border-gray-700" />
+                    <span className="font-semibold text-white">{content.author.username || 'Unknown'}</span>
+                  </>
+                )}
+                <span className="text-gray-400 text-sm">• {new Date(content.created_at).toLocaleDateString()}</span>
+              </div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{content.title}</h1>
-              
               {getContentDescription(content) && (
-                <p className="text-gray-300 leading-relaxed">
+                <p className="text-gray-300 leading-relaxed mb-6">
                   {getContentDescription(content)}
                 </p>
               )}
             </div>
-            
-            <CommentSection contentId={content.id} contentType={content.kind} />
+
+            {/* Comments Section */}
+            <div className="mt-10 px-4 sm:px-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">Comments <span className="text-purple-400 font-semibold">{/* comment count here if available */}</span></h2>
+                {/* Optionally add a sort or filter button here */}
+              </div>
+              <CommentSection contentId={content.id} contentType={content.kind} />
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -233,7 +248,6 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
                 <AuthorInfo author={content.author as UserData} />
               </div>
             )}
-
             <div className="bg-[#121418] p-5 rounded-lg shadow-lg">
               <h3 className="text-lg font-bold mb-4">Statistics</h3>
               <div className="space-y-3">
@@ -270,3 +284,4 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     </div>
   );
 }
+ 

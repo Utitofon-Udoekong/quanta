@@ -261,7 +261,7 @@ export default function Home() {
             <div className="mb-10 flex flex-col sm:flex-row gap-4">
                 {/* Timeline Dropdown */}
                 <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                         <span>Timeline: {timelineFilters.find(f => f.id === selectedTimeline)?.name}</span>
                         <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     </MenuButton>
@@ -284,7 +284,7 @@ export default function Home() {
 
                 {/* Content Type Dropdown */}
                 <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                         <span>Type: {contentTypes.find(f => f.id === selectedType)?.name}</span>
                         <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     </MenuButton>
@@ -300,14 +300,14 @@ export default function Home() {
                                         )}
                                     </MenuItem>
                                 ))}
-                            </div>
+                </div>
                         </MenuItems>
                     </Transition>
                 </Menu>
 
                 {/* Premium Dropdown */}
                 <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
+                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                         <span>Access: {premiumFilters.find(f => f.id === selectedPremium)?.name}</span>
                         <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
                     </MenuButton>
@@ -322,8 +322,8 @@ export default function Home() {
                                             </button>
                                         )}
                                     </MenuItem>
-                                ))}
-                            </div>
+                    ))}
+                </div>
                         </MenuItems>
                     </Transition>
                 </Menu>

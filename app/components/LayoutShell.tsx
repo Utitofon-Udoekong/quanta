@@ -9,7 +9,7 @@ import GeneralButton from '@/app/components/ui/GeneralButton';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { useState } from 'react';
 import SearchInput from './ui/SearchInput';
-import { Button } from '@headlessui/react';
+import { Button, Menu, MenuButton, MenuItem, MenuItems  } from '@headlessui/react';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
@@ -42,6 +42,18 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     }
     if (path === '/dashboard/content') {
       if (pathname === '/dashboard/content' || pathname.startsWith('/dashboard/content/')) {
+        return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
+      }
+      return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
+    }
+    if (path === '/dashboard/subscriptions') {
+      if (pathname === '/dashboard/subscriptions' || pathname.startsWith('/dashboard/subscriptions/')) {
+        return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
+      }
+      return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
+    }
+    if (path === '/dashboard/profile') {
+      if (pathname === '/dashboard/profile' || pathname.startsWith('/dashboard/profile/')) {
         return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-[#8B25FF] bg-[#8B25FF]/10';
       }
       return 'flex items-center space-x-3 py-2 px-3 rounded-lg font-bold text-gray-300 hover:bg-[#8B25FF]/5';
@@ -83,6 +95,14 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
             <Link href="/dashboard/content" className={getDashboardLinkClass('/dashboard/content')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-2" />
               Content Management
+            </Link>
+            <Link href="/dashboard/subscriptions" className={getDashboardLinkClass('/dashboard/subscriptions')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:account-group" className="w-5 h-5 mr-2" />
+              Subscriptions
+            </Link>
+            <Link href="/dashboard/profile" className={getDashboardLinkClass('/dashboard/profile')} onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:account-outline" className="w-5 h-5 mr-2" />
+              Profile
             </Link>
             <Link href="/settings" className={getDashboardLinkClass('/settings')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:cog-outline" className="w-5 h-5 mr-2" />
@@ -166,9 +186,94 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
                 <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
               </button>
               {user && (
-                <div className="hidden md:flex items-center justify-center">
-                  <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
-                </div>
+                <Menu as="div" className="relative">
+                  <MenuButton className="hidden md:flex items-center justify-center hover:opacity-80 transition-opacity">
+                    <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full border-2 border-transparent hover:border-[#8B25FF]/50 transition-colors" />
+                  </MenuButton>
+                  <MenuItems className="absolute right-0 mt-2 w-56 origin-top-right bg-[#121418] border border-gray-800 rounded-xl shadow-lg shadow-black/50 focus:outline-none z-50">
+                    <div className="p-4 border-b border-gray-800">
+                      <div className="flex items-center space-x-3">
+                        <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {user.username || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {user.wallet_address ? `${user.wallet_address.slice(0, 8)}...${user.wallet_address.slice(-6)}` : 'Connected'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="py-2">
+                      <MenuItem>
+                        {({ active }) => (
+                          <Link
+                            href="/dashboard"
+                            className={`${
+                              active ? 'bg-[#8B25FF]/10 text-[#8B25FF]' : 'text-gray-300'
+                            } flex items-center px-4 py-3 text-sm transition-colors`}
+                          >
+                            <Icon icon="mdi:home-outline" className="w-5 h-5 mr-3" />
+                            Dashboard
+                          </Link>
+                        )}
+                      </MenuItem>
+                      <MenuItem>
+                        {({ active }) => (
+                          <Link
+                            href="/dashboard/content"
+                            className={`${
+                              active ? 'bg-[#8B25FF]/10 text-[#8B25FF]' : 'text-gray-300'
+                            } flex items-center px-4 py-3 text-sm transition-colors`}
+                          >
+                            <Icon icon="mdi:clipboard-text-outline" className="w-5 h-5 mr-3" />
+                            Content Management
+                          </Link>
+                        )}
+                      </MenuItem>
+                      <MenuItem>
+                        {({ active }) => (
+                          <Link
+                            href="/dashboard/subscriptions"
+                            className={`${
+                              active ? 'bg-[#8B25FF]/10 text-[#8B25FF]' : 'text-gray-300'
+                            } flex items-center px-4 py-3 text-sm transition-colors`}
+                          >
+                            <Icon icon="mdi:account-group" className="w-5 h-5 mr-3" />
+                            Subscriptions
+                          </Link>
+                        )}
+                      </MenuItem>
+                      <MenuItem>
+                        {({ active }) => (
+                          <Link
+                            href="/dashboard/profile"
+                            className={`${
+                              active ? 'bg-[#8B25FF]/10 text-[#8B25FF]' : 'text-gray-300'
+                            } flex items-center px-4 py-3 text-sm transition-colors`}
+                          >
+                            <Icon icon="mdi:account-outline" className="w-5 h-5 mr-3" />
+                            Profile
+                          </Link>
+                        )}
+                      </MenuItem>
+                      <div className="border-t border-gray-800 my-2"></div>
+                      <MenuItem>
+                        {({ active }) => (
+                          <button
+                            onClick={handleSignOut}
+                            className={`${
+                              active ? 'bg-red-600/10 text-red-400' : 'text-gray-300'
+                            } flex items-center w-full px-4 py-3 text-sm transition-colors`}
+                          >
+                            <Icon icon="mdi:logout" className="w-5 h-5 mr-3" />
+                            Sign Out
+                          </button>
+                        )}
+                      </MenuItem>
+                    </div>
+                  </MenuItems>
+                </Menu>
               )}
               <div className="w-6 md:hidden"></div>
             </div>
