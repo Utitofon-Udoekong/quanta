@@ -169,9 +169,9 @@ export async function getSubscriptionAnalytics(
       totalFollowers: 0,
       paidSubscribers: 0,
       totalRevenue: 0,
-      monthlyRevenue: 0,
-      yearlyRevenue: 0,
-      oneTimeRevenue: 0,
+      paidSubscriptions: 0,
+      totalSpent: 0,
+      creatorsFollowed: 0
     };
   }
 }

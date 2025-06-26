@@ -6,10 +6,10 @@ import { useUserStore } from '@/app/stores/user';
 import { supabase } from '@/app/utils/supabase/client';
 import { Icon } from '@iconify/react';
 import { Button } from "@headlessui/react"
-import {
+import { 
   getSubscriptionAnalytics,
   getCreatorSubscribers,
-  getUserSubscriptions,
+  getUserSubscriptions, 
 } from '@/app/utils/subscription-api';
 import { followCreator, unfollowCreator } from '@/app/utils/subscription-api';
 import { SubscriberWithUserInfo, CreatorSubscriptionWithUserInfo } from '@/app/types';
@@ -53,8 +53,8 @@ export default function SubscriptionsPage() {
     if (!user?.wallet_address) return;
     
     try {
-      const subscriptions = await getUserSubscriptions(user.wallet_address);
-      setMySubscriptions(subscriptions);
+        const subscriptions = await getUserSubscriptions(user.wallet_address);
+        setMySubscriptions(subscriptions);
     } catch (error) {
       console.error('Error refreshing subscriptions:', error);
     }
@@ -220,17 +220,17 @@ export default function SubscriptionsPage() {
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <Button
+                        <Button
                         onClick={() => handleUnfollow(subscription.wallet_address)}
-                        disabled={processing === subscription.wallet_address}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
-                      >
-                        {processing === subscription.wallet_address ? (
-                          <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
-                        ) : (
+                          disabled={processing === subscription.wallet_address}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                        >
+                          {processing === subscription.wallet_address ? (
+                            <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
+                          ) : (
                           'Unsubscribe'
-                        )}
-                      </Button>
+                          )}
+                        </Button>
                       
                       <Button
                         onClick={() => router.push(`/content/${subscription.id}`)}

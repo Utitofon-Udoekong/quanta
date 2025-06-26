@@ -168,9 +168,9 @@ export interface SubscriptionStats {
   totalFollowers: number;
   paidSubscribers: number;
   totalRevenue: number;
-  monthlyRevenue: number;
-  yearlyRevenue: number;
-  oneTimeRevenue: number;
+  creatorsFollowed: number;
+  paidSubscriptions: number;
+  totalSpent: number;
 }
 
 // Subscription access and status types

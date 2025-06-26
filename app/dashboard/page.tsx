@@ -7,7 +7,7 @@ import { Button } from "@headlessui/react"
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable from '@/app/components/ui/dashboard/ContentTable';
-import { getSupabase } from '@/app/utils/supabase/client';
+import { supabase } from '@/app/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
@@ -34,7 +34,6 @@ export default function Dashboard() {
   const [recentSubscribers, setRecentSubscribers] = useState<SubscriberWithUserInfo[]>([]);
   const [viewsData, setViewsData] = useState<Array<{day: string, views: number}>>([]);
   const { data: account } = useAbstraxionAccount();
-  const supabase = useMemo(() => getSupabase(account?.bech32Address || ''), [account?.bech32Address]);
   const { user, error: userError } = useUserStore();
   const router = useRouter();
 
@@ -42,13 +41,13 @@ export default function Dashboard() {
   const stats = useMemo(() => [
     {
       label: 'Total Subscribers',
-      value: subscriptionStats?.totalFollowers.toString() || '0',
+      value: subscriptionStats?.paidSubscribers.toString() || '0',
       change: '+7.4%',
       icon: 'mdi:account-group',
     },
     {
       label: 'Active Subscriptions',
-      value: subscriptionStats?.paidSubscribers.toString() || '0',
+      value: subscriptionStats?.paidSubscriptions.toString() || '0',
       change: '+3.2%',
       icon: 'mdi:account-check',
     },
@@ -88,11 +87,15 @@ export default function Dashboard() {
           }
           
           // Fetch subscription analytics
+          console.log('Fetching analytics for wallet:', user.wallet_address);
           const analytics = await getSubscriptionAnalytics(user.wallet_address);
+          console.log('Analytics response:', analytics);
           setSubscriptionStats(analytics);
           
           // Fetch recent subscribers
+          console.log('Fetching subscribers for wallet:', user.wallet_address);
           const subscribers = await getCreatorSubscribers(user.wallet_address);
+          console.log('Subscribers response:', subscribers);
           setRecentSubscribers(subscribers.slice(0, 5)); // Show only 5 most recent
           
           // Fetch subscription data (old schema - keeping for compatibility)
@@ -115,6 +118,17 @@ export default function Dashboard() {
             supabase.from('videos').select('id').eq('user_id', user.id),
             supabase.from('audio').select('id').eq('user_id', user.id),
           ]);
+
+          // Check for errors in content queries
+          if (articlesRes.error) {
+            console.error('Error fetching articles:', articlesRes.error);
+          }
+          if (videosRes.error) {
+            console.error('Error fetching videos:', videosRes.error);
+          }
+          if (audioRes.error) {
+            console.error('Error fetching audio:', audioRes.error);
+          }
 
           const contentCounts = {
             articles: articlesRes.data?.length || 0,
@@ -248,7 +262,7 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [supabase, user?.wallet_address]);
+  }, [user?.wallet_address]);
   
   const handleDeleteContent = async (id: string, type: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return;

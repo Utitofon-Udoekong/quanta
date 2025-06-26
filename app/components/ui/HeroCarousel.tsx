@@ -439,9 +439,9 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
                             <div className="font-semibold" aria-label="Creator name">
                               {item.user}
                             </div>
-                            <div className="text-white/70" aria-label="Content statistics">
+                            {/* <div className="text-white/70" aria-label="Content statistics">
                               {item.views} views • {item.timeAgo}
-                            </div>
+                            </div> */}
                           </div>
                         </div>
 
@@ -499,7 +499,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
       </div>
 
       {/* Auto-play and timing controls */}
-      <div className="absolute bottom-4 right-2 md:right-4 flex flex-col items-end gap-2">
+      {/* <div className="absolute bottom-4 right-2 md:right-4 flex flex-col items-end gap-2">
         <div className="flex items-center gap-2">
           <Button
             className="hidden md:flex bg-black/30 hover:bg-black/50 text-white border border-white/20 rounded-full px-4 text-sm"
@@ -558,7 +558,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
             )}
           </div>
         )}
-      </div>
+      </div> */}
 
       <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-6">
         {/* ...filter buttons... */}
