@@ -41,7 +41,7 @@ export async function uploadFileResumable(
       },
       chunkSize: 6 * 1024 * 1024, // 6MB chunks as required by Supabase
       onError: function (error) {
-        console.error('Upload failed:', error);
+        // console.error('Upload failed:', error);
         reject(error);
       },
       onProgress: function (bytesUploaded, bytesTotal) {

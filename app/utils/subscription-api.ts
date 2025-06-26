@@ -35,7 +35,7 @@ export async function checkContentAccess(
 
     return await response.json();
   } catch (error) {
-    console.error('Error checking content access:', error);
+    // console.error('Error checking content access:', error);
     return {
       hasAccess: false,
       isPremium: false,
@@ -68,7 +68,7 @@ export async function getSubscriptionStatus(
 
     return await response.json();
   } catch (error) {
-    console.error('Error getting subscription status:', error);
+    // console.error('Error getting subscription status:', error);
     return {
       isFollowing: false,
       isPaidSubscriber: false,
@@ -108,7 +108,7 @@ export async function followCreator(
 
     return true;
   } catch (error) {
-    console.error('Error subscribing to creator:', error);
+    // console.error('Error subscribing to creator:', error);
     return false;
   }
 }
@@ -137,7 +137,7 @@ export async function unfollowCreator(
 
     return true;
   } catch (error) {
-    console.error('Error unsubscribing from creator:', error);
+    // console.error('Error unsubscribing from creator:', error);
     return false;
   }
 }
@@ -164,7 +164,7 @@ export async function getSubscriptionAnalytics(
 
     return await response.json();
   } catch (error) {
-    console.error('Error getting subscription analytics:', error);
+    // console.error('Error getting subscription analytics:', error);
     return {
       totalFollowers: 0,
       paidSubscribers: 0,
@@ -198,7 +198,7 @@ export async function getCreatorSubscribers(
 
     return await response.json();
   } catch (error) {
-    console.error('Error getting creator subscribers:', error);
+    // console.error('Error getting creator subscribers:', error);
     return [];
   }
 }
@@ -225,7 +225,7 @@ export async function getUserSubscriptions(
 
     return await response.json();
   } catch (error) {
-    console.error('Error getting user subscriptions:', error);
+    // console.error('Error getting user subscriptions:', error);
     return [];
   }
 } 

@@ -64,7 +64,7 @@ export default function DiscoverPage() {
                 ];
                 setAllContent(combined);
             } catch (error) {
-                console.error('Error fetching content:', error);
+                // console.error('Error fetching content:', error);
             } finally {
                 setLoading(false);
             }

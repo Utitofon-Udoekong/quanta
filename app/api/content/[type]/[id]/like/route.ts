@@ -26,7 +26,7 @@ export async function POST(
     const { type, id } = await params;
     const userId = user.id;
 
-    //console.log('Like request:', { type, id, userId });
+    // console.log('Like request:', { type, id, userId });
 
     // Check if like already exists
     const { data: existingLike, error: checkError } = await supabase
@@ -38,7 +38,7 @@ export async function POST(
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing like:', checkError);
+      // console.error('Error checking existing like:', checkError);
       throw checkError;
     }
 
@@ -50,7 +50,7 @@ export async function POST(
         .eq('id', existingLike.id);
 
       if (deleteError) {
-        console.error('Error deleting like:', deleteError);
+        // console.error('Error deleting like:', deleteError);
         throw deleteError;
       }
       return NextResponse.json({ liked: false });
@@ -66,12 +66,12 @@ export async function POST(
       });
 
     if (insertError) {
-      console.error('Error inserting like:', insertError);
+      // console.error('Error inserting like:', insertError);
       throw insertError;
     }
     return NextResponse.json({ liked: true });
   } catch (error) {
-    console.error('Error handling like:', error);
+    // console.error('Error handling like:', error);
     return NextResponse.json(
       { error: 'Failed to process like' },
       { status: 500 }
@@ -97,7 +97,7 @@ export async function GET(
       .eq('content_type', type);
 
     if (countError) {
-      console.error('Error getting like count:', countError);
+      // console.error('Error getting like count:', countError);
       throw countError;
     }
 
@@ -115,7 +115,7 @@ export async function GET(
         .single();
 
       if (userLikeError && userLikeError.code !== 'PGRST116') {
-        console.error('Error checking user like:', userLikeError);
+        // console.error('Error checking user like:', userLikeError);
         throw userLikeError;
       }
 
@@ -127,7 +127,7 @@ export async function GET(
       userLiked
     });
   } catch (error) {
-    console.error('Error fetching likes:', error);
+    // console.error('Error fetching likes:', error);
     return NextResponse.json(
       { error: 'Failed to fetch likes' },
       { status: 500 }

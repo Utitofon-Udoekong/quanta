@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE!;
 const NOVYPAY_BASE_URL = 'https://burntpay-u44m.onrender.com';
 const NOVYPAY_API_KEY = process.env.NOVYPAY_API_KEY || '';
-//console.log('NOVYPAY_API_KEY', NOVYPAY_API_KEY);
+// console.log('NOVYPAY_API_KEY', NOVYPAY_API_KEY);
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -57,7 +57,7 @@ async function initializeNovyPayPayment(
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('NovyPay payment initialization failed:', data);
+      // console.error('NovyPay payment initialization failed:', data);
       return {
         status: 'error',
         error: data.error || 'Payment initialization failed',
@@ -70,7 +70,7 @@ async function initializeNovyPayPayment(
       redirect_url: data.redirect_url,
     };
   } catch (error) {
-    console.error('Error initializing NovyPay payment:', error);
+    // console.error('Error initializing NovyPay payment:', error);
     return {
       status: 'error',
       error: 'Network error occurred',
@@ -103,13 +103,13 @@ async function createSubscriptionPaymentRecord(
       .single();
 
     if (error) {
-      console.error('Error creating subscription payment record:', error);
+      // console.error('Error creating subscription payment record:', error);
       return null;
     }
 
     return data.id;
   } catch (error) {
-    console.error('Error in createSubscriptionPaymentRecord:', error);
+    // console.error('Error in createSubscriptionPaymentRecord:', error);
     return null;
   }
 }
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!creatorWalletAddress || !subscriberWalletAddress || !type || !amount) {
-      //console.log('Missing required fields', body);
+      // console.log('Missing required fields', body);
         return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user IDs from wallet addresses
-        //console.log('body', body);
+        // console.log('body', body);
     const [creatorResult, subscriberResult] = await Promise.all([
       supabase
         .from('users')
@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (subscriptionError) {
-      console.error('Error creating subscription:', subscriptionError);
+      // console.error('Error creating subscription:', subscriptionError);
       return NextResponse.json(
         { error: 'Failed to create subscription' },
         { status: 500 }
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
     };
 
     const paymentResponse = await initializeNovyPayPayment(paymentRequest);
-    //console.log('paymentResponse', paymentResponse);
+    // console.log('paymentResponse', paymentResponse);
     if (paymentResponse.status === 'error') {
       // Clean up subscription if payment initialization failed
       await supabase
@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating subscription payment:', error);
+    // console.error('Error creating subscription payment:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

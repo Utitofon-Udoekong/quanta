@@ -29,14 +29,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (creatorError || !creator) {
-      console.error('Creator lookup error:', creatorError);
+      // console.error('Creator lookup error:', creatorError);
       return NextResponse.json(
         { error: 'Creator not found' },
         { status: 404 }
       );
     }
 
-    console.log('Found creator:', creator.id);
+    // console.log('Found creator:', creator.id);
 
     // Get analytics from the subscription_analytics view
     const { data: analytics, error: analyticsError } = await supabase
@@ -46,14 +46,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (analyticsError) {
-      console.error('Error getting analytics:', analyticsError);
+      // console.error('Error getting analytics:', analyticsError);
       return NextResponse.json(
         { error: 'Failed to get analytics' },
         { status: 500 }
       );
     }
 
-    console.log('Analytics data:', analytics);
+    // console.log('Analytics data:', analytics);
 
     return NextResponse.json({
       totalFollowers: analytics?.total_followers || 0,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error in analytics route:', error);
+    // console.error('Error in analytics route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

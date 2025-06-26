@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active');
 
     if (error) {
-      console.error('Error cancelling subscription:', error);
+      // console.error('Error cancelling subscription:', error);
       return NextResponse.json(
         { error: 'Failed to cancel subscription' },
         { status: 500 }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error cancelling subscription:', error);
+    // console.error('Error cancelling subscription:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

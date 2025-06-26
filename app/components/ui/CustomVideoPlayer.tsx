@@ -121,7 +121,7 @@ export default function CustomVideoPlayer({ src, poster, title, className = '', 
         await document.exitFullscreen();
       }
     } catch (error) {
-      console.error('Error toggling fullscreen:', error);
+      // console.error('Error toggling fullscreen:', error);
     }
   };
 
@@ -166,7 +166,7 @@ export default function CustomVideoPlayer({ src, poster, title, className = '', 
       
       <div className='absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm'>
         {/* Progress Bar */}
-        <div className="w-full px-6 pt-6">
+        <div className="w-full px-6 pt-2 md:pt-6">
           <div className="flex items-center justify-between text-xs text-white/80 mb-1">
             <span>{formatTime(currentTime)}</span>
             <span>-{formatTime(duration - currentTime)}</span>
@@ -183,18 +183,18 @@ export default function CustomVideoPlayer({ src, poster, title, className = '', 
         </div>
 
         {/* Controls Row */}
-        <div className="flex items-center justify-center gap-6 py-6">
+        <div className="flex items-center justify-center gap-2 py-2 md:py-6">
           {/* Like Button */}
           <div className="drop-shadow-[0_0_8px_#8B25FF]">
             <LikeButton contentId={contentId} contentType={contentType} />
           </div>
           {/* Volume */}
           <button onClick={toggleMute} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-            <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="w-6 h-6" />
+            <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="size-4 md:size-6 " />
           </button>
           {/* Skip Back */}
           <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-            <Icon icon="mdi:rewind-10" className="w-6 h-6" />
+            <Icon icon="mdi:rewind-10" className="size-4 md:size-6" />
           </button>
           {/* Play/Pause */}
           <button
@@ -204,24 +204,24 @@ export default function CustomVideoPlayer({ src, poster, title, className = '', 
             disabled={isLoading}
           >
             {isLoading ? (
-              <Icon icon="mdi:reload" className="h-8 w-8 text-white animate-spin" />
+              <Icon icon="mdi:reload" className="size-4 md:size-8 text-white animate-spin" />
             ) : isPlaying ? (
-              <Icon icon="mdi:pause" className="h-8 w-8 text-white" />
+              <Icon icon="mdi:pause" className="size-4 md:size-8 text-white" />
             ) : (
-              <Icon icon="mdi:play" className="h-8 w-8 text-white" />
+              <Icon icon="mdi:play" className="size-4 md:size-8 text-white" />
             )}
           </button>
           {/* Skip Forward */}
           <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-            <Icon icon="mdi:fast-forward-10" className="w-6 h-6" />
+            <Icon icon="mdi:fast-forward-10" className="size-4 md:size-6" />
           </button>
           {/* PiP */}
           <button onClick={() => videoRef.current?.requestPictureInPicture()} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-            <Icon icon="mdi:picture-in-picture-bottom-right" className="w-6 h-6" />
+            <Icon icon="mdi:picture-in-picture-bottom-right" className="size-4 md:size-6" />
             </button>
           {/* Fullscreen */}
           <button onClick={toggleFullscreen} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-            <Icon icon={isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} className="w-6 h-6" />
+            <Icon icon={isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} className="size-4 md:size-6" />
             </button>
         </div>
       </div>

@@ -72,7 +72,7 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error('Update error:', updateError);
+      // console.error('Update error:', updateError);
       return NextResponse.json(
         { error: 'Failed to update content' },
         { status: 500 }
@@ -82,7 +82,7 @@ export async function PATCH(
     return NextResponse.json(updatedContent);
 
   } catch (error) {
-    console.error('PATCH error:', error);
+    // console.error('PATCH error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

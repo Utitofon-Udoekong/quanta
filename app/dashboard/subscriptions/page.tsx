@@ -40,7 +40,7 @@ export default function SubscriptionsPage() {
         setMySubscriptions(subscriptions);
         setMySubscribers(subscribers);
       } catch (error) {
-        console.error('Error fetching subscription data:', error);
+        // console.error('Error fetching subscription data:', error);
       } finally {
         setLoading(false);
       }
@@ -56,7 +56,7 @@ export default function SubscriptionsPage() {
         const subscriptions = await getUserSubscriptions(user.wallet_address);
         setMySubscriptions(subscriptions);
     } catch (error) {
-      console.error('Error refreshing subscriptions:', error);
+      // console.error('Error refreshing subscriptions:', error);
     }
   };
 
@@ -73,7 +73,7 @@ export default function SubscriptionsPage() {
         .single();
       
       if (!creator) {
-        console.error('Creator not found');
+        // console.error('Creator not found');
         return;
       }
       
@@ -84,7 +84,7 @@ export default function SubscriptionsPage() {
         fetchSubscriptions();
       }
     } catch (error) {
-      console.error('Error subscribing to creator:', error);
+      // console.error('Error subscribing to creator:', error);
     } finally {
       setProcessing(null);
     }
@@ -103,7 +103,7 @@ export default function SubscriptionsPage() {
         .single();
       
       if (!creator) {
-        console.error('Creator not found');
+        // console.error('Creator not found');
         return;
       }
       
@@ -113,7 +113,7 @@ export default function SubscriptionsPage() {
         fetchSubscriptions();
       }
     } catch (error) {
-      console.error('Error unsubscribing from creator:', error);
+      // console.error('Error unsubscribing from creator:', error);
     } finally {
       setProcessing(null);
     }

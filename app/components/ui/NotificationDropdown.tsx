@@ -21,14 +21,14 @@ export default function NotificationDropdown() {
 
   const fetchNotifications = useCallback(async (forceRefresh = false) => {
     if (!user?.id) {
-      //console.log('No user ID available for fetching notifications');
+      // console.log('No user ID available for fetching notifications');
       return;
     }
 
     // Cache for 30 seconds unless forced refresh
     const now = Date.now();
     if (!forceRefresh && now - lastFetch < 30000) {
-      //console.log('Using cached notifications');
+      // console.log('Using cached notifications');
       return;
     }
 
@@ -42,7 +42,7 @@ export default function NotificationDropdown() {
       setNotifications(data.notifications || []);
       setLastFetch(now);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // console.error('Error fetching notifications:', error);
       // Don't clear notifications on error, keep existing ones
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export default function NotificationDropdown() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          //console.log('New notification received:', payload);
+          // console.log('New notification received:', payload);
           // Add new notification to the top of the list
           setNotifications(prev => [payload.new as Notification, ...prev]);
         }
@@ -78,7 +78,7 @@ export default function NotificationDropdown() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          //console.log('Notification updated:', payload);
+          // console.log('Notification updated:', payload);
           // Update the notification in the list
           setNotifications(prev => 
             prev.map(notification => 
@@ -141,7 +141,7 @@ export default function NotificationDropdown() {
         )
       );
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      // console.error('Error marking notifications as read:', error);
       // Revert optimistic update on error
       fetchNotifications(true);
     }

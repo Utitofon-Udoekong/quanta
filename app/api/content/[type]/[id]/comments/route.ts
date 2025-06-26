@@ -27,7 +27,7 @@ export async function POST(
     const { content, parentId } = await request.json();
     const userId = user.id;
 
-    //console.log('Creating comment:', { type, id, userId, content, parentId });
+    // console.log('Creating comment:', { type, id, userId, content, parentId });
 
     const { data: comment, error: insertError } = await supabase
       .from('content_comments')
@@ -49,12 +49,12 @@ export async function POST(
       .single();
 
     if (insertError) {
-      console.error('Error inserting comment:', insertError);
+      // console.error('Error inserting comment:', insertError);
       throw insertError;
     }
     return NextResponse.json(comment);
   } catch (error) {
-    console.error('Error creating comment:', error);
+    // console.error('Error creating comment:', error);
     return NextResponse.json(
       { error: 'Failed to create comment' },
       { status: 500 }
@@ -113,7 +113,7 @@ export async function GET(
     if (error) throw error;
     return NextResponse.json(comments);
   } catch (error) {
-    console.error('Error fetching comments:', error);
+    // console.error('Error fetching comments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch comments' },
       { status: 500 }
@@ -164,12 +164,12 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      console.error('Error updating comment:', updateError);
+      // console.error('Error updating comment:', updateError);
       throw updateError;
     }
     return NextResponse.json(comment);
   } catch (error: any) {
-    console.error('Error updating comment:', error);
+    // console.error('Error updating comment:', error);
     return NextResponse.json(
       { error: 'Failed to update comment', details: error.message },
       { status: 500 }
@@ -204,7 +204,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
     }
 
-    //console.log('Deleting comment:', { commentId, userId });
+    // console.log('Deleting comment:', { commentId, userId });
 
     const { error: deleteError } = await supabase
       .from('content_comments')
@@ -213,12 +213,12 @@ export async function DELETE(
       .eq('user_id', userId);
 
     if (deleteError) {
-      console.error('Error deleting comment:', deleteError);
+      // console.error('Error deleting comment:', deleteError);
       throw deleteError;
     }
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting comment:', error);
+    // console.error('Error deleting comment:', error);
     return NextResponse.json(
       { error: 'Failed to delete comment', details: error.message },
       { status: 500 }

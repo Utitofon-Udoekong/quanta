@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         });
         
     } catch (error) {
-        console.error('Trigger debug error:', error);
+        // console.error('Trigger debug error:', error);
         return NextResponse.json({ 
             error: error instanceof Error ? error.message : 'Unknown error' 
         }, { status: 500 });

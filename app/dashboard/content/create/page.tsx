@@ -46,7 +46,7 @@ export default function CreateContentPage() {
       router.push('/dashboard/content');
       router.refresh();
     } catch (error: any) {
-      console.error('Error creating content:', error);
+      // console.error('Error creating content:', error);
       toast.error(error.message || 'Failed to create content');
       throw error;
     }
@@ -54,14 +54,14 @@ export default function CreateContentPage() {
 
   return (
     <WalletGuard contentType="all">
-      <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <Link href="/dashboard/content" className="text-gray-400 hover:text-white flex items-center">
-            <Icon icon="mdi:arrow-left" className="size-5 mr-2" />
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <Link href="/dashboard/content" className="text-gray-400 hover:text-white flex items-center text-sm sm:text-base">
+            <Icon icon="mdi:arrow-left" className="size-4 sm:size-5 mr-2" />
             Back to Content
           </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-6">Create New Content</h1>
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Create New Content</h1>
         <UnifiedContentForm onSave={handleSave} />
       </div>
     </WalletGuard>

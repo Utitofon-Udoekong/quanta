@@ -47,7 +47,7 @@ export async function GET() {
     
     return NextResponse.json({ price });
   } catch (error) {
-    console.error('Error fetching Xion price:', error);
+    // console.error('Error fetching Xion price:', error);
     return NextResponse.json(
       { error: 'Failed to fetch Xion price' },
       { status: 500 }

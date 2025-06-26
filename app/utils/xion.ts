@@ -47,7 +47,7 @@ export async function getXionPrice(): Promise<number> {
     
     return price;
   } catch (error) {
-    console.error('Error fetching Xion price:', error);
+    // console.error('Error fetching Xion price:', error);
     toast.error('Failed to fetch Xion price. Using fallback value.');
     
     // Return a fallback price if the API call fails

@@ -53,7 +53,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
           trackContentView(contentWithKind.id, kind, user.id);
         }
       } catch (error) {
-        console.error('Error refreshing content access:', error);
+        // console.error('Error refreshing content access:', error);
       }
     }
   };
@@ -87,8 +87,8 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         }
 
         const contentWithKind = { ...data, kind };
-        //console.log(contentWithKind)
-        //console.log(contentWithKind.author?.id)
+        // console.log(contentWithKind)
+        // console.log(contentWithKind.author?.id)
         setContentWithKind(contentWithKind);
 
         // Check access permissions
@@ -119,7 +119,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         }
       } catch (err: any) {
         setError(err.message);
-        console.error('Error fetching content:', err);
+        // console.error('Error fetching content:', err);
       } finally {
         setLoading(false);
       }
@@ -315,7 +315,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
               </div>
             )}
           {/* Title & Description */}
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{contentWithKind.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{contentWithKind.title}</h1>
           {getContentDescription(contentWithKind) && (
             <p className="text-gray-300 text-lg mb-4">{getContentDescription(contentWithKind)}</p>
           )}

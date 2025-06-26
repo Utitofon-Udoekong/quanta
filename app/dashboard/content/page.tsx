@@ -103,7 +103,7 @@ export default function ContentManagement() {
       toast.success(`${kind.charAt(0).toUpperCase() + kind.slice(1)} deleted successfully`, { className: 'bg-green-500' });
     } catch (err: any) {
       toast.error(err.message || `Failed to delete ${kind}`);
-      console.error(err);
+      // console.error(err);
     }
   };
 
@@ -175,15 +175,15 @@ export default function ContentManagement() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen p-4 sm:p-6 lg:p-8">
       {/* Category Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div className="flex space-x-2 w-full overflow-x-auto mb-6 border-b border-gray-800 scrollbar-thin scrollbar-thumb-gray-700">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 lg:mb-8">
+        <div className="flex space-x-1 sm:space-x-2 w-full overflow-x-auto mb-4 lg:mb-0 border-b border-gray-800 scrollbar-thin scrollbar-thumb-gray-700">
           {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap
+              className={`px-3 sm:px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap text-sm sm:text-base
               ${activeCategory === cat.id
                   ? 'text-white bg-[#8B25FF] shadow font-bold'
                   : 'text-gray-400 hover:text-white hover:bg-[#181A20]'}
@@ -193,8 +193,8 @@ export default function ContentManagement() {
             </button>
           ))}
         </div>
-        <Link href="/dashboard/content/create" className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-6 py-2 rounded-full font-semibold shadow-lg transition-colors w-full sm:w-auto">
-            Create
+        <Link href="/dashboard/content/create" className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 sm:px-6 py-2 rounded-full font-semibold shadow-lg transition-colors w-full sm:w-auto text-center text-sm sm:text-base">
+            Create Content
         </Link>
       </div>
 
@@ -203,46 +203,46 @@ export default function ContentManagement() {
         <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex items-center py-1.5 px-3 text-sm font-medium rounded-md transition-colors
+            className={`flex items-center py-1.5 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-md transition-colors
               ${viewMode === 'grid' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'}`}
           >
-            <Icon icon="material-symbols:grid-view" className="h-4 w-4 mr-1" />
-            Grid
+            <Icon icon="material-symbols:grid-view" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">Grid</span>
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`flex items-center py-1.5 px-3 text-sm font-medium rounded-md transition-colors
+            className={`flex items-center py-1.5 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-md transition-colors
               ${viewMode === 'table' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'}`}
           >
-            <Icon icon="material-symbols:table-chart" className="h-4 w-4 mr-1" />
-            Table
+            <Icon icon="material-symbols:table-chart" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            <span className="hidden sm:inline">Table</span>
           </button>
         </div>
       </div>
 
       {/* Content Display */}
-      <section className="mb-10">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold flex items-center text-white">
+      <section className="mb-6 lg:mb-10">
+        <div className="flex items-center justify-between mb-4 lg:mb-6">
+          <h3 className="text-lg sm:text-xl font-bold flex items-center text-white">
             Your Content
           </h3>
         </div>
         {filteredContent.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mb-4">
-              <Icon icon="mdi:file-plus" className="w-8 h-8 text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-12 lg:py-16">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-700/50 rounded-full flex items-center justify-center mb-4">
+              <Icon icon="mdi:file-plus" className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2 text-white">No Content Yet</h3>
-            <p className="text-gray-400 mb-6">Create your first piece of content to get started.</p>
+            <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white text-center">No Content Yet</h3>
+            <p className="text-gray-400 mb-6 text-center text-sm sm:text-base px-4">Create your first piece of content to get started.</p>
             <Link href="/dashboard/content/create">
-              <button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] hover:from-[#7A1FEF] hover:to-[#2A0BC7] text-white px-6 py-3 rounded-lg transition-all duration-200 inline-flex items-center font-semibold shadow-lg">
-                <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
+              <button className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] hover:from-[#7A1FEF] hover:to-[#2A0BC7] text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-200 inline-flex items-center font-semibold shadow-lg text-sm sm:text-base">
+                <Icon icon="mdi:plus" className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Create Content
               </button>
             </Link>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {filteredContent.map((content) => (
               <Link key={content.id} href={`/dashboard/content/${content.id}?kind=${content.kind}`} className="block group">
                   <ContentCard

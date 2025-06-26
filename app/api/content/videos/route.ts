@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     // Verify the user token to get their ID securely
     const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
-    //console.log('User:', user);
+    // console.log('User:', user);
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.from('videos').insert(videoData).select().single();
 
     if (error) {
-      console.error('Supabase POST error:', error);
+      // console.error('Supabase POST error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('API POST Error:', error);
+    // console.error('API POST Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to create video' }, { status: 500 });
   }
 }

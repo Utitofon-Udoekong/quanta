@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.from('articles').insert(articleData).select().single();
 
     if (error) {
-      console.error('Supabase POST error:', error);
+      // console.error('Supabase POST error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('API POST Error:', error);
+    // console.error('API POST Error:', error);
     return NextResponse.json({ error: error.message || 'Failed to create article' }, { status: 500 });
   }
 }

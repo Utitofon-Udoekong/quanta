@@ -121,7 +121,7 @@ export default function CustomAudioPlayer({ src, title, className = '', contentI
   return (
     <div className={`relative bg-[#18122B] rounded-b-2xl overflow-hidden ${className}`}>
       {/* Progress Bar */}
-      <div className="w-full px-6 pt-6">
+      <div className="w-full px-2 md:px-6 pt-2 md:pt-6">
         <div className="flex items-center justify-between text-xs text-white/80 mb-1">
           <span>{formatTime(currentTime)}</span>
           <span>-{formatTime(duration - currentTime)}</span>
@@ -137,18 +137,18 @@ export default function CustomAudioPlayer({ src, title, className = '', contentI
         />
       </div>
       {/* Controls Row */}
-      <div className="flex items-center justify-center gap-6 py-6">
+      <div className="flex items-center justify-center gap-2 py-2 md:py-6">
         {/* Like Button */}
         <div className="drop-shadow-[0_0_8px_#8B25FF]">
           <LikeButton contentId={contentId} contentType={contentType} />
         </div>
         {/* Volume */}
         <button onClick={toggleMute} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-          <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="w-6 h-6" />
+          <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="size-4 md:size-6" />
         </button>
         {/* Skip Back */}
         <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-          <Icon icon="mdi:rewind-10" className="w-6 h-6" />
+          <Icon icon="mdi:rewind-10" className="size-4 md:size-6" />
         </button>
         {/* Play/Pause */}
         <button
@@ -158,16 +158,16 @@ export default function CustomAudioPlayer({ src, title, className = '', contentI
           disabled={isLoading}
         >
           {isLoading ? (
-            <Icon icon="mdi:reload" className="h-8 w-8 text-white animate-spin" />
+            <Icon icon="mdi:reload" className="size-4 md:size-8 text-white animate-spin" />
           ) : isPlaying ? (
-            <Icon icon="mdi:pause" className="h-8 w-8 text-white" />
+            <Icon icon="mdi:pause" className="size-4 md:size-8 text-white" />
           ) : (
-            <Icon icon="mdi:play" className="h-8 w-8 text-white" />
+            <Icon icon="mdi:play" className="size-4 md:size-8 text-white" />
           )}
         </button>
         {/* Skip Forward */}
         <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
-          <Icon icon="mdi:fast-forward-10" className="w-6 h-6" />
+          <Icon icon="mdi:fast-forward-10" className="size-4 md:size-6" />
           </button>
       </div>
     </div>

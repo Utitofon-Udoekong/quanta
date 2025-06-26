@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (paidError) {
-      console.error('Error getting paid subscribers:', paidError);
+      // console.error('Error getting paid subscribers:', paidError);
       return NextResponse.json(
         { error: 'Failed to get paid subscribers' },
         { status: 500 }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(subscribers);
 
   } catch (error) {
-    console.error('Error in subscribers route:', error);
+    // console.error('Error in subscribers route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

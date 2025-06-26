@@ -34,10 +34,10 @@ export default function ScheduledContentCard({ content, onUpdate }: ScheduledCon
     try {
       // This would need the wallet address - you'd need to pass it as a prop
       // For now, we'll just show the functionality
-      //console.log('Publishing content now:', content.id);
+      // console.log('Publishing content now:', content.id);
       onUpdate();
     } catch (error) {
-      console.error('Error publishing content:', error);
+      // console.error('Error publishing content:', error);
     } finally {
       setProcessing(false);
     }
@@ -47,10 +47,10 @@ export default function ScheduledContentCard({ content, onUpdate }: ScheduledCon
     setProcessing(true);
     try {
       // This would need the wallet address - you'd need to pass it as a prop
-      //console.log('Unscheduling content:', content.id);
+      // console.log('Unscheduling content:', content.id);
       onUpdate();
     } catch (error) {
-      console.error('Error unscheduling content:', error);
+      // console.error('Error unscheduling content:', error);
     } finally {
       setProcessing(false);
     }
@@ -172,7 +172,7 @@ export function ScheduledContentList({ walletAddress }: ScheduledContentListProp
       const content = await getUpcomingScheduledContent(walletAddress, 5);
       setScheduledContent(content);
     } catch (error) {
-      console.error('Error fetching scheduled content:', error);
+      // console.error('Error fetching scheduled content:', error);
     } finally {
       setLoading(false);
     }

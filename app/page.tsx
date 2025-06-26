@@ -116,7 +116,7 @@ export default function Home() {
                 });
 
             } catch (error) {
-                console.error('Error fetching featured content:', error);
+                // console.error('Error fetching featured content:', error);
             } finally {
                 setLoading(false);
             }

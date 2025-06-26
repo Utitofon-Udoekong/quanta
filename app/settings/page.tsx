@@ -28,7 +28,7 @@ export default function SettingsPage() {
         }
         setUserData(user);
       } catch (error) {
-        console.error('Error fetching profile data:', error);
+        // console.error('Error fetching profile data:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to load profile data');
       } finally {
         setLoading(false);
@@ -60,7 +60,7 @@ export default function SettingsPage() {
       }
       toast.success('Profile updated successfully');
     } catch (error) {
-      console.error('Error saving profile:', error);
+      // console.error('Error saving profile:', error);
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);
@@ -80,7 +80,7 @@ export default function SettingsPage() {
       setUserData({ ...userData, ...updates });
       toast.success('Profile updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      // console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);

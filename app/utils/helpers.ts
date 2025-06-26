@@ -13,7 +13,7 @@ export function getDuration(file: File, type: 'audio' | 'video'): number {
     media.preload = 'metadata';
     media.onloadedmetadata = () => {
         duration = media.duration;
-        //console.log('Duration:', duration, 'seconds');
+        // console.log('Duration:', duration, 'seconds');
         URL.revokeObjectURL(url);
     };
     return duration;

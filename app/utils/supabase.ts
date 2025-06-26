@@ -30,7 +30,7 @@ export async function getCurrentUser(): Promise<{
     if (error) throw error;
     return { user, error: null };
   } catch (error) {
-    console.error('Error getting current user:', error);
+    // console.error('Error getting current user:', error);
     return { user: null, error: error as Error };
   }
 }
@@ -58,7 +58,7 @@ export async function getUserByWallet(walletAddress: string): Promise<{
     if (error) throw error;
     return { user: data, error: null };
   } catch (error) {
-    console.error('Error in getUserByWallet:', error);
+    // console.error('Error in getUserByWallet:', error);
     return { user: null, error: error as Error };
   }
 }
@@ -93,7 +93,7 @@ export async function updateUserProfile(
     if (error) throw error;
     return { user: data, error: null };
   } catch (error) {
-    console.error('Error in updateUserProfile:', error);
+    // console.error('Error in updateUserProfile:', error);
     return { user: null, error: error as Error };
   }
 }
@@ -113,7 +113,7 @@ export async function signOut(): Promise<{ error: Error | null }> {
     Cookies.remove(cookieName);
     return { error: null };
   } catch (error) {
-    console.error('Error signing out:', error);
+    // console.error('Error signing out:', error);
     return { error: error as Error };
   }
 }

@@ -29,11 +29,11 @@ export async function trackContentView(
     if (error) {
       // Only log errors that aren't related to duplicate entries
       if (error.code !== '23505') { // PostgreSQL unique violation code
-        console.error('Error tracking content view:', error);
+        // console.error('Error tracking content view:', error);
       }
     }
   } catch (error) {
-    console.error('Error tracking content view:', error);
+    // console.error('Error tracking content view:', error);
   }
 }
 
@@ -68,9 +68,9 @@ export async function recordEarning(
     });
     
     if (error) {
-      console.error('Error recording earning:', error);
+      // console.error('Error recording earning:', error);
     }
   } catch (error) {
-    console.error('Error recording earning:', error);
+    // console.error('Error recording earning:', error);
   }
 } 

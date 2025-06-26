@@ -67,7 +67,7 @@ export default function SubscribeModal({
   };
 
   const startPopupCloseListener = (reference: string, popupWindow: Window) => {
-    //console.log('Starting popup close listener for reference:', reference);
+    // console.log('Starting popup close listener for reference:', reference);
     let timeoutCounter = 0;
     const MAX_TIMEOUT = 300; // 5 minutes
     if (popupCheckInterval.current) {
@@ -75,15 +75,15 @@ export default function SubscribeModal({
     }
     popupCheckInterval.current = setInterval(() => {
       timeoutCounter++;
-      //console.log(`Popup check ${timeoutCounter}: popupWindow exists:`, !!popupWindow, 'closed:', popupWindow?.closed);
+      // console.log(`Popup check ${timeoutCounter}: popupWindow exists:`, !!popupWindow, 'closed:', popupWindow?.closed);
       if (popupWindow && popupWindow.closed) {
-        //console.log('Popup was closed, checking payment status...');
+        // console.log('Popup was closed, checking payment status...');
         checkPaymentStatus(reference);
         clearInterval(popupCheckInterval.current!);
         popupCheckInterval.current = null;
         paymentWindowRef.current = null;
       } else if (timeoutCounter >= MAX_TIMEOUT) {
-        //console.log('Timeout reached, checking payment status anyway...');
+        // console.log('Timeout reached, checking payment status anyway...');
         checkPaymentStatus(reference);
         clearInterval(popupCheckInterval.current!);
         popupCheckInterval.current = null;
@@ -93,7 +93,7 @@ export default function SubscribeModal({
   };
 
   const checkPaymentStatus = async (reference: string) => {
-    //console.log('Checking payment status for reference:', reference);
+    // console.log('Checking payment status for reference:', reference);
     try {
       const response = await fetch('/api/subscriptions/check-payment', {
         method: 'POST',
@@ -102,18 +102,18 @@ export default function SubscribeModal({
       });
 
       const data = await response.json();
-      //console.log('Payment status response:', data);
+      // console.log('Payment status response:', data);
 
       if (response.ok) {
         if (data.status === 'completed') {
-          //console.log('Payment successful!');
+          // console.log('Payment successful!');
           setPaymentState('success');
           onSuccess?.();
         } else if (data.status === 'failed') {
-          //console.log('Payment failed!');
+          // console.log('Payment failed!');
           setPaymentState('failed');
         } else {
-          //console.log('Payment still pending');
+          // console.log('Payment still pending');
           // If still pending, show a message asking user to check their payment
           setTimeout(() => {
             setPaymentState('failed');
@@ -121,12 +121,12 @@ export default function SubscribeModal({
           }, 10000);
         }
       } else {
-        console.error('Error checking payment status:', data.error);
+        // console.error('Error checking payment status:', data.error);
         setPaymentState('failed');
         setError('Unable to verify payment status. Please contact support.');
       }
     } catch (error) {
-      console.error('Error checking payment status:', error);
+      // console.error('Error checking payment status:', error);
       setPaymentState('failed');
       setError('Network error while checking payment status.');
     }
@@ -191,7 +191,7 @@ export default function SubscribeModal({
       
       if (data.status === 'success' && data.payment_url) {
         setPaymentReference(data.payment_reference);
-        //console.log('Payment initialized, opening popup with URL:', data.payment_url);
+        // console.log('Payment initialized, opening popup with URL:', data.payment_url);
         
         // Open payment window
         const popupWindow = window.open(
@@ -200,11 +200,11 @@ export default function SubscribeModal({
           'width=500,height=700,scrollbars=yes,resizable=yes'
         );
         
-        //console.log('Popup window created:', popupWindow);
+        // console.log('Popup window created:', popupWindow);
         
         if (popupWindow) {
           paymentWindowRef.current = popupWindow;
-          //console.log('Starting popup close listener...');
+          // console.log('Starting popup close listener...');
           startPopupCloseListener(data.payment_reference, popupWindow);
         } else {
           throw new Error('Failed to open payment window. Please check your popup blocker.');
@@ -213,7 +213,7 @@ export default function SubscribeModal({
         throw new Error(data.message || 'Payment initialization failed');
       }
     } catch (err) {
-      console.error('Payment error:', err);
+      // console.error('Payment error:', err);
       setError(err instanceof Error ? err.message : 'Payment failed');
       setPaymentState('failed');
     } finally {

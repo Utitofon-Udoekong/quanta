@@ -154,7 +154,7 @@ export default function ContentCard({ content, badge }: ContentCardProps) {
     <Link href={getContentLink()} className="block">
       <div className="w-full relative bg-gray-900/80 rounded-xl shadow-lg hover:shadow-2xl transition-shadow group overflow-hidden">
         {/* Card Image */}
-        <div className="relative w-full h-72">
+        <div className="relative w-full h-40 sm:h-48 md:h-56 lg:h-64 xl:h-72">
           <Image
             src={content.thumbnail_url || '/images/default-thumbnail.png'}
             alt={content.title}
@@ -166,16 +166,16 @@ export default function ContentCard({ content, badge }: ContentCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
           {/* Content Type Indicator */}
-          <div className="absolute top-4 left-4 bg-black/60 rounded-full p-1 flex items-center justify-center">
-            <Icon icon={contentTypeIcons[content.kind]} className="w-4 h-4 text-white" />
+          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-black/60 rounded-full p-1 flex items-center justify-center">
+            <Icon icon={contentTypeIcons[content.kind]} className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
           </div>
 
           {/* Premium Badge */}
           {content.is_premium && (
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-2 sm:top-4 right-2 sm:right-4">
               <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#8B25FF]/90 text-white">
                 <Icon icon="material-symbols:star" className="w-3 h-3 mr-1" />
-                Premium
+                <span className="hidden sm:inline">Premium</span>
               </div>
             </div>
           )}
@@ -196,30 +196,38 @@ export default function ContentCard({ content, badge }: ContentCardProps) {
 
           {/* Badge (e.g. Trending, Coming Soon, etc.) */}
           {badge && (
-            <span className="absolute top-4 right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">{badge}</span>
+            <span className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-yellow-500 text-xs px-2 py-1 rounded-full font-bold">{badge}</span>
           )}
         </div>
 
         {/* Card Content */}
-        <div className="absolute left-0 right-0 bottom-0 p-4 z-10 flex items-center justify-between">
-          <div>
-            <div className="flex items-center mb-1">
-              <h4 className="text-lg font-semibold text-white flex items-center">
-                {content.title}
-              </h4>
+        <div className="absolute left-0 right-0 bottom-0 p-3 sm:p-4 z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center mb-1">
+                <h4 className="text-sm sm:text-base lg:text-lg font-semibold text-white flex items-center truncate">
+                  {content.title}
+                </h4>
+              </div>
+
+              {/* Subtitle with author and metadata */}
+              <div className="text-gray-300 text-xs sm:text-sm mb-2">
+                <span className="truncate block sm:inline">
+                  {content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown'}
+                </span>
+                {content.views && (
+                  <span className="hidden sm:inline"> • {content.views} views</span>
+                )}
+                {content.created_at && (
+                  <span className="hidden sm:inline"> • {formatTimeAgo(content.created_at)}</span>
+                )}
+              </div>
             </div>
 
-            {/* Subtitle with author and metadata */}
-            <div className="text-gray-300 text-sm mb-2">
-              {content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown'}
-              {content.views && ` • ${content.views} views`}
-              {content.created_at && ` • ${formatTimeAgo(content.created_at)}`}
+            {/* Action Button */}
+            <div className="flex justify-end sm:mt-0">
+              {getActionButton()}
             </div>
-          </div>
-
-          {/* Action Button */}
-          <div className="mt-3 flex justify-end">
-            {getActionButton()}
           </div>
         </div>
       </div>

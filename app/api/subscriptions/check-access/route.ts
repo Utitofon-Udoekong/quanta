@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error checking content access:', error);
+    // console.error('Error checking content access:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

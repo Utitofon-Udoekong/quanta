@@ -102,13 +102,13 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
 
         if (contentError) throw new Error('Content not found');
         if (viewsError || likesError || commentsError) {
-            console.error("Partial error fetching analytics data", {viewsError, likesError, commentsError});
+            // console.error("Partial error fetching analytics data", {viewsError, likesError, commentsError});
         }
 
         const contentWithKind = { ...contentData, kind };
 
         if (userError || !user) {
-          console.error(userError);
+          // console.error(userError);
           setContent(contentWithKind);
         } else {
           const combinedData = {
@@ -135,7 +135,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
 
       } catch (err: any) {
         setError(err.message || 'Failed to fetch content');
-        console.error('Error fetching content:', err);
+        // console.error('Error fetching content:', err);
       } finally {
         setLoading(false);
       }
@@ -183,6 +183,8 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
             src={(content as VideoContent).video_url || ''}
             poster={content.thumbnail_url}
             title={content.title}
+            contentId={content.id}
+            contentType={content.kind}  
             // className="mb-6"
           />
         );
@@ -191,6 +193,8 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
           <CustomAudioPlayer
             src={(content as AudioContent).audio_url || ''}
             title={content.title}
+            contentId={content.id}
+            contentType={content.kind}
             // className="mb-6"
           />
         );
@@ -271,7 +275,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
       router.push('/dashboard/content');
     } catch (err: any) {
       toast(err.message, { className: 'bg-red-500' });
-      console.error(err);
+      // console.error(err);
     }
   };
 
@@ -309,7 +313,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
 
     } catch (err: any) {
       toast(err.message, { className: 'bg-red-500' });
-      console.error(err);
+      // console.error(err);
     } finally {
       setPublishLoading(false);
     }
@@ -331,7 +335,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
       return;
     }
 
-    //console.log('Updating fields:', changedFields);
+    // console.log('Updating fields:', changedFields);
 
     const { error } = await supabase
       .from(type === 'video' ? 'videos' : type === 'audio' ? 'audio' : 'articles')
@@ -393,14 +397,14 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
   const backLink = getBackLink();
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white">
+    <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">
       <div className="max-w-screen-xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href={backLink}
-            className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
+            className="inline-flex items-center text-gray-400 hover:text-white transition-colors text-sm sm:text-base"
           >
-            <Icon icon="material-symbols:arrow-back" className="h-5 w-5 mr-2" />
+            <Icon icon="material-symbols:arrow-back" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             <span className="font-medium">Back to Content</span>
           </Link>
         </div>

@@ -42,13 +42,13 @@ export async function getUpcomingScheduledContent(
       });
 
     if (error) {
-      console.error('Error fetching scheduled content:', error);
+      // console.error('Error fetching scheduled content:', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getUpcomingScheduledContent:', error);
+    // console.error('Error in getUpcomingScheduledContent:', error);
     return [];
   }
 }
@@ -73,13 +73,13 @@ export async function getScheduledContentCount(walletAddress: string): Promise<n
       });
 
     if (error) {
-      console.error('Error fetching scheduled content count:', error);
+      // console.error('Error fetching scheduled content count:', error);
       return 0;
     }
 
     return data || 0;
   } catch (error) {
-    console.error('Error in getScheduledContentCount:', error);
+    // console.error('Error in getScheduledContentCount:', error);
     return 0;
   }
 }
@@ -105,7 +105,7 @@ export async function getScheduledContentStats(walletAddress: string): Promise<S
       .single();
 
     if (error) {
-      console.error('Error fetching scheduled content stats:', error);
+      // console.error('Error fetching scheduled content stats:', error);
       return null;
     }
 
@@ -117,7 +117,7 @@ export async function getScheduledContentStats(walletAddress: string): Promise<S
       next_release: data.next_release,
     };
   } catch (error) {
-    console.error('Error in getScheduledContentStats:', error);
+    // console.error('Error in getScheduledContentStats:', error);
     return null;
   }
 }
@@ -153,13 +153,13 @@ export async function scheduleContent(
       .eq('user_id', user.id); // Security: only update own content
 
     if (error) {
-      console.error('Error scheduling content:', error);
+      // console.error('Error scheduling content:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in scheduleContent:', error);
+    // console.error('Error in scheduleContent:', error);
     return false;
   }
 }
@@ -193,13 +193,13 @@ export async function unscheduleContent(
       .eq('user_id', user.id); // Security: only update own content
 
     if (error) {
-      console.error('Error unscheduling content:', error);
+      // console.error('Error unscheduling content:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in unscheduleContent:', error);
+    // console.error('Error in unscheduleContent:', error);
     return false;
   }
 }
@@ -234,13 +234,13 @@ export async function publishContentNow(
       .eq('user_id', user.id); // Security: only update own content
 
     if (error) {
-      console.error('Error publishing content:', error);
+      // console.error('Error publishing content:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in publishContentNow:', error);
+    // console.error('Error in publishContentNow:', error);
     return false;
   }
 }

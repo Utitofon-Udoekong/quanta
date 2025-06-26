@@ -76,7 +76,7 @@ export default function LikeButton({ contentId, contentType, onLikeChange }: Lik
       }
     } catch (err: any) {
       setError(err.message || 'Failed to update like');
-      console.error('Like error:', err);
+      // console.error('Like error:', err);
     } finally {
       setSubmitting(false);
     }

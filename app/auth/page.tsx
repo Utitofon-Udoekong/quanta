@@ -23,7 +23,7 @@ export default function AuthPage() {
     try {
       await login();
     } catch (error) {
-      console.error('Login error:', error);
+      // console.error('Login error:', error);
     }
   };
 
@@ -32,7 +32,7 @@ export default function AuthPage() {
       try {
         setLoading(true);
         setError(null);
-        //console.log('signing in')
+        // console.log('signing in')
         // Call backend to authenticate wallet and get JWT
         const res = await fetch('/api/wallet-auth/login', {
           method: 'POST',
@@ -56,7 +56,7 @@ export default function AuthPage() {
         }
 
         const { token, user } = await res.json();
-        //console.log('Authentication successful:', { user, token });
+        // console.log('Authentication successful:', { user, token });
 
         if (token) {
           // Get Supabase client with the new token
@@ -69,7 +69,7 @@ export default function AuthPage() {
           });
 
           if (sessionError) {
-            console.error('Session error:', sessionError);
+            // console.error('Session error:', sessionError);
             setError('Failed to establish session. Please try again.');
             return;
           }
@@ -79,7 +79,7 @@ export default function AuthPage() {
           router.push('/');
         }
       } catch (err) {
-        console.error('Authentication error:', err);
+        // console.error('Authentication error:', err);
         setError('Network error. Please check your connection and try again.');
       } finally {
         setLoading(false);

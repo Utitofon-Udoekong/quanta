@@ -66,7 +66,7 @@ export default function Dashboard() {
         
         if (userError || !user) {
           if (userError) {
-          console.error('Error fetching user:', userError);
+          // console.error('Error fetching user:', userError);
           }
           return;
         }
@@ -87,15 +87,15 @@ export default function Dashboard() {
           }
           
           // Fetch subscription analytics
-          console.log('Fetching analytics for wallet:', user.wallet_address);
+          // console.log('Fetching analytics for wallet:', user.wallet_address);
           const analytics = await getSubscriptionAnalytics(user.wallet_address);
-          console.log('Analytics response:', analytics);
+          // console.log('Analytics response:', analytics);
           setSubscriptionStats(analytics);
           
           // Fetch recent subscribers
-          console.log('Fetching subscribers for wallet:', user.wallet_address);
+          // console.log('Fetching subscribers for wallet:', user.wallet_address);
           const subscribers = await getCreatorSubscribers(user.wallet_address);
-          console.log('Subscribers response:', subscribers);
+          // console.log('Subscribers response:', subscribers);
           setRecentSubscribers(subscribers.slice(0, 5)); // Show only 5 most recent
           
           // Fetch subscription data (old schema - keeping for compatibility)
@@ -121,13 +121,13 @@ export default function Dashboard() {
 
           // Check for errors in content queries
           if (articlesRes.error) {
-            console.error('Error fetching articles:', articlesRes.error);
+            // console.error('Error fetching articles:', articlesRes.error);
           }
           if (videosRes.error) {
-            console.error('Error fetching videos:', videosRes.error);
+            // console.error('Error fetching videos:', videosRes.error);
           }
           if (audioRes.error) {
-            console.error('Error fetching audio:', audioRes.error);
+            // console.error('Error fetching audio:', audioRes.error);
           }
 
           const contentCounts = {
@@ -255,7 +255,7 @@ export default function Dashboard() {
           setAllContent(combinedContent);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        // console.error('Error fetching dashboard data:', error);
       } finally {
         setLoading(false);
       }
@@ -335,7 +335,7 @@ export default function Dashboard() {
         
         setAllContent(combinedContent);
     } catch (error) {
-      console.error(`Error deleting ${type}:`, error);
+      // console.error(`Error deleting ${type}:`, error);
       alert(`Failed to delete ${type}. Please try again.`);
     }
   };
@@ -402,11 +402,11 @@ export default function Dashboard() {
                   <Icon icon={stat.icon} className="w-6 h-6 text-purple-400" />
                   <span className="font-semibold text-sm text-white">{stat.label}</span>
           </div>
-                <button className="text-gray-400 hover:text-white"><Icon icon="mdi:dots-vertical" className="w-5 h-5" /></button>
+                {/* <button className="text-gray-400 hover:text-white"><Icon  showicon="mdi:dots-vertical" className="w-5 h-5" /></button> */}
               </div>
               <div className="flex items-end gap-2">
                 <span className="text-3xl font-bold text-white">{stat.value}</span>
-                <span className="text-green-400 text-xs font-semibold bg-green-900/30 rounded-full px-2 py-0.5">{stat.change}</span>
+                {/* <span className="text-green-400 text-xs font-semibold bg-green-900/30 rounded-full px-2 py-0.5">{stat.change}</span> */}
               </div>
             </div>
           ))}
@@ -422,7 +422,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4 mb-2">
             <span className="text-3xl font-bold text-white">{totalViews}</span>
-            <span className="text-green-400 text-xs font-semibold bg-green-900/30 rounded-full px-2 py-0.5">{percentChange}</span>
+            {/* <span className="text-green-400 text-xs font-semibold bg-green-900/30 rounded-full px-2 py-0.5">{percentChange}</span> */}
           </div>
           {/* Recharts LineChart for daily views */}
           <div className="h-56 w-full">

@@ -76,7 +76,7 @@ async function checkNovyPayPaymentStatus(
       reference: data.reference,
     };
   } catch (error) {
-    console.error('Error checking NovyPay payment status:', error);
+    // console.error('Error checking NovyPay payment status:', error);
     return {
       status: 'error',
       error: 'Network error occurred',
@@ -98,13 +98,13 @@ async function getSubscriptionPaymentByReference(
       .single();
 
     if (error) {
-      console.error('Error getting subscription payment by reference:', error);
+      // console.error('Error getting subscription payment by reference:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getSubscriptionPaymentByReference:', error);
+    // console.error('Error in getSubscriptionPaymentByReference:', error);
     return null;
   }
 }
@@ -127,13 +127,13 @@ async function updateSubscriptionPaymentStatus(
       .eq('id', paymentId);
 
     if (error) {
-      console.error('Error updating subscription payment status:', error);
+      // console.error('Error updating subscription payment status:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in updateSubscriptionPaymentStatus:', error);
+    // console.error('Error in updateSubscriptionPaymentStatus:', error);
     return false;
   }
 }
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     // Check payment status with NovyPay
     const verification = await checkNovyPayPaymentStatus(reference);
-    //console.log('Verification:', verification);
+    // console.log('Verification:', verification);
     if (verification.status === 'error') {
       return NextResponse.json(
         { error: verification.error || 'Payment verification failed' },
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         .eq('id', paymentRecord.subscription_id);
 
       if (subscriptionError) {
-        console.error('Error activating subscription:', subscriptionError);
+        // console.error('Error activating subscription:', subscriptionError);
         return NextResponse.json(
           { error: 'Failed to activate subscription' },
           { status: 500 }
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (subscriberError) {
-          console.error('Error creating subscriber record:', subscriberError);
+          // console.error('Error creating subscriber record:', subscriberError);
           // Don't fail the whole request, just log the error
         }
 
@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error checking payment status:', error);
+    // console.error('Error checking payment status:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -367,7 +367,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error getting payment status:', error);
+    // console.error('Error getting payment status:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

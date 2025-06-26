@@ -46,7 +46,7 @@ const checkUserExists = async (supabase: any, wallet_address: string) => {
         
         return { existingUser, error: null };
     } catch (error) {
-        console.warn('User check failed:', error);
+        // console.warn('User check failed:', error);
         throw error;
     }
 };
@@ -71,7 +71,7 @@ const createAuthUser = async (supabase: any, wallet_address: string) => {
         if (createError) {
             // If user already exists, get the user ID from our database
             if (createError.message.includes('already been registered') || createError.status === 422) {
-                //console.log('User already exists in auth system, proceeding with existing user...');
+                // console.log('User already exists in auth system, proceeding with existing user...');
                 
                 const userId = await getUserIdByWalletAddress(supabase, wallet_address);
                 return { 
@@ -98,7 +98,7 @@ const createAuthUser = async (supabase: any, wallet_address: string) => {
 
         return { authUser, error: null };
     } catch (error) {
-        console.warn('Auth user creation failed:', error);
+        // console.warn('Auth user creation failed:', error);
         throw error;
     }
 };
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     const serviceRoleSecret = process.env.SUPABASE_SERVICE_ROLE;
     
     if (!JWT || !supabaseUrl || !serviceRoleSecret) {
-        console.error('Missing required environment variables');
+        // console.error('Missing required environment variables');
         return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
     
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
             const authUserCheck = await createAuthUser(supabase, wallet_address);
 
             if (authUserCheck?.error) {
-                console.error('Auth user creation error:', authUserCheck.error);
+                // console.error('Auth user creation error:', authUserCheck.error);
                 return NextResponse.json({ 
                     error: 'Failed to create user account. Please try again.' 
                 }, { status: 500 });
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
                 .single();
                 
             if (!triggerCreatedUser && !checkError) {
-                //console.log('Trigger did not create user profile, creating manually...');
+                // console.log('Trigger did not create user profile, creating manually...');
                 // Fallback: manually create the user profile
                 const { data: manualUser, error: manualError } = await supabase
                     .from('users')
@@ -183,13 +183,13 @@ export async function POST(req: NextRequest) {
                     .single();
                     
                 if (manualError) {
-                    console.error('Manual user creation error:', manualError);
+                    // console.error('Manual user creation error:', manualError);
                     // Don't fail the auth, just log the error
                 } else {
-                    //console.log('Manually created user profile:', manualUser);
+                    // console.log('Manually created user profile:', manualUser);
                 }
             } else if (triggerCreatedUser) {
-                //console.log('Trigger successfully created user profile:', triggerCreatedUser);
+                // console.log('Trigger successfully created user profile:', triggerCreatedUser);
             }
             
             // Update login time
@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
         return response;
 
     } catch (error) {
-        console.error('Login route error:', error);
+        // console.error('Login route error:', error);
         
         // Generic error response for security
         return NextResponse.json({ 

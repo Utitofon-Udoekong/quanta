@@ -83,7 +83,7 @@ export default function ComingSoonPage() {
           setScheduledContent(allContent.slice(1));
         }
       } catch (error) {
-        console.error('Error fetching coming soon content:', error);
+        // console.error('Error fetching coming soon content:', error);
       } finally {
         setLoading(false);
       }

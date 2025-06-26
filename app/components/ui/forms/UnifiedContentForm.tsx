@@ -146,7 +146,7 @@ export default function UnifiedContentForm({
 
   // Upload logic
   const uploadFile = async (file: File, bucketName: string) => {
-    //console.log('Uploading file:', file, 'to bucket:', bucketName);
+    // console.log('Uploading file:', file, 'to bucket:', bucketName);
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
     try {
@@ -160,7 +160,7 @@ export default function UnifiedContentForm({
     } catch (error) {
       setError('Error uploading file');
       toast.error('Error uploading file');
-      console.error('Error uploading file:', error);
+      // console.error('Error uploading file:', error);
       throw error;
     }
   };
@@ -229,26 +229,26 @@ export default function UnifiedContentForm({
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
       toast.error('An unexpected error occurred. Please try again.');
-      console.error('Submission failed:', error);
+      // console.error('Submission failed:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-[#0A0C10] text-white p-6 rounded-lg" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 bg-[#0A0C10] text-white p-4 sm:p-6 rounded-lg" noValidate>
       {/* Content Type Dropdown */}
       <div>
         <label htmlFor="content-type" className="block text-sm font-medium text-gray-200 mb-1">
           Content Type
         </label>
-        <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
+        <div className="flex flex-col sm:flex-row rounded-lg bg-gray-900/40 p-1 space-y-1 sm:space-y-0 sm:space-x-1">
           {contentTypes.map(type => (
             <button
               key={type.id}
               type="button"
               onClick={() => setSelectedType(type.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 selectedType === type.id
                   ? 'bg-purple-600 text-white'
                   : 'text-gray-300 bg-gray-700 hover:bg-gray-600'
@@ -268,7 +268,7 @@ export default function UnifiedContentForm({
           placeholder="Title"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
           required
         />
       </div>
@@ -280,18 +280,18 @@ export default function UnifiedContentForm({
           placeholder="Introduction"
           value={introduction}
           onChange={e => setIntroduction(e.target.value)}
-          className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="mt-1 block w-full bg-gray-900/50 border border-gray-700/50 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base"
         />
       </div>
 
       {/* Main File Upload (audio/video only) */}
       {(selectedType === 'audio' || selectedType === 'video') && (
-        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-lg p-8 bg-gray-900/30">
+        <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-lg p-4 sm:p-8 bg-gray-900/30">
           <input type="file" accept={selectedType === 'audio' ? 'audio/*' : 'video/*'} onChange={handleMainFileInput} className="hidden" id="main-file-upload" />
-          <label htmlFor="main-file-upload" className="flex flex-col items-center cursor-pointer">
-            <span className="text-4xl mb-2">🎵</span>
-            <span className="text-gray-400">Upload your {selectedType === 'audio' ? 'Audio' : 'Video'}/drag and drop {selectedType} file from your library</span>
-            {mainFile && <span className="mt-2 text-green-400">{mainFile.name}</span>}
+          <label htmlFor="main-file-upload" className="flex flex-col items-center cursor-pointer text-center">
+            <span className="text-3xl sm:text-4xl mb-2">🎵</span>
+            <span className="text-gray-400 text-xs sm:text-sm">Upload your {selectedType === 'audio' ? 'Audio' : 'Video'}/drag and drop {selectedType} file from your library</span>
+            {mainFile && <span className="mt-2 text-green-400 text-xs sm:text-sm">{mainFile.name}</span>}
           </label>
         </div>
       )}
@@ -356,18 +356,18 @@ export default function UnifiedContentForm({
       )}
 
       {/* Premium/Free Dropdown and Price */}
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <select
           value={isPremium ? 'premium' : 'free'}
           onChange={e => setIsPremium(e.target.value === 'premium')}
-          className="block bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="block bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
         >
           <option value="free">Free</option>
           <option value="premium">Premium</option>
         </select>
         {isPremium && (
-          <>
-            <span className="text-gray-400">$</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">$</span>
             <input
               type="number"
               min="0"
@@ -375,19 +375,19 @@ export default function UnifiedContentForm({
               placeholder="150"
               value={price}
               onChange={e => setPrice(e.target.value)}
-              className="w-24 bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-20 sm:w-24 bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             />
-          </>
+          </div>
         )}
       </div>
 
       {/* Thumbnail Upload */}
-      <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-lg p-8 bg-gray-900/30">
+      <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-700 rounded-lg p-4 sm:p-8 bg-gray-900/30">
         <input type="file" accept="image/*" onChange={handleThumbnailInput} className="hidden" id="thumbnail-upload" />
-        <label htmlFor="thumbnail-upload" className="flex flex-col items-center cursor-pointer">
-          <span className="text-4xl mb-2">🖼️</span>
-          <span className="text-gray-400">Upload your Thumbnail/drag and drop Thumbnail file from your library</span>
-          {thumbnailFile && <span className="mt-2 text-green-400">{thumbnailFile.name}</span>}
+        <label htmlFor="thumbnail-upload" className="flex flex-col items-center cursor-pointer text-center">
+          <span className="text-3xl sm:text-4xl mb-2">🖼️</span>
+          <span className="text-gray-400 text-xs sm:text-sm">Upload your Thumbnail/drag and drop Thumbnail file from your library</span>
+          {thumbnailFile && <span className="mt-2 text-green-400 text-xs sm:text-sm">{thumbnailFile.name}</span>}
         </label>
       </div>
 
@@ -396,7 +396,7 @@ export default function UnifiedContentForm({
         <select
           value={category}
           onChange={e => setCategory(e.target.value)}
-          className="block w-full bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="block w-full bg-gray-900/50 border border-gray-700/50 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
         >
           <option value="">-Select Category/Genre-</option>
           {categories.map(cat => (
@@ -416,11 +416,11 @@ export default function UnifiedContentForm({
             </p>
           </div>
         )}
-        <div className="flex rounded-lg bg-gray-900/40 p-1 space-x-1">
+        <div className="flex flex-col sm:flex-row rounded-lg bg-gray-900/40 p-1 space-y-1 sm:space-y-0 sm:space-x-1">
           <button
             type="button"
             onClick={() => setPublishAction('now')}
-            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-md transition-colors ${
               publishAction === 'now' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
             }`}
             disabled={isEditing && isAlreadyPublished}
@@ -430,7 +430,7 @@ export default function UnifiedContentForm({
           <button
             type="button"
             onClick={() => setPublishAction('schedule')}
-            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-md transition-colors ${
               publishAction === 'schedule' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
             }`}
             disabled={isEditing && isAlreadyPublished}
@@ -440,7 +440,7 @@ export default function UnifiedContentForm({
           <button
             type="button"
             onClick={() => setPublishAction('draft')}
-            className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+            className={`flex-1 py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-md transition-colors ${
               publishAction === 'draft' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700/50'
             } ${isEditing && isAlreadyPublished ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isEditing && isAlreadyPublished}

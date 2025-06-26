@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       });
 
     if (error) {
-      console.error('Error creating subscription:', error);
+      // console.error('Error creating subscription:', error);
       return NextResponse.json(
         { error: 'Failed to create subscription' },
         { status: 500 }
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating subscription:', error);
+    // console.error('Error creating subscription:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

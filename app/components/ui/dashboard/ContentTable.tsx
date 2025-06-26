@@ -98,15 +98,15 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
   return (
     <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
       {/* Search and Filter Bar */}
-      <div className="p-4 border-b border-gray-700/50">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="p-3 sm:p-4 border-b border-gray-700/50">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="relative flex-grow">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Icon icon="material-symbols:search" className="h-5 w-5 text-gray-400" />
+              <Icon icon="material-symbols:search" className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-md leading-5 bg-gray-900 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="block w-full pl-8 sm:pl-10 pr-3 py-2 border border-gray-700 rounded-md leading-5 bg-gray-900 text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
               placeholder="Search content..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -118,15 +118,15 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
               onClick={() => setShowFilters(!showFilters)}
               className="inline-flex items-center px-3 py-2 border border-gray-700 rounded-md text-sm font-medium text-gray-300 bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             >
-              <Icon icon="material-symbols:filter-list" className="h-5 w-5 mr-2 text-gray-400" />
-              Filters
+              <Icon icon="material-symbols:filter-list" className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-gray-400" />
+              <span className="hidden sm:inline">Filters</span>
             </button>
           </div>
         </div>
         
         {/* Filter Options */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-900 rounded-md border border-gray-700">
+          <div className="mt-4 p-3 sm:p-4 bg-gray-900 rounded-md border border-gray-700">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-sm font-medium text-gray-300">Filter Options</h3>
               <button
@@ -138,13 +138,13 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">
                   Content Type
                 </label>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-gray-800 text-white"
+                  className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-gray-800 text-white"
                   value={filters.type}
                   onChange={(e) => setFilters({...filters, type: e.target.value})}
                 >
@@ -160,7 +160,7 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
                   Status
                 </label>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-gray-800 text-white"
+                  className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-gray-800 text-white"
                   value={filters.status}
                   onChange={(e) => setFilters({...filters, status: e.target.value})}
                 >
@@ -175,7 +175,7 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
                   Premium Status
                 </label>
                 <select
-                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-gray-800 text-white"
+                  className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md bg-gray-800 text-white"
                   value={filters.premium}
                   onChange={(e) => setFilters({...filters, premium: e.target.value})}
                 >
@@ -194,18 +194,18 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
         <table className="w-full">
           <thead>
             <tr className="bg-gray-700/30 text-left">
-              <th className="py-3 px-4 font-medium text-gray-400">Type</th>
-              <th className="py-3 px-4 font-medium text-gray-400">Title</th>
-              <th className="py-3 px-4 font-medium text-gray-400">Date</th>
-              <th className="py-3 px-4 font-medium text-gray-400">Status</th>
-              <th className="py-3 px-4 font-medium text-gray-400">Premium</th>
-              <th className="py-3 px-4 font-medium text-gray-400">Actions</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm">Type</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm">Title</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm hidden sm:table-cell">Date</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm hidden md:table-cell">Status</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm hidden lg:table-cell">Premium</th>
+              <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-400 text-xs sm:text-sm">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredContent.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-gray-400">
+                <td colSpan={6} className="py-8 text-center text-gray-400 text-sm">
                   No content found matching your criteria
                 </td>
               </tr>
@@ -213,32 +213,34 @@ export default function ContentTable({ content, onDelete }: ContentTableProps) {
               filteredContent.map((item) => {
                 return (
                   <tr key={`${item.kind}-${item.id}`} className="border-t border-gray-700/30 hover:bg-gray-700/20">
-                    <td className="py-3 px-4">
+                    <td className="py-2 sm:py-3 px-2 sm:px-4">
                       <div className="flex items-center">
-                        {getContentTypeIcon(item.kind)}
-                        <span className="ml-2 capitalize">{item.kind}</span>
+                        <Icon icon={getContentTypeIcon(item.kind)} className="w-4 h-4 text-gray-400" />
+                        <span className="ml-2 capitalize text-xs sm:text-sm hidden sm:inline">{item.kind}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 font-medium">{item.title}</td>
-                    <td className="py-3 px-4 text-gray-400">
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm max-w-[150px] sm:max-w-none truncate">
+                      {item.title}
+                    </td>
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-400 text-xs sm:text-sm hidden sm:table-cell">
                       {new Date(item.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 hidden md:table-cell">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         item.published ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         {item.published ? 'Published' : 'Draft'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 hidden lg:table-cell">
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         item.is_premium ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'
                       }`}>
                         {item.is_premium ? 'Premium' : 'Free'}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex space-x-3">
+                    <td className="py-2 sm:py-3 px-2 sm:px-4">
+                      <div className="flex space-x-2 sm:space-x-3">
                         <Link 
                           href={`/dashboard/content/${item.id}?kind=${item.kind}`}
                           className={`hover:opacity-80 transition-opacity`}

@@ -49,11 +49,11 @@ async function notifyExpiringSubscriptions() {
       .gte('expires_at', new Date().toISOString());
 
     if (error) {
-      console.error('Error fetching expiring subscriptions:', error);
+      // console.error('Error fetching expiring subscriptions:', error);
       return;
     }
 
-    //console.log(`Found ${expiringSubscriptions?.length || 0} expiring subscriptions`);
+    // console.log(`Found ${expiringSubscriptions?.length || 0} expiring subscriptions`);
 
     for (const subscription of expiringSubscriptions || []) {
       const expiresAt = new Date(subscription.expires_at);
@@ -92,12 +92,12 @@ async function notifyExpiringSubscriptions() {
         }
       );
 
-      //console.log(`Notified users about subscription ${subscription.id} expiring in ${daysUntilExpiry} days`);
+      // console.log(`Notified users about subscription ${subscription.id} expiring in ${daysUntilExpiry} days`);
     }
 
-    //console.log('Subscription expiration notifications completed');
+    // console.log('Subscription expiration notifications completed');
   } catch (error) {
-    console.error('Error in notifyExpiringSubscriptions:', error);
+    // console.error('Error in notifyExpiringSubscriptions:', error);
   }
 }
 

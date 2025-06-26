@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (followsError) {
-      console.error('Error getting follows:', followsError);
+      // console.error('Error getting follows:', followsError);
       return NextResponse.json(
         { error: 'Failed to get follows' },
         { status: 500 }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(subscriptions);
 
   } catch (error) {
-    console.error('Error in user-subscriptions route:', error);
+    // console.error('Error in user-subscriptions route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
