@@ -83,7 +83,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
   autoSignIn: async (walletAddress: string) => {
     set({ loading: true, error: null, errorDetails: null });
     try {
-      console.log('[UserStore] Starting automatic sign-in for:', walletAddress);
+      //console.log('[UserStore] Starting automatic sign-in for:', walletAddress);
       
       // Call backend to authenticate wallet and get JWT
       const res = await fetch('/api/wallet-auth/login', {
@@ -99,7 +99,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       }
 
       const { token, user } = await res.json();
-      console.log('[UserStore] Authentication successful:', { user, token });
+      //console.log('[UserStore] Authentication successful:', { user, token });
 
       if (token) {
         // Set the session using the custom JWT
@@ -115,7 +115,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
         // Set the user data
         set({ user: user as UserData, loading: false });
-        console.log('[UserStore] Auto sign-in completed successfully');
+        //console.log('[UserStore] Auto sign-in completed successfully');
       } else {
         throw new Error('No token received from authentication');
       }
@@ -148,16 +148,16 @@ export const useUserStore = create<UserStore>((set, get) => ({
   fetchUser: async (walletAddress: string) => {
     const accessToken = Cookies.get(cookieName);
     if (!accessToken) {
-      // console.log('[UserStore] No access token found');
+      // //console.log('[UserStore] No access token found');
       set({ loading: false, error: null, errorDetails: null });
       return;
     }
-    // console.log('[UserStore] Fetching user with token:', accessToken.substring(0, 20) + '...');
+    // //console.log('[UserStore] Fetching user with token:', accessToken.substring(0, 20) + '...');
     set({ loading: true, error: null, errorDetails: null });
 
     try {
       const { user: userData, error: userError } = await getUserByWallet(walletAddress);
-      // console.log('[UserStore] User data received:', userData);
+      // //console.log('[UserStore] User data received:', userData);
       
       if (userError) {
         console.error('[UserStore] Error fetching user:', userError);
@@ -165,7 +165,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       }
 
       set({ user: userData, loading: false });
-      // console.log('[UserStore] User successfully set:', userData?.wallet_address);
+      // //console.log('[UserStore] User successfully set:', userData?.wallet_address);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch user';
       console.error('[UserStore] Fetch user failed:', error);
@@ -208,7 +208,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
   },
 
   clearUser: () => {
-    console.log('[UserStore] Clearing user data');
+    //console.log('[UserStore] Clearing user data');
     supabase.auth.signOut();
     Cookies.remove(cookieName);
     set({ user: null, loading: false, error: null, errorDetails: null });

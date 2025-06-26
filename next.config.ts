@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
     restUrl: process.env.XION_REST_URL,
     chainId: process.env.CHAIN_ID,
     coingeckoApiKey: process.env.COINGECKO_API_KEY,
+    novypayApiKey: process.env.NOVYPAY_API_KEY,
   },
 };
 

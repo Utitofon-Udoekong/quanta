@@ -71,7 +71,7 @@ const createAuthUser = async (supabase: any, wallet_address: string) => {
         if (createError) {
             // If user already exists, get the user ID from our database
             if (createError.message.includes('already been registered') || createError.status === 422) {
-                console.log('User already exists in auth system, proceeding with existing user...');
+                //console.log('User already exists in auth system, proceeding with existing user...');
                 
                 const userId = await getUserIdByWalletAddress(supabase, wallet_address);
                 return { 
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
                 .single();
                 
             if (!triggerCreatedUser && !checkError) {
-                console.log('Trigger did not create user profile, creating manually...');
+                //console.log('Trigger did not create user profile, creating manually...');
                 // Fallback: manually create the user profile
                 const { data: manualUser, error: manualError } = await supabase
                     .from('users')
@@ -186,10 +186,10 @@ export async function POST(req: NextRequest) {
                     console.error('Manual user creation error:', manualError);
                     // Don't fail the auth, just log the error
                 } else {
-                    console.log('Manually created user profile:', manualUser);
+                    //console.log('Manually created user profile:', manualUser);
                 }
             } else if (triggerCreatedUser) {
-                console.log('Trigger successfully created user profile:', triggerCreatedUser);
+                //console.log('Trigger successfully created user profile:', triggerCreatedUser);
             }
             
             // Update login time

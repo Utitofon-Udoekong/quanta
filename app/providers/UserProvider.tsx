@@ -17,7 +17,7 @@ export default function UserProvider({
 
   useEffect(() => {
     const handleUserCheck = async () => {
-      console.log('handleUserCheck', account?.bech32Address, isConnected)
+      //console.log('handleUserCheck', account?.bech32Address, isConnected)
       
       // If no abstraxion account, user should be null
       if (!account?.bech32Address || !isConnected) {
@@ -29,13 +29,13 @@ export default function UserProvider({
       
       // If there's an account but no access token, run automatic sign-in
       if (!accessToken) {
-        console.log('[UserProvider] No access token, running automatic sign-in for:', account.bech32Address)
+        //console.log('[UserProvider] No access token, running automatic sign-in for:', account.bech32Address)
         await autoSignIn(account.bech32Address)
         return
       }
 
       // If there's both account and access token, use the normal checkAndSetUser flow
-      console.log('[UserProvider] Access token found, checking and setting user')
+      //console.log('[UserProvider] Access token found, checking and setting user')
       await checkAndSetUser()
     }
 
@@ -46,7 +46,7 @@ export default function UserProvider({
     // const {
     //   data: { subscription },
     // } = supabase.auth.onAuthStateChange(async (event, session) => {
-    //   console.log('[UserProvider] Auth state change:', event, session?.user?.id)
+    //   //console.log('[UserProvider] Auth state change:', event, session?.user?.id)
       
     //   if (event === 'SIGNED_IN' && session) {
     //     // User signed in - check and set user data

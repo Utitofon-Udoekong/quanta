@@ -146,7 +146,7 @@ export default function UnifiedContentForm({
 
   // Upload logic
   const uploadFile = async (file: File, bucketName: string) => {
-    console.log('Uploading file:', file, 'to bucket:', bucketName);
+    //console.log('Uploading file:', file, 'to bucket:', bucketName);
     const fileExt = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
     try {

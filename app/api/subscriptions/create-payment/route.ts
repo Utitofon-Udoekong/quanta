@@ -5,6 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE!;
 const NOVYPAY_BASE_URL = 'https://burntpay-u44m.onrender.com';
 const NOVYPAY_API_KEY = process.env.NOVYPAY_API_KEY || '';
+//console.log('NOVYPAY_API_KEY', NOVYPAY_API_KEY);
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -13,11 +14,13 @@ interface NovyPayPaymentRequest {
   amount: number;
   currency: string;
   token_type: 'USDC' | 'XION';
-  phone_country_code?: string;
-  phone_number?: string;
-  address_line1?: string;
-  city?: string;
-  country?: string;
+  email: string;
+  fullname: string;
+  phone_country_code: string;
+  phone_number: string;
+  address_line1: string;
+  city: string;
+  country: string;
 }
 
 // NovyPay payment response interface
@@ -54,6 +57,7 @@ async function initializeNovyPayPayment(
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('NovyPay payment initialization failed:', data);
       return {
         status: 'error',
         error: data.error || 'Payment initialization failed',
@@ -89,7 +93,7 @@ async function createSubscriptionPaymentRecord(
       .from('subscription_payments')
       .insert({
         subscription_id: subscriptionId,
-        novypay_reference: novypayReference,
+        payment_reference: novypayReference,
         amount: amount,
         currency: currency,
         token_type: tokenType,
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!creatorWalletAddress || !subscriberWalletAddress || !type || !amount) {
-      console.log('Missing required fields', body);
+      //console.log('Missing required fields', body);
         return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -170,6 +174,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user IDs from wallet addresses
+        //console.log('body', body);
     const [creatorResult, subscriberResult] = await Promise.all([
       supabase
         .from('users')
@@ -178,7 +183,7 @@ export async function POST(request: NextRequest) {
         .single(),
       supabase
         .from('users')
-        .select('id, username, wallet_address')
+            .select('id, username, wallet_address, email')
         .eq('wallet_address', subscriberWalletAddress)
         .single(),
     ]);
@@ -260,14 +265,17 @@ export async function POST(request: NextRequest) {
       amount: amount,
       currency: currency,
       token_type: tokenType,
-      phone_number: userPhone,
-      address_line1: userAddress?.line1,
-      city: userAddress?.city,
-      country: userAddress?.country,
+      email: subscriberResult.data.email || 'user@example.com',
+      fullname: subscriberResult.data.username || 'User',
+      phone_country_code: userPhone?.country_code || '+1',
+      phone_number: userPhone?.number || '1234567890',
+      address_line1: userAddress?.line1 || '123 Main St',
+      city: userAddress?.city || 'New York',
+      country: userAddress?.country || 'US'
     };
 
     const paymentResponse = await initializeNovyPayPayment(paymentRequest);
-    
+    //console.log('paymentResponse', paymentResponse);
     if (paymentResponse.status === 'error') {
       // Clean up subscription if payment initialization failed
       await supabase
@@ -305,9 +313,10 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      success: true,
+      status: 'success',
       subscriptionId: subscription.id,
-      paymentUrl: paymentResponse.redirect_url,
+      payment_url: paymentResponse.redirect_url,
+      payment_reference: paymentResponse.reference,
       message: 'Payment initialized successfully',
     });
 

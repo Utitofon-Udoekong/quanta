@@ -331,7 +331,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
       return;
     }
 
-    console.log('Updating fields:', changedFields);
+    //console.log('Updating fields:', changedFields);
 
     const { error } = await supabase
       .from(type === 'video' ? 'videos' : type === 'audio' ? 'audio' : 'articles')

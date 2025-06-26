@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Icon } from '@iconify/react';
+import { useUserStore } from '@/app/stores/user';
+import { supabase } from '@/app/utils/supabase/client';
 
 interface Notification {
   id: string;
@@ -14,28 +16,135 @@ export default function NotificationDropdown() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [lastFetch, setLastFetch] = useState<number>(0);
+  const { user } = useUserStore();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (forceRefresh = false) => {
+    if (!user?.id) {
+      //console.log('No user ID available for fetching notifications');
+      return;
+    }
+
+    // Cache for 30 seconds unless forced refresh
+    const now = Date.now();
+    if (!forceRefresh && now - lastFetch < 30000) {
+      //console.log('Using cached notifications');
+      return;
+    }
+
     setLoading(true);
-    const res = await fetch('/api/notifications');
-    const data = await res.json();
-    setNotifications(data.notifications || []);
-    setLoading(false);
-  };
+    try {
+      const res = await fetch(`/api/notifications?userId=${user.id}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+      setLastFetch(now);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Don't clear notifications on error, keep existing ones
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, lastFetch]);
+
+  // Set up real-time subscription for new notifications
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          //console.log('New notification received:', payload);
+          // Add new notification to the top of the list
+          setNotifications(prev => [payload.new as Notification, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          //console.log('Notification updated:', payload);
+          // Update the notification in the list
+          setNotifications(prev => 
+            prev.map(notification => 
+              notification.id === payload.new.id 
+                ? payload.new as Notification 
+                : notification
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
-    if (open) fetchNotifications();
-  }, [open]);
+    if (open && user?.id) {
+      fetchNotifications();
+    }
+  }, [open, user?.id, fetchNotifications]);
+
+  // Auto-refresh notifications every 2 minutes when dropdown is open
+  useEffect(() => {
+    if (!open || !user?.id) return;
+
+    const interval = setInterval(() => {
+      fetchNotifications(true); // Force refresh
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, [open, user?.id, fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  // Don't render if user is not logged in
+  if (!user?.id) {
+    return null;
+  }
+
   const markAsRead = async (ids: string[]) => {
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
-    });
-    fetchNotifications();
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      // Optimistically update the UI
+      setNotifications(prev => 
+        prev.map(notification => 
+          ids.includes(notification.id) 
+            ? { ...notification, is_read: true }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      // Revert optimistic update on error
+      fetchNotifications(true);
+    }
   };
 
   return (

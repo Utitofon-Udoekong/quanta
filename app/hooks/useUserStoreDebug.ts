@@ -5,10 +5,10 @@ export function useUserStoreDebug() {
 
   const logUserStoreState = () => {
     console.group('🔍 User Store Debug Info');
-    console.log('User:', user);
-    console.log('Loading:', loading);
-    console.log('Error:', error);
-    console.log('Error Details:', errorDetails);
+    //console.log('User:', user);
+    //console.log('Loading:', loading);
+    //console.log('Error:', error);
+    //console.log('Error Details:', errorDetails);
     console.groupEnd();
   };
 

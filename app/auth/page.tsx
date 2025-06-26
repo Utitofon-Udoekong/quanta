@@ -32,7 +32,7 @@ export default function AuthPage() {
       try {
         setLoading(true);
         setError(null);
-        console.log('signing in')
+        //console.log('signing in')
         // Call backend to authenticate wallet and get JWT
         const res = await fetch('/api/wallet-auth/login', {
           method: 'POST',
@@ -56,7 +56,7 @@ export default function AuthPage() {
         }
 
         const { token, user } = await res.json();
-        console.log('Authentication successful:', { user, token });
+        //console.log('Authentication successful:', { user, token });
 
         if (token) {
           // Get Supabase client with the new token

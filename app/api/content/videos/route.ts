@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     // Verify the user token to get their ID securely
     const { data: { user }, error: userError } = await supabase.auth.getUser(accessToken);
-    console.log('User:', user);
+    //console.log('User:', user);
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }

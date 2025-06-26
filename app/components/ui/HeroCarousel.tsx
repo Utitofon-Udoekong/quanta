@@ -381,7 +381,7 @@ export default function HeroCarousel({ items = defaultCarouselItems, onItemClick
         </Button>
 
         {/* Cards */}
-        <div className="relative w-full max-w-4xl h-full aspect-video" role="group" aria-label="Content slides">
+        <div className="relative w-full max-w-2xl h-full aspect-video" role="group" aria-label="Content slides">
           {items.filter(item => item).map((item, index) => {
             const style = getCardStyle(index)
             const isCenter = index === currentIndex

@@ -27,7 +27,7 @@ export async function POST(
     const { content, parentId } = await request.json();
     const userId = user.id;
 
-    console.log('Creating comment:', { type, id, userId, content, parentId });
+    //console.log('Creating comment:', { type, id, userId, content, parentId });
 
     const { data: comment, error: insertError } = await supabase
       .from('content_comments')
@@ -204,7 +204,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
     }
 
-    console.log('Deleting comment:', { commentId, userId });
+    //console.log('Deleting comment:', { commentId, userId });
 
     const { error: deleteError } = await supabase
       .from('content_comments')

@@ -9,7 +9,7 @@ const NOVYPAY_API_KEY = process.env.NOVYPAY_API_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Payment status types
-type PaymentStatus = 'pending' | 'success' | 'failed' | 'cancelled';
+type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 
 // NovyPay payment verification response
 interface NovyPayPaymentVerification {
@@ -26,7 +26,7 @@ interface NovyPayPaymentVerification {
 interface SubscriptionPaymentRecord {
   id: string;
   subscription_id: string;
-  novypay_reference: string;
+  payment_reference: string;
   amount: number;
   currency: string;
   token_type: 'USDC' | 'XION';
@@ -67,10 +67,9 @@ async function checkNovyPayPaymentStatus(
         error: data.error || 'Payment verification failed',
       };
     }
-
     return {
-      status: 'success',
-      payment_status: data.payment_status,
+      status: data.status,
+      payment_status: data.data.payment_status,
       amount: data.amount,
       currency: data.currency,
       token_type: data.token_type,
@@ -95,7 +94,7 @@ async function getSubscriptionPaymentByReference(
     const { data, error } = await supabase
       .from('subscription_payments')
       .select('*')
-      .eq('novypay_reference', novypayReference)
+      .eq('payment_reference', novypayReference)
       .single();
 
     if (error) {
@@ -122,7 +121,7 @@ async function updateSubscriptionPaymentStatus(
       .from('subscription_payments')
       .update({
         status: status,
-        payment_date: status === 'success' ? new Date().toISOString() : null,
+        payment_date: status === 'completed' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', paymentId);
@@ -176,6 +175,7 @@ export async function POST(request: NextRequest) {
 
     // Check payment status with NovyPay
     const verification = await checkNovyPayPaymentStatus(reference);
+    //console.log('Verification:', verification);
     if (verification.status === 'error') {
       return NextResponse.json(
         { error: verification.error || 'Payment verification failed' },
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     await updateSubscriptionPaymentStatus(paymentRecord.id, paymentStatus);
 
     // If payment was successful, activate subscription
-    if (paymentStatus === 'success') {
+    if (paymentStatus === 'completed') {
       const { error: subscriptionError } = await supabase
         .from('subscriptions')
         .update({
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Get subscription details for notifications
+      // Create or update subscriber record to keep both tables in sync
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('creator_id, subscriber_id, amount, currency, type')
@@ -215,6 +215,23 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (subscription) {
+        // Create or update subscriber record to keep both tables in sync
+        const { error: subscriberError } = await supabase
+          .from('subscribers')
+          .upsert({
+            creator_id: subscription.creator_id,
+            subscriber_id: subscription.subscriber_id,
+            status: 'active',
+            last_interaction: new Date().toISOString(),
+          }, {
+            onConflict: 'creator_id,subscriber_id'
+          });
+
+        if (subscriberError) {
+          console.error('Error creating subscriber record:', subscriberError);
+          // Don't fail the whole request, just log the error
+        }
+
         // Create success notification for subscriber
         await createNotification(
           subscription.subscriber_id,
@@ -323,7 +340,7 @@ export async function GET(request: NextRequest) {
       success: true,
       payment: {
         id: paymentRecord.id,
-        reference: paymentRecord.novypay_reference,
+        reference: paymentRecord.payment_reference,
         status: paymentRecord.status,
         amount: paymentRecord.amount,
         currency: paymentRecord.currency,

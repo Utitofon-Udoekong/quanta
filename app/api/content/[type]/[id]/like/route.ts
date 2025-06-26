@@ -26,7 +26,7 @@ export async function POST(
     const { type, id } = await params;
     const userId = user.id;
 
-    console.log('Like request:', { type, id, userId });
+    //console.log('Like request:', { type, id, userId });
 
     // Check if like already exists
     const { data: existingLike, error: checkError } = await supabase

@@ -20,47 +20,47 @@ const optionalVars = [
   'COINGECKO_API_KEY'
 ];
 
-console.log('🔍 Checking environment variables...\n');
+//console.log('🔍 Checking environment variables...\n');
 
 let allRequiredSet = true;
 
 // Check required variables
-console.log('Required variables:');
+//console.log('Required variables:');
 requiredVars.forEach(varName => {
   const value = process.env[varName];
   if (value) {
-    console.log(`✅ ${varName}: SET`);
+    //console.log(`✅ ${varName}: SET`);
   } else {
-    console.log(`❌ ${varName}: NOT SET`);
+    //console.log(`❌ ${varName}: NOT SET`);
     allRequiredSet = false;
   }
 });
 
-console.log('\nOptional variables:');
+//console.log('\nOptional variables:');
 optionalVars.forEach(varName => {
   const value = process.env[varName];
   if (value) {
-    console.log(`✅ ${varName}: SET`);
+    //console.log(`✅ ${varName}: SET`);
   } else {
-    console.log(`⚠️  ${varName}: NOT SET`);
+    //console.log(`⚠️  ${varName}: NOT SET`);
   }
 });
 
-console.log('\n' + '='.repeat(50));
+//console.log('\n' + '='.repeat(50));
 
 if (allRequiredSet) {
-  console.log('🎉 All required environment variables are set!');
+  //console.log('🎉 All required environment variables are set!');
   
   // Test Supabase URL format
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (supabaseUrl && !supabaseUrl.includes('supabase.co')) {
-    console.log('⚠️  Warning: NEXT_PUBLIC_SUPABASE_URL doesn\'t look like a valid Supabase URL');
+    //console.log('⚠️  Warning: NEXT_PUBLIC_SUPABASE_URL doesn\'t look like a valid Supabase URL');
   }
   
-  console.log('\nYou can now run the development server with: npm run dev');
+  //console.log('\nYou can now run the development server with: npm run dev');
 } else {
-  console.log('❌ Some required environment variables are missing.');
-  console.log('\nPlease create a .env.local file with the required variables.');
-  console.log('See ENVIRONMENT_SETUP.md for detailed instructions.');
+  //console.log('❌ Some required environment variables are missing.');
+  //console.log('\nPlease create a .env.local file with the required variables.');
+  //console.log('See ENVIRONMENT_SETUP.md for detailed instructions.');
   process.exit(1);
 } 

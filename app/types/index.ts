@@ -12,6 +12,15 @@ export interface UserData {
   username?: string;
   avatar_url?: string;
   bio?: string;
+  email?: string;
+  phone_country_code?: string;
+  phone_number?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
   last_login_at?: string;
   created_at?: string;
   updated_at?: string;

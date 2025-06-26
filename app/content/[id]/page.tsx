@@ -32,6 +32,32 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     : 'video';
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const router = useRouter();
+
+  const refreshContentAccess = async () => {
+    if (user && contentWithKind?.author?.id) {
+      try {
+        const access = await checkContentAccess(
+          user.id,
+          contentWithKind.id,
+          kind as 'article' | 'video' | 'audio',
+          contentWithKind.author.id
+        );
+        setAccessInfo(access);
+
+        // Get subscription status
+        const status = await getSubscriptionStatus(user.id, contentWithKind.author.id);
+        setSubscriptionStatus(status);
+
+        // Track view if user now has access
+        if (access.hasAccess) {
+          trackContentView(contentWithKind.id, kind, user.id);
+        }
+      } catch (error) {
+        console.error('Error refreshing content access:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -61,8 +87,8 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         }
 
         const contentWithKind = { ...data, kind };
-        console.log(contentWithKind)
-        console.log(contentWithKind.author?.id)
+        //console.log(contentWithKind)
+        //console.log(contentWithKind.author?.id)
         setContentWithKind(contentWithKind);
 
         // Check access permissions
@@ -143,7 +169,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         );
       case 'article':
         return (
-          <div className="prose prose-invert max-w-none">
+          <div className="prose prose-invert w-full">
             <MarkdownViewer content={(content as ArticleContent).content || ''} />
           </div>
         );
@@ -226,6 +252,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
                 fullname: user?.username || ''
               }}
               contentTitle={contentWithKind.title}
+              onSuccess={refreshContentAccess}
             />
           )}
         </div>
