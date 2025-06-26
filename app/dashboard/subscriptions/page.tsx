@@ -2,23 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from "@burnt-labs/ui";
 import { useUserStore } from '@/app/stores/user';
+import { supabase } from '@/app/utils/supabase/client';
 import { Icon } from '@iconify/react';
-import { 
-  getUserSubscriptions, 
-  getCreatorSubscribers, 
-  followCreator, 
-  unfollowCreator,
-  createPaidSubscription,
-  cancelPaidSubscription,
-  CreatorSubscription,
-  Subscriber
-} from '@/app/utils/subscription';
+import { Button } from "@headlessui/react"
+import {
+  getSubscriptionAnalytics,
+  getCreatorSubscribers,
+  getUserSubscriptions,
+} from '@/app/utils/subscription-api';
+import { followCreator, unfollowCreator } from '@/app/utils/subscription-api';
+import { SubscriberWithUserInfo, CreatorSubscriptionWithUserInfo } from '@/app/types';
 
 export default function SubscriptionsPage() {
-  const [mySubscriptions, setMySubscriptions] = useState<CreatorSubscription[]>([]);
-  const [mySubscribers, setMySubscribers] = useState<Subscriber[]>([]);
+  const [mySubscriptions, setMySubscriptions] = useState<CreatorSubscriptionWithUserInfo[]>([]);
+  const [mySubscribers, setMySubscribers] = useState<SubscriberWithUserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'following' | 'followers'>('following');
   const [processing, setProcessing] = useState<string | null>(null);
@@ -51,73 +49,71 @@ export default function SubscriptionsPage() {
     fetchData();
   }, [user?.wallet_address]);
 
-  const handleFollow = async (creatorWallet: string) => {
+  const fetchSubscriptions = async () => {
     if (!user?.wallet_address) return;
+    
+    try {
+      const subscriptions = await getUserSubscriptions(user.wallet_address);
+      setMySubscriptions(subscriptions);
+    } catch (error) {
+      console.error('Error refreshing subscriptions:', error);
+    }
+  };
+
+  const handleFollow = async (creatorWallet: string) => {
+    if (!user?.id) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await followCreator(user.wallet_address, creatorWallet);
+      // Get creator user ID from wallet address
+      const { data: creator } = await supabase
+        .from('users')
+        .select('id')
+        .eq('wallet_address', creatorWallet)
+        .single();
+      
+      if (!creator) {
+        console.error('Creator not found');
+        return;
+      }
+      
+      // For now, create a basic monthly subscription - in a real app, you'd show a payment modal
+      const success = await followCreator(user.id, creator.id, 'monthly', 10, 'USD');
       if (success) {
-        // Refresh data
-        const subscriptions = await getUserSubscriptions(user.wallet_address);
-        setMySubscriptions(subscriptions);
+        // Refresh the data
+        fetchSubscriptions();
       }
     } catch (error) {
-      console.error('Error following creator:', error);
+      console.error('Error subscribing to creator:', error);
     } finally {
       setProcessing(null);
     }
   };
 
   const handleUnfollow = async (creatorWallet: string) => {
-    if (!user?.wallet_address) return;
+    if (!user?.id) return;
     
     setProcessing(creatorWallet);
     try {
-      const success = await unfollowCreator(user.wallet_address, creatorWallet);
+      // Get creator user ID from wallet address
+      const { data: creator } = await supabase
+        .from('users')
+        .select('id')
+        .eq('wallet_address', creatorWallet)
+        .single();
+      
+      if (!creator) {
+        console.error('Creator not found');
+        return;
+      }
+      
+      const success = await unfollowCreator(user.id, creator.id);
       if (success) {
-        // Refresh data
-        const subscriptions = await getUserSubscriptions(user.wallet_address);
-        setMySubscriptions(subscriptions);
+        // Refresh the data
+        fetchSubscriptions();
       }
     } catch (error) {
-      console.error('Error unfollowing creator:', error);
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleSubscribe = async (creatorWallet: string, type: 'monthly' | 'yearly' | 'one-time', amount: number) => {
-    if (!user?.wallet_address) return;
-    
-    setProcessing(creatorWallet);
-    try {
-      const success = await createPaidSubscription(user.wallet_address, creatorWallet, type, amount);
-      if (success) {
-        // Refresh data
-        const subscriptions = await getUserSubscriptions(user.wallet_address);
-        setMySubscriptions(subscriptions);
-      }
-    } catch (error) {
-      console.error('Error creating subscription:', error);
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleCancelSubscription = async (creatorWallet: string) => {
-    if (!user?.wallet_address) return;
-    
-    setProcessing(creatorWallet);
-    try {
-      const success = await cancelPaidSubscription(user.wallet_address, creatorWallet);
-      if (success) {
-        // Refresh data
-        const subscriptions = await getUserSubscriptions(user.wallet_address);
-        setMySubscriptions(subscriptions);
-      }
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      console.error('Error unsubscribing from creator:', error);
     } finally {
       setProcessing(null);
     }
@@ -148,7 +144,7 @@ export default function SubscriptionsPage() {
             }`}
           >
             <Icon icon="mdi:account-group" className="w-5 h-5 mr-2 inline" />
-            Following ({mySubscriptions.length})
+            Subscriptions ({mySubscriptions.length})
           </button>
           <button
             onClick={() => setActiveTab('followers')}
@@ -159,7 +155,7 @@ export default function SubscriptionsPage() {
             }`}
           >
             <Icon icon="mdi:account-multiple" className="w-5 h-5 mr-2 inline" />
-            Followers ({mySubscribers.length})
+            Subscribers ({mySubscribers.length})
           </button>
         </div>
 
@@ -167,15 +163,15 @@ export default function SubscriptionsPage() {
         {activeTab === 'following' ? (
           <div className="bg-[#121418] rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">Creators You Follow</h2>
-              <p className="text-gray-400 mt-1">Manage your subscriptions and follows</p>
+              <h2 className="text-xl font-bold text-white">Creators You Subscribe To</h2>
+              <p className="text-gray-400 mt-1">Manage your paid subscriptions</p>
             </div>
             
             {mySubscriptions.length === 0 ? (
               <div className="p-12 text-center">
                 <Icon icon="mdi:account-group-outline" className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-300 mb-2">No subscriptions yet</h3>
-                <p className="text-gray-500 mb-6">Start following creators to see their content here</p>
+                <p className="text-gray-500 mb-6">Start subscribing to creators to access their premium content</p>
                 <Button
                   onClick={() => router.push('/discover')}
                   className="px-6 py-3 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white rounded-lg"
@@ -202,15 +198,21 @@ export default function SubscriptionsPage() {
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            subscription.type === 'monthly' 
+                            subscription.subscription_type === 'monthly' 
                               ? 'bg-purple-900/40 text-purple-400'
+                              : subscription.subscription_type === 'yearly'
+                              ? 'bg-blue-900/40 text-blue-400'
+                              : subscription.subscription_type === 'one-time'
+                              ? 'bg-green-900/40 text-green-400'
                               : 'bg-gray-900/40 text-gray-400'
                           }`}>
-                            {subscription.type === 'monthly' ? 'Monthly' : subscription.type}
+                            {subscription.subscription_type === 'monthly' ? 'Monthly' : 
+                             subscription.subscription_type === 'yearly' ? 'Yearly' :
+                             subscription.subscription_type === 'one-time' ? 'One-time' : 'Following'}
                           </span>
-                          {subscription.amount && (
+                          {subscription.subscription_amount && (
                             <span className="text-sm text-gray-400">
-                              ${subscription.amount} {subscription.currency}
+                              ${subscription.subscription_amount} {subscription.subscription_currency}
                             </span>
                           )}
                         </div>
@@ -218,34 +220,20 @@ export default function SubscriptionsPage() {
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      {subscription.status === 'active' ? (
-                        <Button
-                          onClick={() => handleCancelSubscription(subscription.wallet_address)}
-                          disabled={processing === subscription.wallet_address}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
-                        >
-                          {processing === subscription.wallet_address ? (
-                            <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'Cancel'
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleFollow(subscription.wallet_address)}
-                          disabled={processing === subscription.wallet_address}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
-                        >
-                          {processing === subscription.wallet_address ? (
-                            <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'Follow'
-                          )}
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => handleUnfollow(subscription.wallet_address)}
+                        disabled={processing === subscription.wallet_address}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                      >
+                        {processing === subscription.wallet_address ? (
+                          <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
+                        ) : (
+                          'Unsubscribe'
+                        )}
+                      </Button>
                       
                       <Button
-                        onClick={() => router.push(`/content/${subscription.creator_id}`)}
+                        onClick={() => router.push(`/content/${subscription.id}`)}
                         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm"
                       >
                         View Content
@@ -259,15 +247,15 @@ export default function SubscriptionsPage() {
         ) : (
           <div className="bg-[#121418] rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">Your Followers</h2>
-              <p className="text-gray-400 mt-1">People who follow your content</p>
+              <h2 className="text-xl font-bold text-white">Your Paid Subscribers</h2>
+              <p className="text-gray-400 mt-1">People who subscribe to your premium content</p>
             </div>
             
             {mySubscribers.length === 0 ? (
               <div className="p-12 text-center">
                 <Icon icon="mdi:account-multiple-outline" className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">No followers yet</h3>
-                <p className="text-gray-500 mb-6">Start creating content to attract followers</p>
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">No subscribers yet</h3>
+                <p className="text-gray-500 mb-6">Start creating premium content to attract subscribers</p>
                 <Button
                   onClick={() => router.push('/dashboard/content/create')}
                   className="px-6 py-3 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white rounded-lg"
@@ -293,16 +281,12 @@ export default function SubscriptionsPage() {
                           {subscriber.wallet_address.slice(0, 8)}...{subscriber.wallet_address.slice(-6)}
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            subscriber.subscription_type === 'free' 
-                              ? 'bg-gray-900/40 text-gray-400' 
-                              : 'bg-purple-900/40 text-purple-400'
-                          }`}>
-                            {subscriber.subscription_type === 'free' ? 'Free' : subscriber.subscription_type}
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-900/40 text-purple-400">
+                            {subscriber.subscription_type}
                           </span>
-                          {subscriber.amount && (
+                          {subscriber.subscription_amount && (
                             <span className="text-sm text-gray-400">
-                              ${subscriber.amount} {subscriber.currency}
+                              ${subscriber.subscription_amount} {subscriber.subscription_currency}
                             </span>
                           )}
                         </div>
@@ -314,7 +298,7 @@ export default function SubscriptionsPage() {
                     
                     <div className="flex items-center space-x-2">
                       <Button
-                        onClick={() => router.push(`/content/${subscriber.subscriber_id}`)}
+                        onClick={() => router.push(`/content/${subscriber.id}`)}
                         className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm"
                       >
                         View Profile

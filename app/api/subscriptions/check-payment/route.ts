@@ -140,52 +140,17 @@ async function updateSubscriptionPaymentStatus(
 }
 
 /**
- * Process subscription payment completion
+ * Helper to create a notification for a user
  */
-async function processSubscriptionPaymentCompletion(
-  novypayReference: string
-): Promise<boolean> {
-  try {
-    // Get payment record
-    const paymentRecord = await getSubscriptionPaymentByReference(novypayReference);
-    if (!paymentRecord) {
-      console.error('Payment record not found for reference:', novypayReference);
-      return false;
-    }
-
-    // Check payment status with NovyPay
-    const verification = await checkNovyPayPaymentStatus(novypayReference);
-    if (verification.status === 'error') {
-      console.error('Payment verification failed:', verification.error);
-      return false;
-    }
-
-    // Update payment status
-    const status = verification.payment_status || 'failed';
-    await updateSubscriptionPaymentStatus(paymentRecord.id, status);
-
-    // If payment was successful, update subscription
-    if (status === 'success') {
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .update({
-          status: 'active',
-          last_renewed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', paymentRecord.subscription_id);
-
-      if (subscriptionError) {
-        console.error('Error updating subscription status:', subscriptionError);
-        return false;
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in processSubscriptionPaymentCompletion:', error);
-    return false;
-  }
+async function createNotification(userId: string, type: string, message: string, data?: any) {
+  await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      message,
+      data,
+    });
 }
 
 export async function POST(request: NextRequest) {
@@ -200,19 +165,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process the payment completion
-    const success = await processSubscriptionPaymentCompletion(reference);
-
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to process payment' },
-        { status: 500 }
-      );
-    }
-
-    // Get updated payment record
+    // Get payment record by reference
     const paymentRecord = await getSubscriptionPaymentByReference(reference);
-
     if (!paymentRecord) {
       return NextResponse.json(
         { error: 'Payment record not found' },
@@ -220,46 +174,100 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get subscription details
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from('subscriptions')
-      .select(`
-        *,
-        creator:users!creator_id (username, wallet_address),
-        subscriber:users!subscriber_id (username, wallet_address)
-      `)
-      .eq('id', paymentRecord.subscription_id)
-      .single();
-
-    if (subscriptionError || !subscription) {
+    // Check payment status with NovyPay
+    const verification = await checkNovyPayPaymentStatus(reference);
+    if (verification.status === 'error') {
       return NextResponse.json(
-        { error: 'Subscription not found' },
-        { status: 404 }
+        { error: verification.error || 'Payment verification failed' },
+        { status: 500 }
       );
     }
 
+    const paymentStatus = verification.payment_status || 'pending';
+
+    // Update payment status
+    await updateSubscriptionPaymentStatus(paymentRecord.id, paymentStatus);
+
+    // If payment was successful, activate subscription
+    if (paymentStatus === 'success') {
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          last_renewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', paymentRecord.subscription_id);
+
+      if (subscriptionError) {
+        console.error('Error activating subscription:', subscriptionError);
+        return NextResponse.json(
+          { error: 'Failed to activate subscription' },
+          { status: 500 }
+        );
+      }
+
+      // Get subscription details for notifications
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('creator_id, subscriber_id, amount, currency, type')
+        .eq('id', paymentRecord.subscription_id)
+        .single();
+
+      if (subscription) {
+        // Create success notification for subscriber
+        await createNotification(
+          subscription.subscriber_id,
+          'payment_success',
+          'Your subscription payment was successful! You now have access to premium content.',
+          { 
+            subscriptionId: paymentRecord.subscription_id,
+            amount: subscription.amount,
+            currency: subscription.currency 
+          }
+        );
+
+        // Create notification for creator about new subscriber
+        await createNotification(
+          subscription.creator_id,
+          'new_subscriber',
+          'You have a new paid subscriber!',
+          { 
+            subscriptionId: paymentRecord.subscription_id,
+            amount: subscription.amount,
+            currency: subscription.currency 
+          }
+        );
+      }
+    } else if (paymentStatus === 'failed') {
+      // Get subscription details for failure notification
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('subscriber_id, amount, currency')
+        .eq('id', paymentRecord.subscription_id)
+        .single();
+
+      if (subscription) {
+        // Create failure notification for subscriber
+        await createNotification(
+          subscription.subscriber_id,
+          'payment_failed',
+          'Your payment failed. Please try again.',
+          { 
+            subscriptionId: paymentRecord.subscription_id,
+            amount: subscription.amount,
+            currency: subscription.currency 
+          }
+        );
+      }
+    }
+
     return NextResponse.json({
-      success: true,
-      paymentStatus: paymentRecord.status,
-      subscription: {
-        id: subscription.id,
-        type: subscription.type,
-        status: subscription.status,
-        amount: subscription.amount,
-        currency: subscription.currency,
-        expiresAt: subscription.expires_at,
-        creator: {
-          username: subscription.creator?.username,
-          walletAddress: subscription.creator?.wallet_address,
-        },
-        subscriber: {
-          username: subscription.subscriber?.username,
-          walletAddress: subscription.subscriber?.wallet_address,
-        },
-      },
-      message: paymentRecord.status === 'success' 
-        ? 'Payment successful and subscription activated' 
-        : 'Payment processed',
+      status: paymentStatus,
+      amount: verification.amount,
+      currency: verification.currency,
+      token_type: verification.token_type,
+      reference: verification.reference,
     });
 
   } catch (error) {

@@ -57,7 +57,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { user_id, ...renewalData } = await request.json();
+    const { subscriber_id, ...updateData } = await request.json();
     const cookieStore = await cookies();
     const accessToken = cookieStore.get(cookieName)?.value;
     if (!accessToken) {
@@ -66,9 +66,9 @@ export async function PUT(
         { status: 401 }
       );
     }
-    if (!user_id) {
+    if (!subscriber_id) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'Subscriber ID is required' },
         { status: 400 }
       );
     }
@@ -96,64 +96,53 @@ export async function PUT(
       );
     }
 
-    if (subscription.user_id !== user_id) {
+    if (subscription.subscriber_id !== subscriber_id) {
       return NextResponse.json(
-        { error: 'Unauthorized to renew this subscription' },
+        { error: 'Unauthorized to update this subscription' },
         { status: 403 }
       );
     }
 
-    // Begin transaction to handle renewal
-    const { error: transactionError } = await supabase.rpc('renew_subscription', {
-      p_subscription_id: id,
-      p_user_id: user_id,
-      p_renewal_data: {
-        current_period_start: renewalData.current_period_start,
-        current_period_end: renewalData.current_period_end,
-        payment_method: renewalData.payment_method,
-        payment_status: renewalData.payment_status,
-        amount: renewalData.amount,
-        currency: renewalData.currency
-      }
-    });
-
-    if (transactionError) {
-      return NextResponse.json(
-        { error: transactionError.message },
-        { status: 500 }
-      );
-    }
-
-    // Fetch the renewed subscription
-    const { data: renewedSubscription, error: finalFetchError } = await supabase
+    // Update subscription
+    const { data: updatedSubscription, error: updateError } = await supabase
       .from('subscriptions')
-      .select('*')
+      .update(updateData)
       .eq('id', id)
+      .select('*')
       .single();
 
-    if (finalFetchError) {
+    if (updateError) {
       return NextResponse.json(
-        { error: finalFetchError.message },
+        { error: updateError.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(renewedSubscription);
+    return NextResponse.json(updatedSubscription);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to renew subscription' },
+      { error: error.message || 'Failed to update subscription' },
       { status: 500 }
     );
   }
 }
 
-export async function PATCH(
+export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { user_id, ...updateData } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const subscriber_id = searchParams.get('subscriber_id');
+
+    if (!subscriber_id) {
+      return NextResponse.json(
+        { error: 'Subscriber ID is required' },
+        { status: 400 }
+      );
+    }
+
     const cookieStore = await cookies();
     const accessToken = cookieStore.get(cookieName)?.value;
     if (!accessToken) {
@@ -162,19 +151,13 @@ export async function PATCH(
         { status: 401 }
       );
     }
-    if (!user_id) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
 
     const supabase = await getSupabase(accessToken);
 
-    // First verify if the subscription belongs to the user
+    // Verify subscription exists and belongs to user
     const { data: subscription, error: fetchError } = await supabase
       .from('subscriptions')
-      .select('user_id')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -192,32 +175,35 @@ export async function PATCH(
       );
     }
 
-    if (subscription.user_id !== user_id) {
+    if (subscription.subscriber_id !== subscriber_id) {
       return NextResponse.json(
-        { error: 'Unauthorized to update this subscription' },
+        { error: 'Unauthorized to cancel this subscription' },
         { status: 403 }
       );
     }
 
-    // Update the subscription
-    const { data: updatedSubscription, error: updateError } = await supabase
+    // Cancel subscription (soft delete by setting status to cancelled)
+    const { data: cancelledSubscription, error: cancelError } = await supabase
       .from('subscriptions')
-      .update(updateData)
+      .update({
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString()
+      })
       .eq('id', id)
-      .select()
+      .select('*')
       .single();
 
-    if (updateError) {
+    if (cancelError) {
       return NextResponse.json(
-        { error: updateError.message },
+        { error: cancelError.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(updatedSubscription);
+    return NextResponse.json(cancelledSubscription);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Failed to update subscription' },
+      { error: error.message || 'Failed to cancel subscription' },
       { status: 500 }
     );
   }

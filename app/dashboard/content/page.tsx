@@ -246,15 +246,8 @@ export default function ContentManagement() {
             {filteredContent.map((content) => (
               <Link key={content.id} href={`/dashboard/content/${content.id}?kind=${content.kind}`} className="block group">
                   <ContentCard
-                    image={content.thumbnail_url || '/images/default-thumbnail.png'}
-                    title={content.title}
-                    subtitle={content.views ? `${content.views} views` : ''}
-                    actionLabel={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
-                    author={content.author ? {
-                      name: content.author.username || content.author.wallet_address?.slice(0, 8) || 'Unknown',
-                      avatar: content.author.avatar_url || 'https://robohash.org/206',
-                    } : undefined}
-                    contentType={content.kind}
+                    content={content}
+                    badge={content.kind === 'video' ? 'Watch' : content.kind === 'audio' ? 'Listen' : 'Read'}
                   />
               </Link>
             ))}

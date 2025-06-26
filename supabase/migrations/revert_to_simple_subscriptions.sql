@@ -73,7 +73,7 @@ END $$;
 DROP TABLE IF EXISTS subscribers CASCADE;
 DROP TABLE IF EXISTS subscriptions CASCADE;
 
--- Create the clean subscribers table (who follows a creator)
+-- Create the clean subscribers table (paid subscribers who subscribe to a creator)
 CREATE TABLE subscribers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   creator_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE subscribers (
   UNIQUE(creator_id, subscriber_id)
 );
 
--- Create the clean subscriptions table (paid subscriptions)
+-- Create the clean subscriptions table (creators the user pays to subscribe to)
 CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   creator_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,

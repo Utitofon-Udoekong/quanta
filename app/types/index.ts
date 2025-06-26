@@ -88,22 +88,34 @@ export interface SubscriptionPlan {
   is_active: boolean;
 }
 
+// Database table: subscribers (paid subscribers to your content)
+export interface Subscriber {
+  id: string;
+  creator_id: string;
+  subscriber_id: string;
+  created_at: string;
+  status: 'active' | 'unsubscribed' | 'banned';
+  last_interaction: string;
+  notes?: string;
+}
+
+// Database table: subscriptions (creators you pay to subscribe to)
 export interface Subscription {
   id: string;
-  user_id: string;
-  plan_id: string;
-  status: 'active' | 'canceled' | 'expired' | 'past_due';
-  current_period_start: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
-  canceled_at: string | null;
+  creator_id: string;
+  subscriber_id: string;
+  type: 'monthly' | 'yearly' | 'one-time';
+  started_at: string;
+  expires_at?: string;
+  status: 'active' | 'cancelled' | 'expired' | 'pending' | 'past_due';
+  payment_id?: string;
+  amount: number;
+  currency: string;
+  last_renewed_at?: string;
+  cancelled_at?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
-  payment_method: string | null;
-  payment_status: 'succeeded' | 'failed' | 'pending' | null;
-  last_payment_date: string | null;
-  next_payment_date: string | null;
-  plan?: SubscriptionPlan;
 }
 
 export interface SubscriptionPayment {
@@ -116,6 +128,56 @@ export interface SubscriptionPayment {
   payment_date: string;
   created_at: string;
   transaction_hash?: string | null;
+}
+
+// API Response types (combined data for frontend)
+export interface SubscriberWithUserInfo {
+  id: string;
+  username: string;
+  wallet_address: string;
+  avatar_url?: string;
+  subscribed_at: string;
+  subscription_type?: string;
+  subscription_amount?: number;
+  subscription_currency?: string;
+  subscription_expires_at?: string;
+}
+
+export interface CreatorSubscriptionWithUserInfo {
+  id: string;
+  username: string;
+  wallet_address: string;
+  avatar_url?: string;
+  subscribed_at: string;
+  subscription_type?: string;
+  subscription_amount?: number;
+  subscription_currency?: string;
+  subscription_expires_at?: string;
+}
+
+export interface SubscriptionStats {
+  totalFollowers: number;
+  paidSubscribers: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  yearlyRevenue: number;
+  oneTimeRevenue: number;
+}
+
+// Subscription access and status types
+export interface AccessInfo {
+  hasAccess: boolean;
+  isPremium: boolean;
+  reason?: string;
+}
+
+export interface SubscriptionStatus {
+  isFollowing: boolean;
+  isPaidSubscriber: boolean;
+  subscriptionType?: string;
+  expiresAt?: string;
+  amount?: number;
+  currency?: string;
 }
 
 export interface Token {

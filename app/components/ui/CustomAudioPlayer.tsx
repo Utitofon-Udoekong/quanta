@@ -2,14 +2,17 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import LikeButton from '@/app/components/ui/content/LikeButton';
 
 interface CustomAudioPlayerProps {
   src: string;
   title?: string;
   className?: string;
+  contentId: string;
+  contentType: string;
 }
 
-export default function CustomAudioPlayer({ src, title, className = '' }: CustomAudioPlayerProps) {
+export default function CustomAudioPlayer({ src, title, className = '', contentId, contentType }: CustomAudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -17,6 +20,36 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Improved controls visibility logic
+  const [showControls, setShowControls] = useState(true);
+  useEffect(() => {
+    if (!isPlaying || isLoading) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      return;
+    }
+    if (showControls) {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isPlaying, isLoading, showControls]);
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (isPlaying && !isLoading) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -86,92 +119,56 @@ export default function CustomAudioPlayer({ src, title, className = '' }: Custom
   };
 
   return (
-    <div className={`bg-gray-900 rounded-lg p-4 ${className}`}>
-      <audio ref={audioRef} src={src} preload="metadata" />
-      
-      {title && (
-        <div className="mb-2 text-sm font-medium text-gray-300">
-          {title}
+    <div className={`relative bg-[#18122B] rounded-b-2xl overflow-hidden ${className}`}>
+      {/* Progress Bar */}
+      <div className="w-full px-6 pt-6">
+        <div className="flex items-center justify-between text-xs text-white/80 mb-1">
+          <span>{formatTime(currentTime)}</span>
+          <span>-{formatTime(duration - currentTime)}</span>
         </div>
-      )}
-      
-      <div className="flex items-center space-x-4">
+        <input
+          type="range"
+          min="0"
+          max={duration || 0}
+          value={currentTime}
+          onChange={handleSeek}
+          className="w-full h-1 bg-white rounded-full appearance-none cursor-pointer accent-[#8B25FF]"
+          style={{ accentColor: '#8B25FF' }}
+        />
+      </div>
+      {/* Controls Row */}
+      <div className="flex items-center justify-center gap-6 py-6">
+        {/* Like Button */}
+        <div className="drop-shadow-[0_0_8px_#8B25FF]">
+          <LikeButton contentId={contentId} contentType={contentType} />
+        </div>
+        {/* Volume */}
+        <button onClick={toggleMute} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+          <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="w-6 h-6" />
+        </button>
+        {/* Skip Back */}
+        <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+          <Icon icon="mdi:rewind-10" className="w-6 h-6" />
+        </button>
+        {/* Play/Pause */}
         <button
           onClick={togglePlay}
-          className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
+          className="p-4 rounded-full bg-[#8B25FF] shadow-lg drop-shadow-[0_0_16px_#8B25FF] flex items-center justify-center"
+          style={{ boxShadow: '0 0 32px #8B25FF80' }}
           disabled={isLoading}
         >
           {isLoading ? (
-            <Icon icon="mdi:reload" className="h-5 w-5 text-gray-400 animate-spin" />
+            <Icon icon="mdi:reload" className="h-8 w-8 text-white animate-spin" />
           ) : isPlaying ? (
-            <Icon icon="mdi:pause" className="h-5 w-5 text-purple-400" />
+            <Icon icon="mdi:pause" className="h-8 w-8 text-white" />
           ) : (
-            <Icon icon="mdi:play" className="h-5 w-5 text-purple-400" />
+            <Icon icon="mdi:play" className="h-8 w-8 text-white" />
           )}
         </button>
-        
-        <div className="flex-1">
-          <input
-            type="range"
-            min="0"
-            max={duration || 0}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:mt-[-6px] 
-              [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
-              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-purple-500 
-              [&::-webkit-slider-runnable-track]:to-purple-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
-              [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
-              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-400 [&::-moz-range-thumb]:border 
-              [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
-              [&::-moz-range-progress]:bg-purple-500 [&::-moz-range-track]:bg-gray-700"
-            style={{ '--background-size': `${(currentTime / (duration || 1)) * 100}%` } as React.CSSProperties}
-          />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={toggleMute}
-            className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
-          >
-            {isMuted ? (
-              <Icon icon="mdi:volume-off" className="h-5 w-5 text-gray-400" />
-            ) : (
-              <Icon icon="mdi:volume-high" className="h-5 w-5 text-gray-400" />
-            )}
+        {/* Skip Forward */}
+        <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+          <Icon icon="mdi:fast-forward-10" className="w-6 h-6" />
           </button>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-400 [&::-webkit-slider-thumb]:mt-[-6px] 
-              [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
-              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-purple-500 
-              [&::-webkit-slider-runnable-track]:to-purple-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
-              [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
-              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-400 [&::-moz-range-thumb]:border 
-              [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
-              [&::-moz-range-progress]:bg-purple-500 [&::-moz-range-track]:bg-gray-700"
-            style={{ '--background-size': `${volume * 100}%` } as React.CSSProperties}
-          />
-        </div>
       </div>
     </div>
   );

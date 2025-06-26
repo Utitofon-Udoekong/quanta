@@ -45,6 +45,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Notify all subscribers of the creator about the new video
+    const { data: subscribers } = await supabase
+      .from('subscribers')
+      .select('subscriber_id')
+      .eq('creator_id', videoData.user_id)
+      .eq('status', 'active');
+
+    for (const sub of subscribers || []) {
+      await supabase.from('notifications').insert({
+        user_id: sub.subscriber_id,
+        type: 'new_content',
+        message: `New video published: ${data.title}`,
+        data: { contentId: data.id, contentType: 'video', title: data.title },
+      });
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('API POST Error:', error);

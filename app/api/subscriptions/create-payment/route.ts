@@ -110,6 +110,18 @@ async function createSubscriptionPaymentRecord(
   }
 }
 
+// Helper to create a notification for a user
+async function createNotification(userId: string, type: string, message: string, data?: any) {
+  await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      message,
+      data,
+    });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -127,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!creatorWalletAddress || !subscriberWalletAddress || !type || !amount) {
       console.log('Missing required fields', body);
-      return NextResponse.json(
+        return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
@@ -262,7 +274,13 @@ export async function POST(request: NextRequest) {
         .from('subscriptions')
         .delete()
         .eq('id', subscription.id);
-      
+      // Notify subscriber of payment failure
+      await createNotification(
+        subscriberResult.data.id,
+        'payment_failed',
+        'Your payment failed. Please try again.',
+        { subscriptionId: subscription.id }
+      );
       return NextResponse.json(
         { error: paymentResponse.error || 'Payment initialization failed' },
         { status: 500 }
@@ -276,6 +294,14 @@ export async function POST(request: NextRequest) {
       amount,
       currency,
       tokenType
+    );
+
+    // Notify subscriber of payment success
+    await createNotification(
+      subscriberResult.data.id,
+      'payment_success',
+      'Your payment was successful and your subscription is now active.',
+      { subscriptionId: subscription.id }
     );
 
     return NextResponse.json({

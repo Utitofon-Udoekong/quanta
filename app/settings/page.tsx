@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { Button } from '@burnt-labs/ui';
+import { Button } from "@headlessui/react"
 import { UserData } from "@/app/types";
 import { toast } from "@/app/components/helpers/toast";
 import { useUserStore } from "@/app/stores/user";

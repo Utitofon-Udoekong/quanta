@@ -173,7 +173,12 @@ function CommentItem({
         )}
         {!isEditing && (
           <div className="flex items-center gap-4 text-xs text-gray-500 font-medium mt-1">
-            <button className="flex items-center gap-1 hover:text-purple-400 transition-colors"><Icon icon="mdi:reply" className="w-4 h-4" />Reply</button>
+            <button 
+              className="flex items-center gap-1 hover:text-purple-400 transition-colors"
+              onClick={() => setIsReplying(true)}
+            >
+              <Icon icon="mdi:reply" className="w-4 h-4" />Reply
+            </button>
             <button className="flex items-center gap-1 hover:text-purple-400 transition-colors"><Icon icon="mdi:heart-outline" className="w-4 h-4" />Like</button>
             {user?.wallet_address === comment.user.wallet_address && (
               <>
@@ -311,7 +316,7 @@ export default function CommentSection({ contentId, contentType }: CommentSectio
     <section className="mt-10">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-white">Comment</span>
+          <span className="text-lg font-bold text-white">Comments</span>
           <span className="text-lg font-bold text-white">{comments.length}</span>
         </div>
         <Icon icon="mdi:comment-outline" className="w-5 h-5 text-gray-400" />

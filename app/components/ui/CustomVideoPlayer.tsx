@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import LikeButton from '@/app/components/ui/content/LikeButton';
 
 interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
   className?: string;
+  contentId: string;
+  contentType: string;
 }
 
-export default function CustomVideoPlayer({ src, poster, title, className = '' }: CustomVideoPlayerProps) {
+export default function CustomVideoPlayer({ src, poster, title, className = '', contentId, contentType }: CustomVideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -55,8 +58,26 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isPlaying || isLoading) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      return;
+    }
+    if (showControls) {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isPlaying, isLoading, showControls]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -106,16 +127,12 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
 
   const handleMouseMove = () => {
     setShowControls(true);
-    
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (isPlaying && !isLoading) {
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
         setShowControls(false);
+      }, 2500);
       }
-    }, 3000);
   };
 
   const formatTime = (time: number) => {
@@ -127,7 +144,7 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
   return (
     <div 
       ref={containerRef}
-      className={`relative bg-gray-900 rounded-lg overflow-hidden ${className}`}
+      className={`relative bg-transparent rounded-b-2xl overflow-hidden ${className}`}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
@@ -147,98 +164,65 @@ export default function CustomVideoPlayer({ src, poster, title, className = '' }
         </div>
       )}
       
-      <div 
-        className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0'
-        }`}
-      >
-        <div className="flex items-center space-x-4">
+      <div className='absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm'>
+        {/* Progress Bar */}
+        <div className="w-full px-6 pt-6">
+          <div className="flex items-center justify-between text-xs text-white/80 mb-1">
+            <span>{formatTime(currentTime)}</span>
+            <span>-{formatTime(duration - currentTime)}</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-1 bg-white rounded-full appearance-none cursor-pointer accent-[#8B25FF]"
+            style={{ accentColor: '#8B25FF' }}
+          />
+        </div>
+
+        {/* Controls Row */}
+        <div className="flex items-center justify-center gap-6 py-6">
+          {/* Like Button */}
+          <div className="drop-shadow-[0_0_8px_#8B25FF]">
+            <LikeButton contentId={contentId} contentType={contentType} />
+          </div>
+          {/* Volume */}
+          <button onClick={toggleMute} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+            <Icon icon={isMuted ? 'mdi:volume-off' : 'mdi:volume-high'} className="w-6 h-6" />
+          </button>
+          {/* Skip Back */}
+          <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+            <Icon icon="mdi:rewind-10" className="w-6 h-6" />
+          </button>
+          {/* Play/Pause */}
           <button
             onClick={togglePlay}
-            className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
+            className="p-4 rounded-full bg-[#8B25FF] shadow-lg drop-shadow-[0_0_16px_#8B25FF] flex items-center justify-center"
+            style={{ boxShadow: '0 0 32px #8B25FF80' }}
             disabled={isLoading}
           >
             {isLoading ? (
-              <Icon icon="mdi:reload" className="h-5 w-5 text-white animate-spin" />
+              <Icon icon="mdi:reload" className="h-8 w-8 text-white animate-spin" />
             ) : isPlaying ? (
-              <Icon icon="mdi:pause" className="h-5 w-5 text-white" />
+              <Icon icon="mdi:pause" className="h-8 w-8 text-white" />
             ) : (
-              <Icon icon="mdi:play" className="h-5 w-5 text-white" />
+              <Icon icon="mdi:play" className="h-8 w-8 text-white" />
             )}
           </button>
-          
-          <div className="flex-1">
-            <input
-              type="range"
-              min="0"
-              max={duration || 0}
-              value={currentTime}
-              onChange={handleSeek}
-              className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-400 [&::-webkit-slider-thumb]:mt-[-6px] 
-              [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
-              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-green-500 
-              [&::-webkit-slider-runnable-track]:to-green-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
-              [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
-              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-green-400 [&::-moz-range-thumb]:border 
-              [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
-              [&::-moz-range-progress]:bg-green-500 [&::-moz-range-track]:bg-gray-700"
-            style={{ '--background-size': `${(currentTime / (duration || 1)) * 100}%` } as React.CSSProperties}
-            />
-            <div className="flex justify-between text-xs text-white/70 mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={toggleMute}
-              className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
-            >
-              {isMuted ? (
-                <Icon icon="mdi:volume-off" className="h-5 w-5 text-white" />
-              ) : (
-                <Icon icon="mdi:volume-high" className="h-5 w-5 text-white" />
-              )}
+          {/* Skip Forward */}
+          <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 10); }} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+            <Icon icon="mdi:fast-forward-10" className="w-6 h-6" />
+          </button>
+          {/* PiP */}
+          <button onClick={() => videoRef.current?.requestPictureInPicture()} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+            <Icon icon="mdi:picture-in-picture-bottom-right" className="w-6 h-6" />
             </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer 
-              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-4 
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-400 [&::-webkit-slider-thumb]:mt-[-6px] 
-              [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
-              [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-lg 
-              [&::-webkit-slider-runnable-track]:bg-gradient-to-r [&::-webkit-slider-runnable-track]:from-green-500 
-              [&::-webkit-slider-runnable-track]:to-green-500 [&::-webkit-slider-runnable-track]:bg-[length:var(--background-size,0%)_100%] 
-              [&::-webkit-slider-runnable-track]:bg-no-repeat
-              [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:size-4 
-              [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-green-400 [&::-moz-range-thumb]:border 
-              [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow
-              [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-lg [&::-moz-range-progress]:h-1 
-              [&::-moz-range-progress]:bg-green-500 [&::-moz-range-track]:bg-gray-700"
-            style={{ '--background-size': `${volume * 100}%` } as React.CSSProperties}
-            />
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors cursor-pointer"
-            >
-              {isFullscreen ? (
-                <Icon icon="mdi:fullscreen-exit" className="h-5 w-5 text-white" />
-              ) : (
-                <Icon icon="mdi:fullscreen" className="h-5 w-5 text-white" />
-              )}
+          {/* Fullscreen */}
+          <button onClick={toggleFullscreen} className="p-2 rounded-full text-[#8B25FF] drop-shadow-[0_0_8px_#8B25FF]">
+            <Icon icon={isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'} className="w-6 h-6" />
             </button>
-          </div>
         </div>
       </div>
     </div>

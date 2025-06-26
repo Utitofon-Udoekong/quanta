@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { type Content, type VideoContent, type AudioContent, type ArticleContent, UserData } from '@/app/types';
+import { type Content, type VideoContent, type AudioContent, type ArticleContent, UserData, AccessInfo, SubscriptionStatus } from '@/app/types';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { trackContentView } from '@/app/utils/content';
@@ -11,29 +11,18 @@ import CustomAudioPlayer from '@/app/components/ui/CustomAudioPlayer';
 import MarkdownViewer from '@/app/components/ui/MarkdownViewer';
 import { useUserStore } from '@/app/stores/user';
 import { supabase } from '@/app/utils/supabase/client';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CommentSection from '@/app/components/ui/content/CommentSection';
 import LikeButton from '@/app/components/ui/content/LikeButton';
-import { hasAccessToContent, getSubscriptionStatus } from '@/app/utils/subscription';
 import SubscribeModal from '@/app/components/ui/SubscribeModal';
+import { checkContentAccess, getSubscriptionStatus } from '@/app/utils/subscription-api';
 
 export default function PublicContentPage({ params }: { params: Promise<{ id: string }> }) {
-  const [content, setContent] = useState<Content | null>(null);
+  const [contentWithKind, setContentWithKind] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [accessInfo, setAccessInfo] = useState<{
-    hasAccess: boolean;
-    isPremium: boolean;
-    reason?: string;
-  } | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<{
-    isFollowing: boolean;
-    isPaidSubscriber: boolean;
-    subscriptionType?: string;
-    expiresAt?: string;
-    amount?: number;
-    currency?: string;
-  } | null>(null);
+  const [accessInfo, setAccessInfo] = useState<AccessInfo | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const { id } = use(params);
   const { user } = useUserStore();
   const searchParams = useSearchParams();
@@ -42,7 +31,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     ? kindParam 
     : 'video';
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
-
+  const router = useRouter();
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -72,11 +61,13 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
         }
 
         const contentWithKind = { ...data, kind };
-        setContent(contentWithKind);
+        console.log(contentWithKind)
+        console.log(contentWithKind.author?.id)
+        setContentWithKind(contentWithKind);
 
         // Check access permissions
         if (user && contentWithKind.author?.id) {
-          const access = await hasAccessToContent(
+          const access = await checkContentAccess(
             user.id,
             contentWithKind.id,
             kind as 'article' | 'video' | 'audio',
@@ -137,6 +128,8 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
             src={(content as VideoContent).video_url || ''}
             poster={content.thumbnail_url}
             title={content.title}
+            contentId={content.id}
+            contentType={content.kind}
           />
         );
       case 'audio':
@@ -144,6 +137,8 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
           <CustomAudioPlayer
             src={(content as AudioContent).audio_url || ''}
             title={content.title}
+            contentId={content.id}
+            contentType={content.kind}
           />
         );
       case 'article':
@@ -167,7 +162,6 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
   };
 
   const getContentMetadata = (content: Content) => {
-    console.log(content);
     switch (content.kind) {
       case 'video':
         const videoDuration = (content as VideoContent).duration || 0;
@@ -201,7 +195,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
   };
 
   const renderPremiumLockedContent = () => {
-    if (!content) return null;
+    if (!contentWithKind) return null;
     // Show subscribe modal if user is not subscribed and content is premium
     if (accessInfo && !accessInfo.hasAccess && accessInfo.isPremium) {
       return (
@@ -215,23 +209,23 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
           >
             Subscribe
           </button>
-          {content.author && (
+          {contentWithKind.author && (
             <SubscribeModal
               open={showSubscribeModal}
               onClose={() => setShowSubscribeModal(false)}
               creator={{
-                id: content.author.id,
-                wallet_address: content.author.wallet_address || '',
-                subscription_price: (content.author as any).subscription_price || 0,
-                subscription_currency: (content.author as any).subscription_currency || 'USD',
-                subscription_type: (content.author as any).subscription_type || 'monthly'
+                id: contentWithKind.author.id,
+                wallet_address: contentWithKind.author.wallet_address || '',
+                subscription_price: (contentWithKind.author as any).subscription_price || 0,
+                subscription_currency: (contentWithKind.author as any).subscription_currency || 'USD',
+                subscription_type: (contentWithKind.author as any).subscription_type || 'monthly'
               }}
               subscriber={{
                 wallet_address: user?.wallet_address || '',
                 email: (user as any)?.email || 'user@example.com',
                 fullname: user?.username || ''
               }}
-              contentTitle={content.title}
+              contentTitle={contentWithKind.title}
             />
           )}
         </div>
@@ -254,7 +248,7 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  if (!content) {
+  if (!contentWithKind) {
     return null;
   }
 
@@ -263,83 +257,72 @@ export default function PublicContentPage({ params }: { params: Promise<{ id: st
     return renderPremiumLockedContent();
   }
 
-  const color = getContentTypeColor(content.kind);
-  const icon = getContentTypeIcon(content.kind);
-
-  // Check if user has access to the content
-  const canAccessContent = accessInfo?.hasAccess ?? (!content.is_premium);
+  const color = getContentTypeColor(contentWithKind.kind);
+  const icon = getContentTypeIcon(contentWithKind.kind);
+  const canAccessContent = accessInfo?.hasAccess ?? (!contentWithKind.is_premium);
+  const thumbnail = contentWithKind.thumbnail_url || '';
 
   return (
-    <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">
-      <div className="max-w-screen-xl mx-auto">
-        <div className="mb-6">
-          <Link
-            href="/"
-            className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
-          >
-            <Icon icon="material-symbols:arrow-back" className="h-5 w-5 mr-2" />
-            <span className="font-medium">Back to Home</span>
-          </Link>
-        </div>
-
-        {/* Content Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-${color}-500/20 text-${color}-400`}>
-              <Icon icon={icon} className="w-4 h-4 mr-2" />
-              {content.kind.charAt(0).toUpperCase() + content.kind.slice(1)}
-            </div>
-            {content.is_premium && (
-              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400">
-                <Icon icon="material-symbols:star" className="w-4 h-4 mr-2" />
-                Premium
-              </div>
-            )}
-          </div>
-          
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">{content.title}</h1>
-          
-          {getContentDescription(content) && (
-            <p className="text-gray-300 text-lg mb-6">{getContentDescription(content)}</p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
-            <div className="flex items-center">
-              <Icon icon="material-symbols:schedule" className="w-4 h-4 mr-2" />
-              {new Date(content.created_at).toLocaleDateString()}
-            </div>
-            {getContentMetadata(content) && (
-              <div className="flex items-center">
-                <Icon icon="material-symbols:access-time" className="w-4 h-4 mr-2" />
-                {getContentMetadata(content)}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Author Info */}
-        {content.author && (
-          <div className="mb-8">
-            <AuthorInfo author={content.author as UserData} />
-          </div>
-        )}
-
-        {/* Content Player/Viewer */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-[#0A0C10] flex items-center justify-center">
+      <div className="w-full overflow-hidden">
+        <button onClick={() => router.back()} className="text-white flex items-center gap-2 mb-10" >
+          <Icon icon="mdi:arrow-left" className="size-6" />
+          <span className="text-white">Back</span>
+        </button>
+        
+        {/* Player Section */}
+        <div className=" w-full flex flex-col items-center justify-center mb-10">
           {canAccessContent ? (
-            getContentPlayer(content)
+            getContentPlayer(contentWithKind)
           ) : (
             renderPremiumLockedContent()
           )}
         </div>
 
-        {/* Comments and Likes - Only show if user has access */}
-        {canAccessContent && (
-          <div className="space-y-8">
-            <LikeButton contentId={content.id} contentType={kind} />
-            <CommentSection contentId={content.id} contentType={kind} />
+        {/* Content Info & Comments */}
+        <div className="">
+          {/* Author Info */}
+          {contentWithKind.author && (
+            <div className="flex items-center gap-3 mb-6">
+              <AuthorInfo author={contentWithKind.author as UserData} />
+              </div>
+            )}
+          {/* Title & Description */}
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">{contentWithKind.title}</h1>
+          {getContentDescription(contentWithKind) && (
+            <p className="text-gray-300 text-lg mb-4">{getContentDescription(contentWithKind)}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400 mb-8">
+            <div className="flex items-center">
+              <Icon icon="material-symbols:schedule" className="w-4 h-4 mr-2" />
+              {new Date(contentWithKind.created_at).toLocaleDateString()}
+            </div>
+            {getContentMetadata(contentWithKind) && (
+              <div className="flex items-center">
+                <Icon icon="material-symbols:access-time" className="w-4 h-4 mr-2" />
+                {getContentMetadata(contentWithKind)}
+              </div>
+            )}
+            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-${color}-500/20 text-${color}-400`}>
+              <Icon icon={icon} className="w-4 h-4 mr-2" />
+              {contentWithKind.kind.charAt(0).toUpperCase() + contentWithKind.kind.slice(1)}
+            </div>
+            {contentWithKind.is_premium && (
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400 ml-2">
+                <Icon icon="material-symbols:star" className="w-4 h-4 mr-2" />
+                Premium
+              </div>
+            )}
           </div>
-        )}
+          {/* Comments */}
+          {canAccessContent && (
+            <div>
+              <div className="divide-y divide-[#222]">
+                <CommentSection contentId={contentWithKind.id} contentType={kind} />
+        </div>
+          </div>
+          )}
+        </div>
       </div>
     </div>
   );

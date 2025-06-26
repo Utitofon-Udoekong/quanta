@@ -6,14 +6,15 @@ import { cookieName } from '@/app/utils/supabase';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const user_id = searchParams.get('user_id');
+    const subscriber_id = searchParams.get('subscriber_id');
+    const creator_id = searchParams.get('creator_id');
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    if (!user_id) {
+    if (!subscriber_id && !creator_id) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'Either subscriber_id or creator_id is required' },
         { status: 400 }
       );
     }
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
       );
     }
     const supabase = await getSupabase(accessToken);
+    
     // Build query
     let query = supabase
       .from('subscriptions')
@@ -40,8 +42,15 @@ export async function GET(request: Request) {
           payment_method,
           payment_date
         )
-      `, { count: 'exact' })
-      .eq('user_id', user_id);
+      `, { count: 'exact' });
+
+    // Apply filters based on provided parameters
+    if (subscriber_id) {
+      query = query.eq('subscriber_id', subscriber_id);
+    }
+    if (creator_id) {
+      query = query.eq('creator_id', creator_id);
+    }
 
     // Apply status filter if provided
     if (status) {
@@ -81,11 +90,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { user_id, plan_id, payment_method, ...subscriptionData } = await request.json();
+    const { creator_id, subscriber_id, type, amount, currency = 'USD', notes } = await request.json();
 
-    if (!user_id || !plan_id || !payment_method) {
+    if (!creator_id || !subscriber_id || !type || !amount) {
       return NextResponse.json(
-        { error: 'User ID, plan ID, and payment method are required' },
+        { error: 'Creator ID, subscriber ID, type, and amount are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate subscription type
+    if (!['monthly', 'yearly', 'one-time'].includes(type)) {
+      return NextResponse.json(
+        { error: 'Invalid subscription type' },
+        { status: 400 }
+      );
+    }
+
+    // Validate amount
+    if (amount <= 0) {
+      return NextResponse.json(
+        { error: 'Amount must be greater than 0' },
         { status: 400 }
       );
     }
@@ -99,24 +124,62 @@ export async function POST(request: Request) {
       );
     }
     const supabase = await getSupabase(accessToken);
-    // Begin transaction to create subscription and handle initial payment
-    const { data: subscription, error: transactionError } = await supabase.rpc('create_subscription', {
-      p_user_id: user_id,
-      p_plan_id: plan_id,
-      p_payment_method: payment_method,
-      p_subscription_data: {
-        status: 'active',
-        current_period_start: subscriptionData.current_period_start,
-        current_period_end: subscriptionData.current_period_end,
-        payment_status: 'succeeded',
-        amount: subscriptionData.amount,
-        currency: subscriptionData.currency || 'USD'
-      }
-    });
 
-    if (transactionError) {
+    // Check if user is trying to subscribe to themselves
+    if (creator_id === subscriber_id) {
       return NextResponse.json(
-        { error: transactionError.message },
+        { error: 'Cannot subscribe to yourself' },
+        { status: 400 }
+      );
+    }
+
+    // Check if subscription already exists
+    const existingSubscription = await supabase
+      .from('subscriptions')
+      .select('id, status')
+      .eq('creator_id', creator_id)
+      .eq('subscriber_id', subscriber_id)
+      .eq('status', 'active')
+      .single();
+
+    if (existingSubscription.data) {
+      return NextResponse.json(
+        { error: 'Active subscription already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Calculate expiration date
+    const expiresAt = new Date();
+    if (type === 'monthly') {
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+    } else if (type === 'yearly') {
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    } else {
+      // one-time subscriptions don't expire
+      expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+    }
+
+    // Create subscription record
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .insert({
+        creator_id: creator_id,
+        subscriber_id: subscriber_id,
+        type: type,
+        status: 'active',
+        amount: amount,
+        currency: currency,
+        expires_at: expiresAt.toISOString(),
+        notes: notes
+      })
+      .select('*')
+      .single();
+
+    if (subscriptionError) {
+      console.error('Error creating subscription:', subscriptionError);
+      return NextResponse.json(
+        { error: 'Failed to create subscription' },
         { status: 500 }
       );
     }

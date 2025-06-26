@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Content, Subscription, UserData } from '@/app/types';
 import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Button } from '@burnt-labs/ui';
+import { Button } from "@headlessui/react"
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
 import ContentTable from '@/app/components/ui/dashboard/ContentTable';
@@ -15,9 +15,8 @@ import {
 import { 
   getSubscriptionAnalytics, 
   getCreatorSubscribers, 
-  SubscriptionStats, 
-  Subscriber 
-} from '@/app/utils/subscription';
+} from '@/app/utils/subscription-api';
+import { SubscriptionStats, SubscriberWithUserInfo } from '@/app/types';
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<UserData | null>(null);
@@ -32,7 +31,7 @@ export default function Dashboard() {
   const [allContent, setAllContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats | null>(null);
-  const [recentSubscribers, setRecentSubscribers] = useState<Subscriber[]>([]);
+  const [recentSubscribers, setRecentSubscribers] = useState<SubscriberWithUserInfo[]>([]);
   const [viewsData, setViewsData] = useState<Array<{day: string, views: number}>>([]);
   const { data: account } = useAbstraxionAccount();
   const supabase = useMemo(() => getSupabase(account?.bech32Address || ''), [account?.bech32Address]);
@@ -466,19 +465,15 @@ export default function Dashboard() {
                     </td>
                     <td className="py-3 px-6 text-xs font-mono">{sub.wallet_address.slice(0, 8)}...{sub.wallet_address.slice(-6)}</td>
                     <td className="py-3 px-6">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        sub.subscription_type === 'free' 
-                          ? 'bg-gray-900/40 text-gray-400' 
-                          : 'bg-purple-900/40 text-purple-400'
-                      }`}>
-                        {sub.subscription_type === 'free' ? 'Free' : sub.subscription_type}
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-900/40 text-purple-400">
+                        {sub.subscription_type}
                       </span>
                     </td>
                     <td className="py-3 px-6">
-                      {sub.subscription_type === 'free' ? '-' : 'XION'}
+                      XION
                     </td>
                     <td className="py-3 px-6">
-                      {sub.subscription_type === 'free' ? '$0' : `$${sub.amount || 0}`}
+                      ${sub.subscription_amount || 0}
                     </td>
                     <td className="py-3 px-6">
                       {new Date(sub.subscribed_at).toLocaleDateString('en-US', {
@@ -489,7 +484,7 @@ export default function Dashboard() {
                     </td>
                     <td className="py-3 px-6">
                       <span className="bg-green-900/40 text-green-400 px-3 py-1 rounded-full text-xs font-semibold">
-                        {sub.status}
+                        Active
                       </span>
                     </td>
                   </tr>

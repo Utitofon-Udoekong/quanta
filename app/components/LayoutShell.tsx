@@ -10,19 +10,30 @@ import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
 import { useState } from 'react';
 import SearchInput from './ui/SearchInput';
 import { Button, Menu, MenuButton, MenuItem, MenuItems  } from '@headlessui/react';
+import NotificationDropdown from './ui/NotificationDropdown';
+import { supabase } from '../utils/supabase/client';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user } = useUserStore();
   const { logout } = useAbstraxionSigningClient();
   const pathname = usePathname();
   const router = useRouter();
-  const { data: account, logout: logoutAbstraxionAccount } = useAbstraxionAccount();
+  const { logout: logoutAbstraxionAccount } = useAbstraxionAccount();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const handleSignOut = async () => {
-    logoutAbstraxionAccount?.();
-    logout?.();
-    router.push('/');
+    const response = await fetch('/api/wallet-auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (response.ok) {
+      supabase.auth.signOut();
+      logoutAbstraxionAccount?.();
+      logout?.();
+      router.push('/');
+    }
   };
 
   const getLinkClass = (path: string) => {
@@ -164,7 +175,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               <p className="text-gray-400 text-sm mt-1">Manage your content and view all content activities</p>
             </div>
             <div className="flex items-center justify-center">
-              <img src={user?.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
+              <img src={user?.avatar_url || 'https://robohash.org/1234567890'} alt="User Avatar" className="size-10 rounded-full" />
             </div>
           </div>
         ) : (
@@ -178,18 +189,18 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
               <SearchInput />
             </div>
             <div className="flex items-center gap-2">
-              <button className="hidden md:flex p-2 rounded-full hover:bg-[#212121] transition-colors">
-                <Icon icon="mdi:bell" className="w-6 h-6 text-gray-400" />
-              </button>
+              <div className="hidden md:flex">
+                <NotificationDropdown />
+              </div>
               {user && (
                 <Menu as="div" className="relative">
                   <MenuButton className="hidden md:flex items-center justify-center hover:opacity-80 transition-opacity">
-                    <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full border-2 border-transparent hover:border-[#8B25FF]/50 transition-colors" />
+                    <img src={user.avatar_url || 'https://robohash.org/1234567890'} alt="User Avatar" className="size-10 rounded-full border-2 border-transparent hover:border-[#8B25FF]/50 transition-colors" />
                   </MenuButton>
                   <MenuItems className="absolute right-0 mt-2 w-56 origin-top-right bg-[#121418] border border-gray-800 rounded-xl shadow-lg shadow-black/50 focus:outline-none z-50">
                     <div className="p-4 border-b border-gray-800">
                       <div className="flex items-center space-x-3">
-                        <img src={user.avatar_url || '/images/default-avatar.png'} alt="User Avatar" className="size-10 rounded-full" />
+                        <img src={user.avatar_url || 'https://robohash.org/1234567890'} alt="User Avatar" className="size-10 rounded-full" />
                         <div>
                           <p className="text-sm font-semibold text-white">
                             {user.username || 'User'}

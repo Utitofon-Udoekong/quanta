@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Button } from '@burnt-labs/ui';
+import { Button } from "@headlessui/react"
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
-import { hasAccessToContent, getSubscriptionStatus } from '@/app/utils/subscription';
+import { checkContentAccess, getSubscriptionStatus } from '@/app/utils/subscription-api';
 import Link from 'next/link';
-import { Content } from '@/app/types';
+import { Content, AccessInfo, SubscriptionStatus } from '@/app/types';
 
 interface ContentCardProps {
   content: Content;
@@ -20,25 +20,14 @@ const contentTypeIcons = {
 
 export default function ContentCard({ content, badge }: ContentCardProps) {
   const { user } = useUserStore();
-  const [accessInfo, setAccessInfo] = useState<{
-    hasAccess: boolean;
-    isPremium: boolean;
-    reason?: string;
-  } | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<{
-    isFollowing: boolean;
-    isPaidSubscriber: boolean;
-    subscriptionType?: string;
-    expiresAt?: string;
-    amount?: number;
-    currency?: string;
-  } | null>(null);
+  const [accessInfo, setAccessInfo] = useState<AccessInfo | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAccess = async () => {
       if (user?.id && content.author?.id) {
-        const access = await hasAccessToContent(
+        const access = await checkContentAccess(
           user.id,
           content.id,
           content.kind,
@@ -64,7 +53,7 @@ export default function ContentCard({ content, badge }: ContentCardProps) {
   }, [user?.id, content.id, content.author?.id, content.kind, content.is_premium]);
 
   const getContentLink = () => {
-    if (!user) return '/auth';
+    // if (!user) return '/auth';
     // if (accessInfo?.isPremium && !accessInfo?.hasAccess) {
     //   return `/dashboard/subscriptions?creator=${content.author?.wallet_address}`;
     // }
