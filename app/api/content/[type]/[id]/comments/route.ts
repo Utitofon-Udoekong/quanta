@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(
   request: Request,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
     const cookieStore = await cookies()
@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { type, id } = params;
+    const { type, id } = await params;
     const { content, parentId } = await request.json();
     const userId = user.id;
 
@@ -64,7 +64,7 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
     const cookieStore = await cookies()
@@ -76,7 +76,7 @@ export async function GET(
       );
     }
     const supabase = await getSupabase(accessToken || '');
-    const { type, id } = params;
+    const { type, id } = await params;
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get('parentId');
 
@@ -123,7 +123,6 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { type: string; id: string } }
 ) {
   try {
     const cookieStore = await cookies()
@@ -179,7 +178,6 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { type: string; id: string } }
 ) {
   try {
     const cookieStore = await cookies()

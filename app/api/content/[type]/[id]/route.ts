@@ -8,10 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { type, id } = params;
+    const { type, id } = await params;
     const body = await request.json();
 
     // Validate content type

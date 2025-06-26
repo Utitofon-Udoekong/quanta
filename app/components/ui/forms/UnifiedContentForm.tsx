@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/app/utils/supabase/client';
 import { getDuration } from '@/app/utils/helpers';
 import { uploadFileResumable } from '@/app/utils/upload';
-import FileDropzone from './FileDropzone';
 import MDEditor from '@uiw/react-md-editor';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
