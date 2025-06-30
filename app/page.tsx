@@ -43,7 +43,7 @@ export default function LandingPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0A0C10] via-[#18122B] to-black text-white font-sans">
             {/* Header */}
-            <header className="w-full max-w-7xl mx-auto flex items-center justify-between px-8 py-6">
+            <header className="w-full max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-6">
                 <div className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</div>
                 <nav className="hidden md:flex gap-10 text-white/80 text-base font-medium">
                     <a href="#" className="hover:text-white transition">Home</a>
@@ -54,11 +54,10 @@ export default function LandingPage() {
             </header>
 
             {/* Hero Section */}
-            <section className="flex flex-col items-center justify-center pt-28 pb-20 text-center relative z-10">
+            <section className="flex flex-col items-center justify-center pt-28 pb-20 px-4 md:px-0 text-center relative z-10">
                 <img src="/images/hero-gradient.png" alt="Hero Image" className="absolute top-0 left-0 w-full h-full -z-10" />
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 max-w-3xl mx-auto leading-tight">
-                    A platform built for creators who want <span className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">full control</span> and{" "}
-                    <span className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">full payout</span>
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 max-w-3xl mx-auto leading-tight">
+                    A platform built for creators who want full control and full payout
                 </h1>
                 <p className="text-lg md:text-xl text-white/80 mb-8 max-w-xl mx-auto">
                     Sell your content directly, set your own prices, and keep more of what you earn: no gatekeepers, no hidden fees, just pure creator freedom.
@@ -91,10 +90,10 @@ export default function LandingPage() {
             </section>
 
             {/* How it works */}
-            <section id="how-it-works" className="w-full flex justify-center items-center py-24 pl-8 bg-transparent">
+            <section id="how-it-works" className="w-full flex justify-center items-center py-24 pl-4 md:pl-8 bg-transparent">
                 <div className="w-full max-w-7xl flex flex-col md:flex-row items-start gap-12">
                     {/* Left: Text */}
-                    <div className="flex-1 min-w-[320px]">
+                    <div className="flex-1 md:min-w-[320px]">
                         <div className="text-sm font-semibold bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent mb-2">How it works</div>
                         <h2 className="text-3xl md:text-4xl font-bold mb-10 text-white leading-tight max-w-xl">Discover Ways to Sell Your Content and Start Earning Instantly</h2>
                         <div className="flex">
@@ -115,12 +114,12 @@ export default function LandingPage() {
                     {/* Right: Overlapping Images */}
                     <div className="flex-1 flex items-center justify-center relative">
                         {/* Blurred background image */}
-                        <div className="absolute right-24 top-48 w-md  rounded-2xl z-10">
+                        <div className="absolute md:right-24 right-0 md:top-48 top-24 md:w-md w-full  rounded-2xl z-10">
                             <img src="/images/works-sub.png" className='w-full h-full' alt="Hero Image" />
                         </div>
                         {/* Main dashboard image placeholder */}
-                        <div className="absolute top-0 right-0 z-0">
-                            <div className="w-md  rounded-2xl flex items-center justify-center">
+                        <div className="md:absolute md:top-0 md:right-0 z-0">
+                            <div className="md:w-md w-full  rounded-2xl flex items-center justify-center">
                                 <img src="/images/works-dash.png" className='w-full h-full' alt="Hero Image" />
                             </div>
                         </div>
@@ -132,22 +131,22 @@ export default function LandingPage() {
             <section id="features" className="max-w-6xl mx-auto py-20 px-4 md:px-0">
                 <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left text-purple-400">Features</h2>
                 <h3 className="text-3xl font-bold mb-12 text-white">Powerful Features Built for Creators</h3>
-                <div className="grid md:grid-cols-2 gap-8 mb-8">
-                    <div className='flex items-center gap-4 relative'>
+                <div className="grid md:grid-cols-2 md:gap-8 gap-4 mb-4 md:mb-8">
+                    <div className='flex items-center gap-4 relative '>
                         <img src="/images/easy.jpg" alt="" className='w-full h-full object-cover' />
-                        <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-8 flex flex-col justify-between">
+                        <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-4 md:p-8 flex flex-col justify-between">
                             <h4 className="text-lg font-semibold mb-2 text-white">Easy Content Upload</h4>
                             <p className="text-white/80">No setup, no stress — just drag, drop, and publish your content in seconds.</p>
                         </div>
                     </div>
-                    <div className="bg-gradient-to-br from-[#8B25FF] to-[#350FDD] rounded-xl p-8 shadow-lg flex flex-col justify-end">
+                    <div className="bg-gradient-to-br from-[#8B25FF] to-[#350FDD] rounded-xl p-4 md:p-8 shadow-lg flex flex-col justify-end">
                         <h4 className="text-lg font-semibold mb-2 text-white">Audience Engagement Tools</h4>
                         <p className="text-white/90">Stay connected with your audience through comments, notifications, and gamification — build loyalty, boost earnings, and see your success content.</p>
                     </div>
                 </div>
-                <div className='flex items-center gap-4 relative h-96'>
+                <div className='flex items-center gap-4 relative h-48 md:h-96'>
                     <img src="/images/profile.jpg" alt="" className='w-full h-full object-cover' />
-                    <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-8 flex flex-col justify-between">
+                    <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-4 md:p-8 flex flex-col justify-between">
                         <h4 className="text-lg font-semibold mb-2 text-white">Profile Customization</h4>
                         <p className="text-white/80">Make your creator style pop with custom banners, colors, and branding. Make your online style as personalized, stylish, and unique as your vibe.</p>
                     </div>
@@ -160,7 +159,7 @@ export default function LandingPage() {
                 <h3 className="text-3xl font-bold mb-12 text-white text-center">What Creators Are Saying</h3>
                 <div className="grid md:grid-cols-3 gap-8">
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-[#18122B] rounded-xl p-8 shadow-lg flex flex-col items-center text-center">
+                        <div key={i} className="bg-[#18122B] rounded-xl p-4 md:p-8 shadow-lg flex flex-col items-center text-center">
                             <div className="w-16 h-16 rounded-full bg-gray-700 mb-4 flex items-center justify-center text-2xl text-purple-300">PJ</div>
                             <div className="text-white/90 font-semibold mb-2">Paul Jones</div>
                             <div className="text-gray-400 text-sm mb-4">pauljones@email.com</div>
@@ -174,7 +173,7 @@ export default function LandingPage() {
             {/* Final CTA */}
             <section className="w-full flex justify-center items-center py-20 px-4">
                 <div className="w-full max-w-3xl bg-gradient-to-b from-[#18122B] to-[#101014] rounded-[2.5rem] shadow-2xl border border-[#232347] px-8 py-16 flex flex-col items-center" style={{ boxShadow: '0 4px 32px 0 rgba(80, 60, 180, 0.10), 0 0 0 1px #232347' }}>
-                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">Feeling Bold or Browsing?</h2>
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4 text-center">Feeling Bold or Browsing?</h2>
                     <p className="text-lg text-gray-400 mb-10 text-center">Your next upload or binge might be one click away</p>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                         <a href="/discover" className="px-8 py-3 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold text-lg shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition text-center">Browse Content</a>
@@ -194,7 +193,7 @@ export default function LandingPage() {
                         {/* Left: Logo and Links */}
                         <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-10">
                             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</span>
-                            <nav className="flex gap-8 text-white/80 text-sm">
+                            <nav className="flex flex-col md:flex-row md:gap-8 gap-4 text-white/80 text-sm">
                                 <a href="#" className="hover:text-white transition">Privacy Policy</a>
                                 <a href="#" className="hover:text-white transition">Cookie Policy</a>
                                 <a href="#" className="hover:text-white transition">Terms and Condition</a>
