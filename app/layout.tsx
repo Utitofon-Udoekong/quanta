@@ -9,6 +9,7 @@ import UserProvider from '@/app/providers/UserProvider';
 import LayoutShell from '@/app/components/LayoutShell';
 import UserStoreDebug from '@/app/components/debug/UserStoreDebug';
 import '@/app/utils/debug'; // Import debug utilities
+import { usePathname } from 'next/navigation';
 
 const treasuryConfig = {
     treasury: process.env.treasuryAddress ?? '',
@@ -19,9 +20,17 @@ const treasuryConfig = {
 const inter = Inter({ subsets: ['latin'] });
 
 const metadata: Metadata = {
-    title: 'Quanta',
+    title: 'Zentex',
     description: 'Web3 Content Platform',
 };
+
+function LayoutShellWrapper({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    if (pathname === '/') {
+        return <>{children}</>;
+    }
+    return <LayoutShell>{children}</LayoutShell>;
+}
 
 export default function RootLayout({
     children,
@@ -33,9 +42,7 @@ export default function RootLayout({
             <body className={inter.className}>
                 <AbstraxionProvider config={treasuryConfig}>
                     <UserProvider>
-                        <LayoutShell>
-                            {children}
-                        </LayoutShell>
+                        <LayoutShellWrapper>{children}</LayoutShellWrapper>
                         <Toaster position="bottom-right" />
                         {/* <UserStoreDebug /> */}
                     </UserProvider>

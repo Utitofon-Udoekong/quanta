@@ -25,7 +25,7 @@ const createSupabaseClient = (supabaseUrl: string, serviceRoleSecret: string) =>
         },
         global: {
             headers: {
-                'X-Client-Info': 'quanta-wallet-auth'
+                'X-Client-Info': 'zentex-wallet-auth'
             }
         }
     });

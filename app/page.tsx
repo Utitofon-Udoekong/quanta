@@ -1,16 +1,7 @@
 'use client';
 
-import { useEffect, useState, Fragment } from 'react';
-import Link from 'next/link';
-import { Content } from '@/app/types';
-import { Menu, MenuItems, MenuItem, MenuButton, Transition } from '@headlessui/react';
-import { useUserStore } from '@/app/stores/user';
-import ContentCard from '@/app/components/ui/ContentCard';
-import HeroCarousel from '@/app/components/ui/HeroCarousel';
 import { Icon } from '@iconify/react';
-import { CarouselItem } from '@/app/utils/carousel';
-import { supabase } from './utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 // Content types for filtering
 const contentTypes = [
@@ -48,320 +39,193 @@ const formatTimeAgo = (date: string): string => {
     return `${Math.floor(diffInSeconds / 31536000)} years ago`;
 };
 
-export default function Home() {
-    const [selectedType, setSelectedType] = useState('all');
-    const [selectedPremium, setSelectedPremium] = useState('both');
-    const [selectedTimeline, setSelectedTimeline] = useState(7);
-    const [featuredContent, setFeaturedContent] = useState<{
-        videos: Content[];
-        audio: Content[];
-        articles: Content[];
-    }>({
-        videos: [],
-        audio: [],
-        articles: [],
-    });
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
-    const { user } = useUserStore();
-
-    // Fetch featured content for carousel and sections
-    useEffect(() => {
-        const fetchFeaturedContent = async () => {
-            try {
-                setLoading(true);
-                
-                // Calculate selected timeline ago
-                const timelineAgo = new Date();
-                timelineAgo.setDate(timelineAgo.getDate() - selectedTimeline);
-                
-                // Fetch recently added content (within selected timeline)
-                const [videosData, audioData, articlesData] = await Promise.all([
-                    supabase
-                        .from('videos')
-                        .select(`
-                            *,
-                            author:users(id, username, wallet_address, avatar_url)
-                        `)
-                        .eq('published', true)
-                        .gte('created_at', timelineAgo.toISOString())
-                        .order('created_at', { ascending: false })
-                        .limit(12),
-                    supabase
-                        .from('audio')
-                        .select(`
-                            *,
-                            author:users(id, username, wallet_address, avatar_url)
-                        `)
-                        .eq('published', true)
-                        .gte('created_at', timelineAgo.toISOString())
-                        .order('created_at', { ascending: false })
-                        .limit(12),
-                    supabase
-                        .from('articles')
-                        .select(`
-                            *,
-                            author:users(id, username, wallet_address, avatar_url)
-                        `)
-                        .eq('published', true)
-                        .gte('created_at', timelineAgo.toISOString())
-                        .order('created_at', { ascending: false })
-                        .limit(12)
-                ]);
-
-                setFeaturedContent({
-                    videos: videosData.data?.map((v: any) => ({ ...v, kind: 'video' })) || [],
-                    audio: audioData.data?.map((a: any) => ({ ...a, kind: 'audio' })) || [],
-                    articles: articlesData.data?.map((ar: any) => ({ ...ar, kind: 'article' })) || [],
-                });
-
-            } catch (error) {
-                // console.error('Error fetching featured content:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchFeaturedContent();
-    }, [selectedTimeline]);
-
-    // Handle carousel item click
-    const handleCarouselItemClick = (item: CarouselItem) => {
-        // Don't navigate for default items (they have string IDs)
-        if (item.id === "1" || item.id === "2" || item.id === "3") {
-            return;
-        }
-        router.push(`/content/${item.id}?kind=${item.contentType}`);
-    };
-
-    // Get content based on selected type and premium filter
-    const getFilteredContent = () => {
-        let content = [];
-        
-        // Filter by content type
-        switch (selectedType) {
-            case 'video':
-                content = featuredContent.videos;
-                break;
-            case 'audio':
-                content = featuredContent.audio;
-                break;
-            case 'article':
-                content = featuredContent.articles;
-                break;
-            default:
-                content = [
-                    ...featuredContent.videos,
-                    ...featuredContent.audio,
-                    ...featuredContent.articles
-                ];
-        }
-
-        // Filter by premium status
-        switch (selectedPremium) {
-            case 'free':
-                content = content.filter(item => !item.is_premium);
-                break;
-            case 'premium':
-                content = content.filter(item => item.is_premium);
-                break;
-            default:
-                // 'both' - no additional filtering
-                break;
-        }
-
-        return content;
-    };
-
-    const filteredContent = getFilteredContent();
-
-    // Convert filtered content to carousel items (1-5 items)
-    const carouselItems = (() => {
-        if (filteredContent.length === 0) {
-            // Default items when no content is available
-            return [
-                {
-                    id: "1",
-                    title: "Welcome to Quanta",
-                    image: "/images/default-thumbnail.png",
-                    user: "Quanta Team",
-                    avatar: "https://robohash.org/quanta",
-                    views: "0",
-                    timeAgo: "Just now",
-                    gradient: "from-blue-600 to-purple-600",
-                    contentType: "video" as const
-                },
-                {
-                    id: "2",
-                    title: "Create Your First Content",
-                    image: "/images/default-thumbnail.png",
-                    user: "Get Started",
-                    avatar: "https://robohash.org/start",
-                    views: "0",
-                    timeAgo: "Just now",
-                    gradient: "from-purple-600 to-blue-600",
-                    contentType: "video" as const
-                },
-                {
-                    id: "3",
-                    title: "Join the Community",
-                    image: "/images/default-thumbnail.png",
-                    user: "Community",
-                    avatar: "https://robohash.org/community",
-                    views: "0",
-                    timeAgo: "Just now",
-                    gradient: "from-orange-500 to-red-600",
-                    contentType: "article" as const
-                }
-            ];
-        }
-
-        // Use 1-5 items from filtered content
-        const itemsToShow = Math.min(Math.max(filteredContent.length, 1), 5);
-        return filteredContent.slice(0, itemsToShow).map((content, index) => {
-            const contentType = content.kind as 'video' | 'audio' | 'article';
-            const gradients = {
-                video: ["from-blue-600 to-purple-600", "from-purple-600 to-blue-600", "from-red-600 to-blue-600", "from-green-600 to-blue-600", "from-yellow-600 to-orange-600"],
-                audio: ["from-purple-600 to-pink-600", "from-pink-600 to-purple-600", "from-indigo-600 to-purple-600", "from-purple-600 to-indigo-600", "from-pink-600 to-red-600"],
-                article: ["from-orange-500 to-red-600", "from-red-600 to-orange-500", "from-yellow-500 to-orange-600", "from-orange-600 to-yellow-500", "from-red-600 to-pink-600"]
-            };
-            const gradientOptions = gradients[contentType] || gradients.video;
-            const gradient = gradientOptions[index % gradientOptions.length];
-            
-            return {
-                id: content.id,
-                title: content.title,
-                image: content.thumbnail_url || '/images/default-thumbnail.png',
-                user: content.author?.username || content.author?.wallet_address?.slice(0, 8) || 'Unknown',
-                avatar: content.author?.avatar_url || `https://robohash.org/${content.author?.wallet_address?.slice(0, 8) || 'default'}`,
-                views: content.views ? (content.views >= 1000000 ? `${(content.views / 1000000).toFixed(1)}M` : content.views >= 1000 ? `${(content.views / 1000).toFixed(1)}K` : content.views.toString()) : '0',
-                timeAgo: formatTimeAgo(content.created_at),
-                gradient,
-                contentType
-            };
-        });
-    })();
-
+export default function LandingPage() {
     return (
-        <>
-            {/* Hero Carousel */}
-            <div className="pb-8">
-                {loading ? (
-                    <div className="relative w-full h-72 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden rounded-2xl flex items-center justify-center">
-                        <div className="text-white text-lg">Loading featured content...</div>
-                    </div>
-                ) : (
-                    <HeroCarousel 
-                        items={carouselItems} 
-                        onItemClick={handleCarouselItemClick} 
-                    />
-                )}
-            </div>
+        <div className="min-h-screen bg-gradient-to-b from-[#0A0C10] via-[#18122B] to-black text-white font-sans">
+            {/* Header */}
+            <header className="w-full max-w-7xl mx-auto flex items-center justify-between px-8 py-6">
+                <div className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</div>
+                <nav className="hidden md:flex gap-10 text-white/80 text-base font-medium">
+                    <a href="#" className="hover:text-white transition">Home</a>
+                    <a href="#how-it-works" className="hover:text-white transition">How it works</a>
+                    <a href="#features" className="hover:text-white transition">Features</a>
+                </nav>
+                <a href="/auth" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Register</a>
+            </header>
 
-            {/* Filter Dropdowns */}
-            <div className="mb-10 flex flex-col sm:flex-row gap-4">
-                {/* Timeline Dropdown */}
-                <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
-                        <span>Timeline: {timelineFilters.find(f => f.id === selectedTimeline)?.name}</span>
-                        <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </MenuButton>
-                    <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
-                        <MenuItems className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
-                            <div className="py-1">
-                                {timelineFilters.map((filter) => (
-                                    <MenuItem key={filter.id}>
-                                        {({ active }) => (
-                                            <button onClick={() => setSelectedTimeline(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
-                                                {filter.name}
-                                            </button>
-                                        )}
-                                    </MenuItem>
-                                ))}
-                            </div>
-                        </MenuItems>
-                    </Transition>
-                </Menu>
-
-                {/* Content Type Dropdown */}
-                <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
-                        <span>Type: {contentTypes.find(f => f.id === selectedType)?.name}</span>
-                        <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </MenuButton>
-                    <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
-                        <MenuItems className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
-                            <div className="py-1">
-                                {contentTypes.map((filter) => (
-                                    <MenuItem key={filter.id}>
-                                        {({ active }) => (
-                                            <button onClick={() => setSelectedType(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
-                                                {filter.name}
-                                            </button>
-                                        )}
-                                    </MenuItem>
-                                ))}
-                </div>
-                        </MenuItems>
-                    </Transition>
-                </Menu>
-
-                {/* Premium Dropdown */}
-                <Menu as="div" className="relative w-full sm:w-52 text-left">
-                    <MenuButton className="flex w-full justify-between items-center rounded-lg bg-gradient-to-r from-[#8B25FF] to-[#350FDD] px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
-                        <span>Access: {premiumFilters.find(f => f.id === selectedPremium)?.name}</span>
-                        <Icon icon="mdi:chevron-down" className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </MenuButton>
-                    <Transition as={Fragment} enter="transition ease-out duration-100" enterFrom="transform opacity-0 scale-95" enterTo="transform opacity-100 scale-100" leave="transition ease-in duration-75" leaveFrom="transform opacity-100 scale-100" leaveTo="transform opacity-0 scale-95">
-                        <MenuItems className="absolute z-10 mt-2 w-full origin-top-right rounded-md bg-gray-900 shadow-lg ring-1 ring-black/5 focus:outline-none">
-                            <div className="py-1">
-                                {premiumFilters.map((filter) => (
-                                    <MenuItem key={filter.id}>
-                                        {({ active }) => (
-                                            <button onClick={() => setSelectedPremium(filter.id)} className={`${active ? 'bg-purple-600 text-white' : 'text-gray-300'} group flex w-full items-center rounded-md px-4 py-2 text-sm`}>
-                                                {filter.name}
-                                            </button>
-                                        )}
-                                    </MenuItem>
-                    ))}
-                </div>
-                        </MenuItems>
-                    </Transition>
-                </Menu>
-            </div>
-
-            {/* Content Grid */}
-            <section className="mb-10">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                    <h3 className="text-xl font-bold">
-                        Recently Added Content
-                    </h3>
-                    <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                        <span className="text-sm font-normal text-purple-300">
-                            Last {selectedTimeline} {selectedTimeline === 1 ? 'Day' : 'Days'}
-                        </span>
-                        <Link href="/discover" className="text-sm text-purple-400 hover:underline">
-                            See All
-                        </Link>
+            {/* Hero Section */}
+            <section className="flex flex-col items-center justify-center pt-28 pb-20 text-center relative z-10">
+                <img src="/images/hero-gradient.png" alt="Hero Image" className="absolute top-0 left-0 w-full h-full -z-10" />
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 max-w-3xl mx-auto leading-tight">
+                    A platform built for creators who want <span className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">full control</span> and{" "}
+                    <span className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">full payout</span>
+                </h1>
+                <p className="text-lg md:text-xl text-white/80 mb-8 max-w-xl mx-auto">
+                    Sell your content directly, set your own prices, and keep more of what you earn: no gatekeepers, no hidden fees, just pure creator freedom.
+                </p>
+                <a href="/discover" className="px-8 py-3 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold text-lg shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition mb-8">Browse Content</a>
+                <div className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden mt-8">
+                    <div className="aspect-video w-full flex items-center justify-center">
+                        <Image src="/images/hero.png" alt="Hero Image" width={1000} height={1000} />
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {filteredContent.map((content) => (
-                        <ContentCard
-                            key={content.id}
-                            content={content}
-                        />
-                    ))}
-                </div>
-                
-                {filteredContent.length === 0 && !loading && (
-                    <div className="text-center py-12">
-                        <Icon icon="material-symbols:search-off" className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-300 mb-2">No content found</h3>
-                        <p className="text-gray-500">Try adjusting your filters or check back later for new content.</p>
-                    </div>
-                )}
             </section>
-        </>
+
+            {/* Trusted Users Stats */}
+            <section className="w-full bg-[#101014] py-16 flex flex-col items-center justify-center">
+                <div className="text-sm text-gray-300 text-center mb-10">Trusted users worldwide</div>
+                <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+                    <div>
+                        <div className="text-4xl font-bold text-white mb-2">8000+</div>
+                        <div className="text-gray-300 text-base">Total Registered</div>
+                    </div>
+                    <div>
+                        <div className="text-4xl font-bold text-white mb-2">3500+</div>
+                        <div className="text-gray-300 text-base">Total Viewers</div>
+                    </div>
+                    <div>
+                        <div className="text-4xl font-bold text-white mb-2">9000+</div>
+                        <div className="text-gray-300 text-base">Total Creator</div>
+                    </div>
+                </div>
+            </section>
+
+            {/* How it works */}
+            <section id="how-it-works" className="w-full flex justify-center items-center py-24 pl-8 bg-transparent">
+                <div className="w-full max-w-7xl flex flex-col md:flex-row items-start gap-12">
+                    {/* Left: Text */}
+                    <div className="flex-1 min-w-[320px]">
+                        <div className="text-sm font-semibold bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent mb-2">How it works</div>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-10 text-white leading-tight max-w-xl">Discover Ways to Sell Your Content and Start Earning Instantly</h2>
+                        <div className="flex">
+                            {/* Vertical line */}
+                            <div className="hidden md:block w-1 bg-gradient-to-b from-purple-500 to-purple-700 rounded-full mr-8" style={{ minHeight: '180px' }}></div>
+                            <div className="space-y-10">
+                                <div>
+                                    <h3 className="text-xl font-bold mb-2 text-white">Manage your content</h3>
+                                    <p className="text-gray-300 max-w-md">Organize, update, and manage all your videos, files, and digital products in one easy dashboard</p>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold mb-2 text-white">Make payment to view content</h3>
+                                    <p className="text-gray-300 max-w-md">Instant access after payment — no delays, no subscriptions, just what you paid for</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Right: Overlapping Images */}
+                    <div className="flex-1 flex items-center justify-center relative">
+                        {/* Blurred background image */}
+                        <div className="absolute right-24 top-48 w-md  rounded-2xl z-10">
+                            <img src="/images/works-sub.png" className='w-full h-full' alt="Hero Image" />
+                        </div>
+                        {/* Main dashboard image placeholder */}
+                        <div className="absolute top-0 right-0 z-0">
+                            <div className="w-md  rounded-2xl flex items-center justify-center">
+                                <img src="/images/works-dash.png" className='w-full h-full' alt="Hero Image" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Features */}
+            <section id="features" className="max-w-6xl mx-auto py-20 px-4 md:px-0">
+                <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left text-purple-400">Features</h2>
+                <h3 className="text-3xl font-bold mb-12 text-white">Powerful Features Built for Creators</h3>
+                <div className="grid md:grid-cols-2 gap-8 mb-8">
+                    <div className='flex items-center gap-4 relative'>
+                        <img src="/images/easy.jpg" alt="" className='w-full h-full object-cover' />
+                        <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-8 flex flex-col justify-between">
+                            <h4 className="text-lg font-semibold mb-2 text-white">Easy Content Upload</h4>
+                            <p className="text-white/80">No setup, no stress — just drag, drop, and publish your content in seconds.</p>
+                        </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-[#8B25FF] to-[#350FDD] rounded-xl p-8 shadow-lg flex flex-col justify-end">
+                        <h4 className="text-lg font-semibold mb-2 text-white">Audience Engagement Tools</h4>
+                        <p className="text-white/90">Stay connected with your audience through comments, notifications, and gamification — build loyalty, boost earnings, and see your success content.</p>
+                    </div>
+                </div>
+                <div className='flex items-center gap-4 relative h-96'>
+                    <img src="/images/profile.jpg" alt="" className='w-full h-full object-cover' />
+                    <div className="bg-black/50 backdrop-blur-sm absolute bottom-0 left-0 w-full p-8 flex flex-col justify-between">
+                        <h4 className="text-lg font-semibold mb-2 text-white">Profile Customization</h4>
+                        <p className="text-white/80">Make your creator style pop with custom banners, colors, and branding. Make your online style as personalized, stylish, and unique as your vibe.</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* Testimonials */}
+            <section className="max-w-6xl mx-auto py-20 px-4 md:px-0">
+                <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">Testimonials</h2>
+                <h3 className="text-3xl font-bold mb-12 text-white text-center">What Creators Are Saying</h3>
+                <div className="grid md:grid-cols-3 gap-8">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="bg-[#18122B] rounded-xl p-8 shadow-lg flex flex-col items-center text-center">
+                            <div className="w-16 h-16 rounded-full bg-gray-700 mb-4 flex items-center justify-center text-2xl text-purple-300">PJ</div>
+                            <div className="text-white/90 font-semibold mb-2">Paul Jones</div>
+                            <div className="text-gray-400 text-sm mb-4">pauljones@email.com</div>
+                            <div className="text-white/80 text-base mb-4">I've been using Creator for the past year and it has been a game changer for my digital product business. The streamlined systems and processes have allowed me to focus more on creating content.</div>
+                            <a href="#" className="text-purple-400 hover:underline text-sm">Read Case Study →</a>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Final CTA */}
+            <section className="w-full flex justify-center items-center py-20 px-4">
+                <div className="w-full max-w-3xl bg-gradient-to-b from-[#18122B] to-[#101014] rounded-[2.5rem] shadow-2xl border border-[#232347] px-8 py-16 flex flex-col items-center" style={{ boxShadow: '0 4px 32px 0 rgba(80, 60, 180, 0.10), 0 0 0 1px #232347' }}>
+                    <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">Feeling Bold or Browsing?</h2>
+                    <p className="text-lg text-gray-400 mb-10 text-center">Your next upload or binge might be one click away</p>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <a href="/discover" className="px-8 py-3 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold text-lg shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition text-center">Browse Content</a>
+                        <a href="/dashboard/content/create" className="flex items-center bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent font-semibold text-lg hover:underline transition text-center">
+                            Upload Content
+                            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="w-full bg-[#101014] pt-10 pb-4 px-4">
+                <div className="max-w-7xl mx-auto">
+                    {/* Top Row */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
+                        {/* Left: Logo and Links */}
+                        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-10">
+                            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</span>
+                            <nav className="flex gap-8 text-white/80 text-sm">
+                                <a href="#" className="hover:text-white transition">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition">Cookie Policy</a>
+                                <a href="#" className="hover:text-white transition">Terms and Condition</a>
+                            </nav>
+                        </div>
+                        {/* Right: Email Input */}
+                        <form className="flex items-center w-full md:w-auto" onSubmit={e => e.preventDefault()}>
+                            <div className="flex items-center w-full md:w-auto border border-[#8B25FF] rounded-full px-4 py-2 bg-transparent focus-within:ring-2 focus-within:ring-[#8B25FF]">
+                                <input
+                                    type="email"
+                                    placeholder="Enter Your Email"
+                                    className="bg-transparent outline-none border-none text-white placeholder-gray-400 flex-1 min-w-0 text-sm"
+                                    aria-label="Email address"
+                                />
+                                <button type="submit" className="ml-2 flex items-center justify-center w-8 h-8 rounded-full bg-[#8B25FF] hover:bg-[#350FDD] transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-white">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m0 0l-4-4m4 4l-4 4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {/* Divider */}
+                    <div className="border-t border-[#23232b] my-4" />
+                    {/* Bottom Row */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between text-xs text-gray-400 gap-2">
+                        <div>© 2025 Zentex. All rights reserved.</div>
+                        <div className="md:text-right">Today: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })} </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
     );
 }

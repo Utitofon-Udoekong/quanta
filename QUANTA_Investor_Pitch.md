@@ -1,4 +1,4 @@
-# QUANTA - Platform Overview
+# ZENTEX - Platform Overview
 
 ## 🚀 The Platform
 **Web3-native content subscription platform** competing with OnlyFans using blockchain technology.
@@ -13,7 +13,7 @@
 - Dashboard for creators and subscribers
 
 ## 🏆 Competitive Advantages
-| Feature | OnlyFans | QUANTA |
+| Feature | OnlyFans | ZENTEX |
 |---------|----------|--------|
 | Fees | 20% | 2-5% |
 | Global Access | Limited | Worldwide |
@@ -95,4 +95,4 @@
 
 ---
 
-**QUANTA is a complete, production-ready Web3 content platform with unique Creator DAOs and Quest System features that create multiple revenue streams and strong competitive advantages.** 
+**ZENTEX is a complete, production-ready Web3 content platform with unique Creator DAOs and Quest System features that create multiple revenue streams and strong competitive advantages.** 

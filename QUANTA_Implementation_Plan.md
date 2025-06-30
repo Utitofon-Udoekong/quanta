@@ -1,4 +1,4 @@
-# QUANTA - Implementation Plan
+# ZENTEX - Implementation Plan
 
 ## 🎯 3-Day Sprint: Creator DAOs + Quest System
 

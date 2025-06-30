@@ -83,7 +83,7 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     <>
       <div>
         <div className="mb-10 flex items-center justify-between sticky top-0 bg-[#0A0C10] px-3 py-4">
-          <span className="text-2xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">QUANTA</span>
+          <span className="text-2xl font-black bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</span>
           <button
             className="md:hidden text-gray-400 hover:text-white focus:outline-none"
             onClick={() => setIsSidebarOpen(false)}
