@@ -1,16 +1,12 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import { Content, Subscription, UserData } from '@/app/types';
-import { useAbstraxionAccount } from "@burnt-labs/abstraxion";
-import { Button } from "@headlessui/react"
 import { Icon } from '@iconify/react';
 import { useUserStore } from '@/app/stores/user';
-import ContentTable from '@/app/components/ui/dashboard/ContentTable';
 import { supabase } from '@/app/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 import { 
   getSubscriptionAnalytics, 
@@ -33,7 +29,6 @@ export default function Dashboard() {
   const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats | null>(null);
   const [recentSubscribers, setRecentSubscribers] = useState<SubscriberWithUserInfo[]>([]);
   const [viewsData, setViewsData] = useState<Array<{day: string, views: number}>>([]);
-  const { data: account } = useAbstraxionAccount();
   const { user, error: userError } = useUserStore();
   const router = useRouter();
 
@@ -264,86 +259,6 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [user?.wallet_address]);
   
-  const handleDeleteContent = async (id: string, type: string) => {
-    if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
-    
-    try {
-      let table = '';
-      switch (type) {
-        case 'article':
-          table = 'articles';
-          break;
-        case 'video':
-          table = 'videos';
-          break;
-        case 'audio':
-          table = 'audio';
-          break;
-        default:
-          return;
-      }
-      
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      // Refresh content after deletion
-        const [articlesData, videosData, audioData] = await Promise.all([
-          supabase
-            .from('articles')
-            .select('id, title, created_at, published, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('videos')
-            .select('id, title, created_at, published, thumbnail_url, duration, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('audio')
-            .select('id, title, created_at, published, duration, is_premium')
-            .eq('user_id', user?.id)
-            .order('created_at', { ascending: false })
-        ]);
-        
-        const combinedContent: Content[] = [
-          ...(articlesData.data || []).map(article => ({
-            ...article,
-          is_premium: article.is_premium || false,
-          kind: 'article' as const,
-          updated_at: article.created_at,
-          user_id: user!.id
-          })),
-          ...(videosData.data || []).map(video => ({
-            ...video,
-          is_premium: video.is_premium || false,
-          kind: 'video' as const,
-          updated_at: video.created_at,
-          user_id: user!.id
-          })),
-          ...(audioData.data || []).map(audio => ({
-            ...audio,
-          is_premium: audio.is_premium || false,
-          kind: 'audio' as const,
-          updated_at: audio.created_at,
-          user_id: user!.id
-          }))
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        setAllContent(combinedContent);
-    } catch (error) {
-      // console.error(`Error deleting ${type}:`, error);
-      alert(`Failed to delete ${type}. Please try again.`);
-    }
-  };
-  
-  const handleCreateContent = (type: 'article' | 'video' | 'audio') => {
-    router.push(`/dashboard/content/create?type=${type}`);
-  };
-  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -352,43 +267,7 @@ export default function Dashboard() {
     );
   }
 
-  // if (!profile) {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-  //       <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
-  //         <Icon icon="mdi:account-lock" className="w-8 h-8 text-gray-400" />
-  //       </div>
-  //       <h1 className="text-2xl font-bold mb-4 text-white">Please sign in to view your dashboard</h1>
-  //       <p className="text-gray-400 mb-6 text-center max-w-md">
-  //         Sign in to access your content, earnings, and analytics.
-  //       </p>
-  //     </div>
-  //   );
-  // }
-
-  // if (!walletAddress) {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-  //       <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
-  //         <Icon icon="mdi:wallet" className="w-8 h-8 text-gray-400" />
-  //       </div>
-  //       <h1 className="text-2xl font-bold mb-4 text-white">Connect Your Wallet</h1>
-  //       <p className="text-gray-400 mb-6 text-center max-w-md">
-  //         Connect your wallet to create and manage content, track earnings, and access premium features.
-  //       </p>
-  //       <Button
-  //         onClick={connectKeplr}
-  //         className="px-6 py-3 bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white rounded-lg hover:from-[#7A1FEF] hover:to-[#2A0BC7] transition-all duration-200"
-  //       >
-  //         Connect Wallet
-  //       </Button>
-  //     </div>
-  //   );
-  // }
-
-  // Calculate total views this month from real data
   const totalViews = viewsData.reduce((sum, day) => sum + day.views, 0);
-  const percentChange = '+12.5%'; // mock
 
   return (
     <div className="min-h-screen bg-[#0A0C10] text-white p-4 sm:p-6 lg:p-8">

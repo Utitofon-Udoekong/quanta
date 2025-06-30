@@ -1,56 +1,27 @@
 'use client';
 
-import { Icon } from '@iconify/react';
 import Image from 'next/image';
-
-// Content types for filtering
-const contentTypes = [
-    { id: 'all', name: 'All Content' },
-    { id: 'video', name: 'Videos' },
-    { id: 'audio', name: 'Audio' },
-    { id: 'article', name: 'Articles' },
-];
-
-// Premium filter options
-const premiumFilters = [
-    { id: 'both', name: 'All' },
-    { id: 'free', name: 'Free' },
-    { id: 'premium', name: 'Premium' },
-];
-
-// Timeline filter options
-const timelineFilters = [
-    { id: 1, name: '1 Day' },
-    { id: 7, name: '7 Days' },
-    { id: 14, name: '14 Days' },
-];
-
-// Format time ago
-const formatTimeAgo = (date: string): string => {
-    const now = new Date();
-    const contentDate = new Date(date);
-    const diffInSeconds = Math.floor((now.getTime() - contentDate.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)} months ago`;
-    return `${Math.floor(diffInSeconds / 31536000)} years ago`;
-};
+import Link from 'next/link';
+import { useUserStore } from '@/app/stores/user';
 
 export default function LandingPage() {
+    
+  const { user } = useUserStore();
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0A0C10] via-[#18122B] to-black text-white font-sans">
             {/* Header */}
             <header className="w-full max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 py-6">
                 <div className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-[#8B25FF] to-[#350FDD] bg-clip-text text-transparent">ZENTEX</div>
                 <nav className="hidden md:flex gap-10 text-white/80 text-base font-medium">
-                    <a href="#" className="hover:text-white transition">Home</a>
-                    <a href="#how-it-works" className="hover:text-white transition">How it works</a>
-                    <a href="#features" className="hover:text-white transition">Features</a>
+                    <Link href="/" className="hover:text-white transition">Home</Link>
+                    <Link href="#how-it-works" className="hover:text-white transition">How it works</Link>
+                    <Link href="#features" className="hover:text-white transition">Features</Link>
                 </nav>
-                <a href="/auth" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Register</a>
+                {user ? (
+                    <Link href="/dashboard" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Dashboard</Link>
+                ) : (
+                    <Link href="/auth" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Register</Link>
+                )}
             </header>
 
             {/* Hero Section */}
@@ -62,7 +33,7 @@ export default function LandingPage() {
                 <p className="text-lg md:text-xl text-white/80 mb-8 max-w-xl mx-auto">
                     Sell your content directly, set your own prices, and keep more of what you earn: no gatekeepers, no hidden fees, just pure creator freedom.
                 </p>
-                <a href="/discover" className="px-8 py-3 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold text-lg shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition mb-8">Browse Content</a>
+                <Link href="/discover" className="px-8 py-3 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold text-lg shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition mb-8">Browse Content</Link>
                 <div className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden mt-8">
                     <div className="aspect-video w-full flex items-center justify-center">
                         <Image src="/images/hero.png" alt="Hero Image" width={1000} height={1000} />
