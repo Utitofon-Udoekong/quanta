@@ -87,7 +87,7 @@ export default function LandingPage() {
                         <div className="text-4xl font-bold text-white mb-2">9000+</div>
                         <div className="text-gray-300 text-base">Total Creator</div>
                     </div>
-                </div>
+            </div>
             </section>
 
             {/* How it works */}
