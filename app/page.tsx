@@ -18,7 +18,7 @@ export default function LandingPage() {
                     <Link href="#features" className="hover:text-white transition">Features</Link>
                 </nav>
                 {user ? (
-                    <Link href="/dashboard" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Dashboard</Link>
+                    <Link href="/discover" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Discover</Link>
                 ) : (
                     <Link href="/auth" className="px-7 py-2 rounded-full bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white font-semibold shadow-lg hover:from-[#8B25FF] hover:to-[#350FDD] transition">Register</Link>
                 )}
