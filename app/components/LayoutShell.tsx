@@ -95,9 +95,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
         {pathname.startsWith('/dashboard') && user ? (
           <nav className="space-y-2 px-3">
-            <Link href="/explore" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-white font-bold hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>
-              <Icon icon="mdi:arrow-left" className="w-5 h-5 mr-2" />
-              Explore
+            <Link href="/discover" className="flex items-center space-x-3 py-2 px-3 rounded-lg text-white font-bold hover:bg-[#8B25FF]/5" onClick={() => setIsSidebarOpen(false)}>
+              <Icon icon="mdi:compass-outline" className="w-5 h-5 mr-2" />
+              Discover
             </Link>
             <Link href="/dashboard" className={getDashboardLinkClass('/dashboard')} onClick={() => setIsSidebarOpen(false)}>
               <Icon icon="mdi:home-outline" className="w-5 h-5 mr-2" />

@@ -89,13 +89,13 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
           .eq('id', id)
           .single();
 
-        const viewsPromise = supabase.from('content_views').select('count').eq('content_id', id).single();
+        const viewsPromise = supabase.from('content_views').select('*', { count: 'exact', head: true }).eq('content_id', id);
         const likesPromise = supabase.from('content_likes').select('*', { count: 'exact', head: true }).eq('content_id', id);
         const commentsPromise = supabase.from('content_comments').select('*', { count: 'exact', head: true }).eq('content_id', id);
         
         const [
           { data: contentData, error: contentError },
-          { data: viewsData, error: viewsError },
+          { count: viewsCount, error: viewsError },
           { count: likesCount, error: likesError },
           { count: commentsCount, error: commentsError }
         ] = await Promise.all([contentPromise, viewsPromise, likesPromise, commentsPromise]);
@@ -124,7 +124,7 @@ export default function ContentDetailsPage({ params }: { params: Promise<{ id: s
         }
         
         setAnalytics({
-            views: viewsData?.count || 0,
+            views: viewsCount || 0,
             likes: likesCount || 0,
             comments: commentsCount || 0
         });

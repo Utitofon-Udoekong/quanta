@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { createClient } from '@supabase/supabase-js'
 import { cookieName } from '@/app/utils/supabase';
+import { getUserIdByWalletAddress } from '@/app/api/utils';
 
 const expToExpiresIn = (exp: number) => exp - Math.floor(Date.now() / 1000);
 
@@ -101,21 +102,6 @@ const createAuthUser = async (supabase: any, wallet_address: string) => {
         // console.warn('Auth user creation failed:', error);
         throw error;
     }
-};
-
-// Helper function to get user ID by wallet address
-const getUserIdByWalletAddress = async (supabase: any, wallet_address: string) => {
-    const { data: user, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('wallet_address', wallet_address)
-        .single();
-    
-    if (error || !user) {
-        throw new Error('User not found in database');
-    }
-    
-    return user.id;
 };
 
 export async function POST(req: NextRequest) {

@@ -44,7 +44,7 @@ export default function CreateContentPage() {
 
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} created successfully!`);
       router.push('/dashboard/content');
-      router.refresh();
+      // router.refresh();
     } catch (error: any) {
       // console.error('Error creating content:', error);
       toast.error(error.message || 'Failed to create content');

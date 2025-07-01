@@ -51,18 +51,22 @@ export default function ContentManagement() {
 
         // Fetch views for all content
         const contentIds = combined.map(item => item.id);
-        const { data: viewsData } = await supabase
-          .from('content_views')
-          .select('content_id, content_type, count')
-          .in('content_id', contentIds);
-
-        // Map content_id to view count
-        const viewsMap: Record<string, number> = {};
-        (viewsData || []).forEach(row => {
-          if (row.content_id) {
-            viewsMap[row.content_id] = row.count || 0;
-          }
-        });
+        let viewsMap: Record<string, number> = {};
+        
+        if (contentIds.length > 0) {
+          // Get view counts for each content item
+          const { data: viewsData } = await supabase
+            .from('content_views')
+            .select('content_id')
+            .in('content_id', contentIds);
+          
+          // Count views per content_id
+          (viewsData || []).forEach(row => {
+            if (row.content_id) {
+              viewsMap[row.content_id] = (viewsMap[row.content_id] || 0) + 1;
+            }
+          });
+        }
 
         // Attach views to content
         const withViews = combined.map(item => ({
@@ -193,9 +197,7 @@ export default function ContentManagement() {
             </button>
           ))}
         </div>
-        <Link href="/dashboard/content/create" className="bg-gradient-to-r from-[#8B25FF] to-[#350FDD] text-white px-4 sm:px-6 py-2 rounded-full font-semibold shadow-lg transition-colors w-full sm:w-auto text-center text-sm sm:text-base">
-            Create Content
-        </Link>
+       
       </div>
 
       {/* View Mode Toggle */}
